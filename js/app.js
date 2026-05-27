@@ -2,15 +2,13 @@
    Scouting Pannenkoekenactie — App Logic
    ═══════════════════════════════════════════════ */
 
-/* ─── CONSTANTEN ─────────────────────────────── */
-const TYPES = ['Naturel', 'Stroop', 'Kaas', 'Spek', 'Spek & kaas', 'Suiker'];
-
 /* ─── STATE ──────────────────────────────────── */
-let bonnen       = [];    // alle opgeslagen bonnen
-let currentBon   = [];    // [ { type, qty } ]
-let activeFilter = 'alle';
+let types        = ['Naturel', 'Stroop', 'Kaas', 'Spek', 'Spek & kaas', 'Suiker'];
+let bonnen       = [];
+let currentBon   = [];   // [ { type, qty } ]
+let activeFilter = 'open';
 let nextNr       = 1;
-let editingNr    = null;  // bonnummer dat bewerkt wordt, of null
+let editingNr    = null;
 
 /* ═══════════════════════════════════════════════
    NAVIGATIE
@@ -23,15 +21,25 @@ function showPage(name) {
 
   if (name === 'bonnen')    renderBonnen();
   if (name === 'overzicht') renderOverzicht();
+  if (name === 'producten') renderProducten();
 }
 
 /* ═══════════════════════════════════════════════
    PAGINA 1 · NIEUWE BON
 ═══════════════════════════════════════════════ */
 
-/* ─── Type-knoppen: tik = direct +1 ─────────── */
 function renderTypeBtns() {
-  document.getElementById('types-grid').innerHTML = TYPES.map(t => {
+  const grid     = document.getElementById('types-grid');
+  const hintEl   = document.getElementById('types-hint');
+
+  if (!types.length) {
+    grid.innerHTML        = '';
+    hintEl.style.display  = 'block';
+    return;
+  }
+  hintEl.style.display = 'none';
+
+  grid.innerHTML = types.map(t => {
     const item = currentBon.find(i => i.type === t);
     const qty  = item ? item.qty : 0;
     return `
@@ -41,13 +49,12 @@ function renderTypeBtns() {
       </button>`;
   }).join('');
 
-  document.getElementById('types-grid').onclick = e => {
+  grid.onclick = e => {
     const btn = e.target.closest('.type-btn');
     if (btn) addItem(btn.dataset.type);
   };
 }
 
-/* ─── Item toevoegen (+1 per tik) ────────────── */
 function addItem(type) {
   const existing = currentBon.find(i => i.type === type);
   if (existing) {
@@ -59,7 +66,6 @@ function addItem(type) {
   renderCurrentBon();
 }
 
-/* ─── Item verlagen (−1, verwijder bij 0) ────── */
 function decrementItem(type) {
   const item = currentBon.find(i => i.type === type);
   if (!item) return;
@@ -69,14 +75,12 @@ function decrementItem(type) {
   renderCurrentBon();
 }
 
-/* ─── Item volledig verwijderen ──────────────── */
 function removeItem(type) {
   currentBon = currentBon.filter(i => i.type !== type);
   renderTypeBtns();
   renderCurrentBon();
 }
 
-/* ─── Huidige bon weergeven ──────────────────── */
 function renderCurrentBon() {
   const bonCard = document.getElementById('bon-card');
   const itemsEl = document.getElementById('current-items');
@@ -87,7 +91,6 @@ function renderCurrentBon() {
   }
 
   bonCard.style.display = 'block';
-
   const total = currentBon.reduce((sum, i) => sum + i.qty, 0);
 
   itemsEl.innerHTML = currentBon.map(i => `
@@ -101,7 +104,6 @@ function renderCurrentBon() {
     </div>
   `).join('');
 
-  // Event delegatie voor beide knoppen
   itemsEl.onclick = e => {
     const dec = e.target.closest('.btn-decrement');
     const rem = e.target.closest('.btn-remove');
@@ -112,7 +114,6 @@ function renderCurrentBon() {
   document.getElementById('bon-subtotal').textContent = total;
 }
 
-/* ─── Bon opslaan (nieuw of bewerken) ───────── */
 function saveBon() {
   const naam = document.getElementById('inp-naam').value.trim();
 
@@ -127,7 +128,6 @@ function saveBon() {
   }
 
   if (editingNr !== null) {
-    // ── Bestaande bon bijwerken ──────────────────
     const bon = bonnen.find(b => b.nr === editingNr);
     if (bon) {
       bon.naam      = naam;
@@ -139,7 +139,6 @@ function saveBon() {
     resetEditState();
     toast(`Bon #${nr} bijgewerkt`);
   } else {
-    // ── Nieuwe bon aanmaken ──────────────────────
     const now      = new Date();
     const tijdstip = now.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
     const datum    = now.toLocaleDateString('nl-NL',  { day: '2-digit', month: 'short' });
@@ -159,21 +158,18 @@ function saveBon() {
   }
 }
 
-/* ─── Bon bewerken ───────────────────────────── */
 function editBon(nr) {
   const bon = bonnen.find(b => b.nr === nr);
   if (!bon) return;
 
   editingNr  = nr;
-  currentBon = bon.items.map(i => ({ ...i })); // diepe kopie
+  currentBon = bon.items.map(i => ({ ...i }));
 
   document.getElementById('inp-naam').value      = bon.naam;
   document.getElementById('inp-opmerking').value = bon.opmerking || '';
-
-  // Toon edit-banner + pas opslaan-knop aan
-  document.getElementById('edit-banner').style.display = 'flex';
-  document.getElementById('edit-banner-text').textContent = `Bon #${nr} bewerken`;
-  document.getElementById('btn-save').textContent = 'Wijzigingen opslaan';
+  document.getElementById('edit-banner').style.display      = 'flex';
+  document.getElementById('edit-banner-text').textContent   = `Bon #${nr} bewerken`;
+  document.getElementById('btn-save').textContent           = 'Wijzigingen opslaan';
   document.getElementById('btn-save').classList.add('editing');
 
   renderTypeBtns();
@@ -181,20 +177,18 @@ function editBon(nr) {
   showPage('nieuw');
 }
 
-/* ─── Bewerken annuleren ─────────────────────── */
 function cancelEdit() {
   resetEditState();
   toast('Bewerking geannuleerd');
 }
 
-/* ─── Reset naar lege nieuwe-bon staat ──────── */
 function resetEditState() {
   editingNr  = null;
   currentBon = [];
   document.getElementById('inp-naam').value      = '';
   document.getElementById('inp-opmerking').value = '';
   document.getElementById('edit-banner').style.display = 'none';
-  document.getElementById('btn-save').textContent = 'Bon opslaan';
+  document.getElementById('btn-save').textContent      = 'Bon opslaan';
   document.getElementById('btn-save').classList.remove('editing');
   renderTypeBtns();
   renderCurrentBon();
@@ -299,18 +293,106 @@ function renderOverzicht() {
   document.getElementById('s-open').textContent  = open;
   document.getElementById('s-paid').textContent  = paid;
 
-  const counts = Object.fromEntries(TYPES.map(t => [t, 0]));
+  // Tel alle unieke soorten over alle bonnen (ook verwijderde producten)
+  const allTypes = [...new Set([
+    ...types,
+    ...bonnen.flatMap(b => b.items.map(i => i.type))
+  ])];
+
+  const counts = Object.fromEntries(allTypes.map(t => [t, 0]));
   bonnen.forEach(b => b.items.forEach(i => { counts[i.type] += i.qty; }));
 
-  document.getElementById('breakdown-list').innerHTML = TYPES.map(t => `
-    <div class="breakdown-row ${counts[t] === 0 ? 'zero' : ''}">
-      <span class="breakdown-name">${t}</span>
-      <span class="breakdown-count">${counts[t]}</span>
-    </div>
-  `).join('');
+  document.getElementById('breakdown-list').innerHTML = allTypes
+    .filter(t => counts[t] > 0 || types.includes(t))
+    .map(t => `
+      <div class="breakdown-row ${counts[t] === 0 ? 'zero' : ''}">
+        <span class="breakdown-name">${escHtml(t)}</span>
+        <span class="breakdown-count">${counts[t]}</span>
+      </div>
+    `).join('');
 
   const grandTotal = Object.values(counts).reduce((a, b) => a + b, 0);
   document.getElementById('grand-total').textContent = grandTotal;
+}
+
+/* ═══════════════════════════════════════════════
+   PAGINA 4 · PRODUCTEN
+═══════════════════════════════════════════════ */
+
+function renderProducten() {
+  const listEl = document.getElementById('producten-list');
+
+  if (!types.length) {
+    listEl.innerHTML = `<div class="products-empty">Nog geen producten toegevoegd.</div>`;
+    return;
+  }
+
+  // Tel gebruik in opgeslagen bonnen per product
+  const usageCount = Object.fromEntries(types.map(t => [t, 0]));
+  bonnen.forEach(b => b.items.forEach(i => {
+    if (i.type in usageCount) usageCount[i.type] += i.qty;
+  }));
+
+  listEl.innerHTML = types.map(t => {
+    const used = usageCount[t] || 0;
+    return `
+      <div class="product-item">
+        <div class="product-item-left">
+          <span class="product-name">${escHtml(t)}</span>
+          ${used > 0 ? `<span class="product-in-use">${used}x besteld</span>` : ''}
+        </div>
+        <button class="btn-product-delete" data-type="${escHtml(t)}" title="Verwijder product">
+          &#x2715;
+        </button>
+      </div>
+    `;
+  }).join('');
+
+  listEl.onclick = e => {
+    const btn = e.target.closest('.btn-product-delete');
+    if (btn) deleteProduct(btn.dataset.type);
+  };
+}
+
+function addProduct() {
+  const inp  = document.getElementById('inp-product');
+  const naam = inp.value.trim();
+
+  if (!naam) {
+    inp.focus();
+    toast('Vul een productnaam in');
+    return;
+  }
+
+  // Duplicaat check (hoofdletterongevoelig)
+  if (types.some(t => t.toLowerCase() === naam.toLowerCase())) {
+    toast('Dit product bestaat al');
+    inp.select();
+    return;
+  }
+
+  types.push(naam);
+  inp.value = '';
+  inp.focus();
+  renderProducten();
+  renderTypeBtns(); // type-grid op nieuwe bon bijwerken
+  toast(`"${naam}" toegevoegd`);
+}
+
+function deleteProduct(naam) {
+  // Verwijder ook uit huidige bon als aanwezig
+  const inCurrentBon = currentBon.some(i => i.type === naam);
+  types      = types.filter(t => t !== naam);
+  currentBon = currentBon.filter(i => i.type !== naam);
+
+  renderProducten();
+  renderTypeBtns();
+  renderCurrentBon();
+
+  toast(inCurrentBon
+    ? `"${naam}" verwijderd (ook van huidige bon)`
+    : `"${naam}" verwijderd`
+  );
 }
 
 /* ═══════════════════════════════════════════════
@@ -323,7 +405,7 @@ function toast(msg) {
   el.textContent = msg;
   el.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
 }
 
 function escHtml(s) {
@@ -341,3 +423,4 @@ renderTypeBtns();
 renderCurrentBon();
 renderBonnen();
 renderOverzicht();
+renderProducten();

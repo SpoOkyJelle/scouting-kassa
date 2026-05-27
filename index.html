@@ -21,6 +21,7 @@
   <button class="tab active" id="tab-btn-nieuw"     onclick="showPage('nieuw')">Nieuwe bon</button>
   <button class="tab"        id="tab-btn-bonnen"    onclick="showPage('bonnen')">Bonnen</button>
   <button class="tab"        id="tab-btn-overzicht" onclick="showPage('overzicht')">Overzicht</button>
+  <button class="tab"        id="tab-btn-producten" onclick="showPage('producten')">Producten</button>
 </nav>
 
 <!-- ════════════════════════════════════════════
@@ -28,7 +29,6 @@
 ════════════════════════════════════════════ -->
 <div class="page active" id="page-nieuw">
 
-  <!-- Edit-banner: zichtbaar bij het bewerken van een bestaande bon -->
   <div class="edit-banner" id="edit-banner" style="display: none;">
     <div class="edit-banner-left">
       <span class="edit-banner-dot"></span>
@@ -52,6 +52,9 @@
   <div class="card">
     <div class="card-title">Tik om toe te voegen</div>
     <div class="types-grid" id="types-grid"></div>
+    <p class="types-hint" id="types-hint" style="display:none;">
+      Nog geen producten. Voeg ze toe via het tabblad <strong>Producten</strong>.
+    </p>
   </div>
 
   <div class="card" id="bon-card" style="display: none;">
@@ -78,8 +81,8 @@
   </div>
 
   <div class="filter-row">
-    <button class="filter-btn active" data-f="alle"    onclick="setFilter('alle')">Alle</button>
-    <button class="filter-btn"        data-f="open"    onclick="setFilter('open')">Open</button>
+    <button class="filter-btn"        data-f="alle"    onclick="setFilter('alle')">Alle</button>
+    <button class="filter-btn active" data-f="open"    onclick="setFilter('open')">Open</button>
     <button class="filter-btn"        data-f="betaald" onclick="setFilter('betaald')">Betaald</button>
   </div>
 
@@ -115,6 +118,27 @@
   <div class="total-bar">
     <span class="total-bar-label">Totaal pannenkoeken</span>
     <span class="total-bar-num" id="grand-total">0</span>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════════
+     PAGINA 4 · PRODUCTEN
+════════════════════════════════════════════ -->
+<div class="page" id="page-producten">
+
+  <div class="card">
+    <div class="card-title">Nieuw product toevoegen</div>
+    <div class="product-add-row">
+      <input type="text" id="inp-product" placeholder="Bijv. Bacon &amp; kaas"
+             maxlength="40" onkeydown="if(event.key==='Enter') addProduct()" />
+      <button class="btn-product-add" onclick="addProduct()">Toevoegen</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Huidige producten</div>
+    <div id="producten-list"></div>
   </div>
 
 </div>
