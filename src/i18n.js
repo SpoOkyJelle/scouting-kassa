@@ -55,6 +55,7 @@ export const translations = {
     toast_no_access:     'Geen toegang — beheerder vereist',
 
     // New receipt
+    search_products:          'Zoek product…',
     receipt_name_label:       'Naam / Tafelnummer (optioneel)',
     receipt_name_placeholder: 'Bijv. Tafel 3 of Jan',
     select_products:          'Selecteer producten',
@@ -65,6 +66,8 @@ export const translations = {
     quick_select:             'Snelkeuze',
 
     // Receipt detail
+    note:             'Notitie',
+    note_placeholder: 'Voeg een notitie toe…',
     add_more:     'Meer toevoegen',
     qty:          'Aantal',
     price:        'Stukprijs',
@@ -204,6 +207,7 @@ export const translations = {
     toast_no_access:     'No access — admin required',
 
     // New receipt
+    search_products:          'Search product…',
     receipt_name_label:       'Name / Table number (optional)',
     receipt_name_placeholder: 'E.g. Table 3 or John',
     select_products:          'Select products',
@@ -214,6 +218,8 @@ export const translations = {
     quick_select:             'Quick select',
 
     // Receipt detail
+    note:             'Note',
+    note_placeholder: 'Add a note…',
     add_more:     'Add more',
     qty:          'Qty',
     price:        'Unit price',

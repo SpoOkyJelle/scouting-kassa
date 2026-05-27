@@ -952,6 +952,20 @@ hr.divider {
   transition: background 0.15s, color 0.15s;
 }
 .kiosk-close-btn:hover { background: rgba(255,255,255,0.1); color: #94A3B8; }
+.kiosk-qr-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 1.25rem 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+  margin-top: 0.5rem;
+}
+.kiosk-qr-img   { display: block; border-radius: 8px; }
+.kiosk-qr-label { font-size: 0.78rem; color: #64748B; text-align: center; max-width: 220px; margin: 0; }
+.kiosk-qr-name  { font-size: 0.82rem; font-weight: 700; color: #1E293B; text-align: center; margin: 0; line-height: 1.4; }
 
 /* ── Bulk select ──────────────────────────────────────────────────────────── */
 .bulk-bar {
@@ -1064,6 +1078,19 @@ hr.divider {
   justify-content: center;
   padding: 0 4px;
   border: 2px solid var(--surface);
+}
+
+/* ── Notitie ─────────────────────────────────────────────────────────────── */
+.note-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid #F59E0B;
+  border-radius: var(--r-lg);
+  padding: 0.65rem 0.9rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
 }
 
 /* ── Dag rapport ──────────────────────────────────────────────────────────── */

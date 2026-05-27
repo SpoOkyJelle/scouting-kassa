@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { CheckCircle2, Clock, Trash2, Check, X, FileText, Calendar, Search, CheckSquare } from 'lucide-react'
+import { CheckCircle2, Clock, Trash2, Check, X, FileText, Calendar, Search, CheckSquare, StickyNote } from 'lucide-react'
 import { useLang } from '../LangContext'
 import { fetchReceipts, updateReceipt, deleteReceipt, bulkMarkPaid } from '../api'
 import { useToast } from './Toast'
@@ -185,6 +185,14 @@ export default function Bonnen({ onOpenDetail }) {
                       <span style={{ color: 'var(--s300)' }}>·</span>
                       {receipt.item_count} {t('items')}
                     </div>
+                    {receipt.note && (
+                      <div style={{ fontSize: '0.73rem', color: 'var(--muted)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 4, fontStyle: 'italic' }}>
+                        <StickyNote size={10} style={{ flexShrink: 0 }} />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>
+                          {receipt.note}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <span className={`badge ${receipt.paid ? 'badge-paid' : 'badge-unpaid'}`}>

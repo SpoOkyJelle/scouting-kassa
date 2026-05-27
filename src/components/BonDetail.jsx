@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import {
   ArrowLeft, Check, X, Trash2, Pencil, Calendar, Plus, Package,
-  ChevronDown, ChevronUp, Printer, QrCode, Monitor, Calculator,
+  ChevronDown, ChevronUp, Printer, QrCode, Monitor, Calculator, StickyNote,
 } from 'lucide-react'
 import { useLang } from '../LangContext'
 import {
@@ -39,6 +39,8 @@ export default function BonDetail({ id, onBack }) {
   const [received, setReceived]           = useState('')
   const [discountInput, setDiscountInput] = useState('0')
   const [savingDiscount, setSavingDiscount] = useState(false)
+  const [editingNote, setEditingNote]     = useState(false)
+  const [noteInput, setNoteInput]         = useState('')
 
   useEffect(() => {
     setLoading(true)
@@ -46,6 +48,7 @@ export default function BonDetail({ id, onBack }) {
       setReceipt(rec)
       setProducts(prods)
       setDiscountInput(String(rec.discount_pct || 0))
+      setNoteInput(rec.note || '')
       setLoading(false)
     })
   }, [id])
@@ -68,6 +71,13 @@ export default function BonDetail({ id, onBack }) {
     const updated = await updateReceipt(id, { name: nameInput || null })
     setReceipt(prev => ({ ...prev, ...updated }))
     setEditingName(false)
+    showToast(t('toast_saved'))
+  }
+
+  async function saveNote() {
+    const updated = await updateReceipt(id, { note: noteInput.trim() || null })
+    setReceipt(prev => ({ ...prev, ...updated }))
+    setEditingNote(false)
     showToast(t('toast_saved'))
   }
 
@@ -218,6 +228,47 @@ export default function BonDetail({ id, onBack }) {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* ── Notitie ─────────────────────────────────────────────────────── */}
+      <div className="note-row">
+        <StickyNote size={14} style={{ color: 'var(--muted)', flexShrink: 0, marginTop: 2 }} />
+        {editingNote ? (
+          <div style={{ display: 'flex', gap: 6, flex: 1, alignItems: 'flex-start' }}>
+            <textarea
+              className="form-input"
+              style={{ flex: 1, resize: 'vertical', minHeight: 56, fontSize: '0.84rem' }}
+              value={noteInput}
+              onChange={e => setNoteInput(e.target.value)}
+              placeholder={t('note_placeholder')}
+              autoFocus
+              onKeyDown={e => { if (e.key === 'Enter' && e.ctrlKey) saveNote() }}
+            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <button className="btn btn-primary btn-sm" onClick={saveNote}>{t('save')}</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => { setEditingNote(false); setNoteInput(receipt.note || '') }}>{t('cancel')}</button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, flex: 1 }}>
+            <span style={{
+              flex: 1, fontSize: '0.84rem', lineHeight: 1.45,
+              color: receipt.note ? 'var(--s800)' : 'var(--s400)',
+              fontStyle: receipt.note ? 'normal' : 'italic',
+              whiteSpace: 'pre-wrap',
+            }}>
+              {receipt.note || t('note_placeholder')}
+            </span>
+            <button
+              className="btn btn-ghost btn-sm no-print"
+              onClick={() => { setNoteInput(receipt.note || ''); setEditingNote(true) }}
+              style={{ padding: '3px 6px', flexShrink: 0 }}
+              title={t('note')}
+            >
+              <Pencil size={12} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Items table ─────────────────────────────────────────────────── */}

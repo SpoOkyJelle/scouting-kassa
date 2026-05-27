@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ShoppingCart, Package, Zap } from 'lucide-react'
+import { ShoppingCart, Package, Zap, Search, X } from 'lucide-react'
 import { useLang } from '../LangContext'
 import { fetchProducts, fetchPopularProducts, createReceipt } from '../api'
 import { CATEGORIES, getCat } from '../categories'
@@ -9,8 +9,9 @@ const fmt = p => `€ ${parseFloat(p).toFixed(2)}`
 export default function NieuweBon({ onCreated }) {
   const { t } = useLang()
   const [products, setProducts] = useState([])
-  const [popular, setPopular]   = useState([])
-  const [loading, setLoading]   = useState(true)
+  const [popular, setPopular]       = useState([])
+  const [loading, setLoading]       = useState(true)
+  const [productSearch, setProductSearch] = useState('')
   const [name, setName]         = useState('')
   const [order, setOrder]       = useState({})   // { [productId]: { product, quantity } }
   const [saving, setSaving]     = useState(false)
@@ -80,11 +81,70 @@ export default function NieuweBon({ onCreated }) {
       <div className="new-receipt-layout">
         {/* ── Product grid ────────────────────────────────────────────────── */}
         <div>
+          {/* Zoekbalk */}
+          {products.length > 0 && (
+            <div className="search-wrap" style={{ marginBottom: '0.85rem' }}>
+              <Search size={14} className="search-icon" />
+              <input
+                className="form-input search-input"
+                placeholder={t('search_products')}
+                value={productSearch}
+                onChange={e => setProductSearch(e.target.value)}
+              />
+              {productSearch && (
+                <button className="search-clear" onClick={() => setProductSearch('')}>
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+          )}
+
           {products.length === 0 ? (
             <div className="empty-state">
               <Package size={36} strokeWidth={1.2} style={{ color: 'var(--s300)' }} />
               <p>{t('no_products_hint')}</p>
             </div>
+          ) : productSearch.trim() ? (
+            // ── Zoekresultaten ───────────────────────────────────────────
+            (() => {
+              const q = productSearch.trim().toLowerCase()
+              const results = products.filter(p => p.name.toLowerCase().includes(q))
+              if (!results.length) return (
+                <div className="empty-state">
+                  <Search size={30} strokeWidth={1.2} style={{ color: 'var(--s300)' }} />
+                  <p style={{ color: 'var(--muted)' }}>{t('no_receipts')}</p>
+                </div>
+              )
+              return (
+                <div className="product-grid">
+                  {results.map(p => {
+                    const cat = getCat(p.category || 'overig')
+                    const inOrder = !!order[p.id]
+                    return (
+                      <div
+                        key={p.id}
+                        className={`product-tile ${inOrder ? 'in-order' : ''}`}
+                        style={{
+                          borderTopColor: inOrder ? cat.color : cat.color + '60',
+                          background: inOrder ? cat.bg : 'var(--surface)',
+                        }}
+                        onClick={() => addProduct(p)}
+                      >
+                        {inOrder && (
+                          <span className="tile-qty" style={{ background: cat.color }}>
+                            {order[p.id].quantity}
+                          </span>
+                        )}
+                        <div className="tile-name">{p.name}</div>
+                        <div className="tile-price" style={{ color: cat.color }}>
+                          {fmt(p.price)}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })()
           ) : (
             <>
               {/* Popular / quick select */}

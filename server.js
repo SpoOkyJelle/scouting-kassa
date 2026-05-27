@@ -174,11 +174,12 @@ app.get('/api/receipts', (_req, res) => {
 })
 
 app.post('/api/receipts', async (req, res) => {
-  const { name, items } = req.body
+  const { name, items, note } = req.body
   const rid = nextId('_rid')
   const receipt = {
     id:           rid,
     name:         name || null,
+    note:         note || null,
     paid:         0,
     discount_pct: 0,
     created_at:   new Date().toISOString(),
@@ -209,6 +210,7 @@ app.put('/api/receipts/:id', async (req, res) => {
   const receipt = db.data.receipts.find(r => r.id === id)
   if (!receipt) return res.status(404).json({ error: 'Not found' })
   if (req.body.name         !== undefined) receipt.name         = req.body.name
+  if (req.body.note         !== undefined) receipt.note         = req.body.note || null
   if (req.body.paid         !== undefined) receipt.paid         = req.body.paid ? 1 : 0
   if (req.body.discount_pct !== undefined) receipt.discount_pct = parseFloat(req.body.discount_pct) || 0
   await db.write()
