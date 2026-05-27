@@ -1,20 +1,31 @@
 import { useState, useEffect } from 'react'
-import { ShoppingCart, Package, Zap, Search, X } from 'lucide-react'
+import { ShoppingCart, Package, Zap, Search, X, PlusCircle } from 'lucide-react'
 import { useLang } from '../LangContext'
 import { fetchProducts, fetchPopularProducts, createReceipt } from '../api'
 import { CATEGORIES, getCat } from '../categories'
 
 const fmt = p => `€ ${parseFloat(p).toFixed(2)}`
 
+function SectionHead({ Icon, label, color = 'var(--muted)' }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: '0.6rem' }}>
+      <Icon size={13} color={color} strokeWidth={2.3} />
+      <span style={{ fontSize: '0.69rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+        {label}
+      </span>
+    </div>
+  )
+}
+
 export default function NieuweBon({ onCreated }) {
   const { t } = useLang()
-  const [products, setProducts] = useState([])
-  const [popular, setPopular]       = useState([])
-  const [loading, setLoading]       = useState(true)
+  const [products, setProducts]           = useState([])
+  const [popular, setPopular]             = useState([])
+  const [loading, setLoading]             = useState(true)
   const [productSearch, setProductSearch] = useState('')
-  const [name, setName]         = useState('')
-  const [order, setOrder]       = useState({})   // { [productId]: { product, quantity } }
-  const [saving, setSaving]     = useState(false)
+  const [name, setName]                   = useState('')
+  const [order, setOrder]                 = useState({})
+  const [saving, setSaving]               = useState(false)
 
   useEffect(() => {
     Promise.all([
@@ -66,9 +77,14 @@ export default function NieuweBon({ onCreated }) {
   })).filter(g => g.items.length > 0)
 
   return (
-    <div>
-      {/* Optional name */}
-      <div className="form-group">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+
+      {/* ── Naam / tafelnummer ───────────────────────────────────────────── */}
+      <div style={{
+        background: 'var(--surface)', border: '1px solid var(--border)',
+        borderRadius: 12, padding: '0.9rem 1rem',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+      }}>
         <label className="form-label">{t('receipt_name_label')}</label>
         <input
           className="form-input"
@@ -83,8 +99,8 @@ export default function NieuweBon({ onCreated }) {
         <div>
           {/* Zoekbalk */}
           {products.length > 0 && (
-            <div className="search-wrap" style={{ marginBottom: '0.85rem' }}>
-              <Search size={14} className="search-icon" />
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginBottom: '0.85rem' }}>
+              <Search size={14} style={{ position: 'absolute', left: 10, color: 'var(--s400)', pointerEvents: 'none' }} />
               <input
                 className="form-input search-input"
                 placeholder={t('search_products')}
@@ -100,19 +116,22 @@ export default function NieuweBon({ onCreated }) {
           )}
 
           {products.length === 0 ? (
-            <div className="empty-state">
+            <div style={{
+              background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12,
+              padding: '3rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center',
+              gap: '0.5rem', color: 'var(--muted)',
+            }}>
               <Package size={36} strokeWidth={1.2} style={{ color: 'var(--s300)' }} />
-              <p>{t('no_products_hint')}</p>
+              <p style={{ fontSize: '0.86rem' }}>{t('no_products_hint')}</p>
             </div>
           ) : productSearch.trim() ? (
-            // ── Zoekresultaten ───────────────────────────────────────────
             (() => {
               const q = productSearch.trim().toLowerCase()
               const results = products.filter(p => p.name.toLowerCase().includes(q))
               if (!results.length) return (
-                <div className="empty-state">
+                <div style={{ padding: '2rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', color: 'var(--muted)' }}>
                   <Search size={30} strokeWidth={1.2} style={{ color: 'var(--s300)' }} />
-                  <p style={{ color: 'var(--muted)' }}>{t('no_receipts')}</p>
+                  <p style={{ fontSize: '0.84rem' }}>{t('no_receipts')}</p>
                 </div>
               )
               return (
@@ -124,21 +143,12 @@ export default function NieuweBon({ onCreated }) {
                       <div
                         key={p.id}
                         className={`product-tile ${inOrder ? 'in-order' : ''}`}
-                        style={{
-                          borderTopColor: inOrder ? cat.color : cat.color + '60',
-                          background: inOrder ? cat.bg : 'var(--surface)',
-                        }}
+                        style={{ borderTopColor: inOrder ? cat.color : cat.color + '60', background: inOrder ? cat.bg : 'var(--surface)' }}
                         onClick={() => addProduct(p)}
                       >
-                        {inOrder && (
-                          <span className="tile-qty" style={{ background: cat.color }}>
-                            {order[p.id].quantity}
-                          </span>
-                        )}
+                        {inOrder && <span className="tile-qty" style={{ background: cat.color }}>{order[p.id].quantity}</span>}
                         <div className="tile-name">{p.name}</div>
-                        <div className="tile-price" style={{ color: cat.color }}>
-                          {fmt(p.price)}
-                        </div>
+                        <div className="tile-price" style={{ color: cat.color }}>{fmt(p.price)}</div>
                       </div>
                     )
                   })}
@@ -147,15 +157,9 @@ export default function NieuweBon({ onCreated }) {
             })()
           ) : (
             <>
-              {/* Popular / quick select */}
               {popular.length > 0 && (
                 <div style={{ marginBottom: '1.1rem' }}>
-                  <div className="cat-header">
-                    <Zap size={14} color="#F59E0B" strokeWidth={2.5} />
-                    <span className="cat-label" style={{ color: '#F59E0B' }}>
-                      {t('quick_select')}
-                    </span>
-                  </div>
+                  <SectionHead Icon={Zap} label={t('quick_select')} color="#F59E0B" />
                   <div className="quick-grid">
                     {popular.map(p => {
                       const cat = getCat(p.category || 'overig')
@@ -167,11 +171,7 @@ export default function NieuweBon({ onCreated }) {
                           style={{ borderTopColor: inOrder ? cat.color : cat.color + '60' }}
                           onClick={() => addProduct(p)}
                         >
-                          {inOrder && (
-                            <span className="quick-tile-qty" style={{ background: cat.color }}>
-                              {order[p.id].quantity}
-                            </span>
-                          )}
+                          {inOrder && <span className="quick-tile-qty" style={{ background: cat.color }}>{order[p.id].quantity}</span>}
                           <div className="tile-name">{p.name}</div>
                           <div className="tile-price" style={{ color: cat.color }}>{fmt(p.price)}</div>
                         </div>
@@ -181,18 +181,11 @@ export default function NieuweBon({ onCreated }) {
                 </div>
               )}
 
-              {/* Category groups */}
               {groups.map(({ cat, items }) => {
                 const { Icon } = cat
                 return (
                   <div key={cat.id} style={{ marginBottom: '1.1rem' }}>
-                    <div className="cat-header">
-                      <Icon size={14} color={cat.color} strokeWidth={2.5} />
-                      <span className="cat-label" style={{ color: cat.color }}>
-                        {t(`cat_${cat.id}`)}
-                      </span>
-                      <span className="cat-count">{items.length}</span>
-                    </div>
+                    <SectionHead Icon={Icon} label={t(`cat_${cat.id}`)} color={cat.color} />
                     <div className="product-grid">
                       {items.map(p => {
                         const inOrder = !!order[p.id]
@@ -200,21 +193,12 @@ export default function NieuweBon({ onCreated }) {
                           <div
                             key={p.id}
                             className={`product-tile ${inOrder ? 'in-order' : ''}`}
-                            style={{
-                              borderTopColor: inOrder ? cat.color : cat.color + '60',
-                              background: inOrder ? cat.bg : 'var(--surface)',
-                            }}
+                            style={{ borderTopColor: inOrder ? cat.color : cat.color + '60', background: inOrder ? cat.bg : 'var(--surface)' }}
                             onClick={() => addProduct(p)}
                           >
-                            {inOrder && (
-                              <span className="tile-qty" style={{ background: cat.color }}>
-                                {order[p.id].quantity}
-                              </span>
-                            )}
+                            {inOrder && <span className="tile-qty" style={{ background: cat.color }}>{order[p.id].quantity}</span>}
                             <div className="tile-name">{p.name}</div>
-                            <div className="tile-price" style={{ color: cat.color }}>
-                              {fmt(p.price)}
-                            </div>
+                            <div className="tile-price" style={{ color: cat.color }}>{fmt(p.price)}</div>
                           </div>
                         )
                       })}
@@ -226,48 +210,78 @@ export default function NieuweBon({ onCreated }) {
           )}
         </div>
 
-        {/* ── Order summary ────────────────────────────────────────────────── */}
-        <div className="order-panel">
-          <p className="section-title" style={{ marginBottom: '0.7rem' }}>
-            <ShoppingCart size={15} />
-            {t('order_summary')}
-          </p>
-
-          {orderItems.length === 0 ? (
-            <p style={{ color: 'var(--muted)', fontSize: '0.82rem', textAlign: 'center', padding: '1rem 0' }}>
-              {t('no_items_selected')}
-            </p>
-          ) : (
-            orderItems.map(({ product, quantity }) => {
-              const cat = getCat(product.category || 'overig')
-              return (
-                <div key={product.id} className="order-item">
-                  <span className="order-item-dot" style={{ background: cat.color }} />
-                  <span className="order-item-name">{product.name}</span>
-                  <div className="qty-wrap">
-                    <button className="qty-btn" onClick={() => setQty(product.id, quantity - 1)}>−</button>
-                    <span className="qty-val">{quantity}</span>
-                    <button className="qty-btn plus" onClick={() => setQty(product.id, quantity + 1)}>+</button>
-                  </div>
-                  <span className="order-item-price">{fmt(product.price * quantity)}</span>
-                </div>
-              )
-            })
-          )}
-
-          <div className="total-bar">
-            <span>{t('total')}</span>
-            <span className="total-amount">{fmt(total)}</span>
+        {/* ── Order panel ──────────────────────────────────────────────────── */}
+        <div style={{
+          background: 'var(--surface)', border: '1px solid var(--border)',
+          borderRadius: 12, overflow: 'hidden',
+          position: 'sticky', top: 'calc(var(--header-h) + var(--nav-h) + 1rem)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+        }}>
+          {/* Panel header */}
+          <div style={{
+            background: 'linear-gradient(135deg, #052e16 0%, #166534 100%)',
+            padding: '0.85rem 1rem',
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <ShoppingCart size={15} color="rgba(255,255,255,0.8)" />
+            <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#fff', flex: 1 }}>
+              {t('order_summary')}
+            </span>
+            {orderItems.length > 0 && (
+              <span style={{ fontWeight: 900, fontSize: '1.05rem', color: '#86efac', letterSpacing: '-0.4px' }}>
+                {fmt(total)}
+              </span>
+            )}
           </div>
 
-          <button
-            className="btn btn-primary btn-full btn-lg"
-            style={{ marginTop: '0.75rem' }}
-            disabled={!orderItems.length || saving}
-            onClick={handleCreate}
-          >
-            {saving ? t('loading') : t('create_receipt')}
-          </button>
+          {/* Items */}
+          <div style={{ padding: '0.5rem 1rem' }}>
+            {orderItems.length === 0 ? (
+              <p style={{ color: 'var(--muted)', fontSize: '0.82rem', textAlign: 'center', padding: '1.25rem 0' }}>
+                {t('no_items_selected')}
+              </p>
+            ) : (
+              orderItems.map(({ product, quantity }) => {
+                const cat = getCat(product.category || 'overig')
+                return (
+                  <div key={product.id} className="order-item">
+                    <span className="order-item-dot" style={{ background: cat.color }} />
+                    <span className="order-item-name">{product.name}</span>
+                    <div className="qty-wrap">
+                      <button className="qty-btn" onClick={() => setQty(product.id, quantity - 1)}>−</button>
+                      <span className="qty-val">{quantity}</span>
+                      <button className="qty-btn plus" onClick={() => setQty(product.id, quantity + 1)}>+</button>
+                    </div>
+                    <span className="order-item-price">{fmt(product.price * quantity)}</span>
+                  </div>
+                )
+              })
+            )}
+          </div>
+
+          {/* Footer */}
+          <div style={{ padding: '0 1rem 1rem' }}>
+            {orderItems.length > 0 && (
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '8px 0', marginBottom: '0.6rem',
+                borderTop: '1.5px solid var(--border)',
+                fontWeight: 700, fontSize: '0.86rem', color: 'var(--s700)',
+              }}>
+                <span>{t('total')}</span>
+                <span style={{ color: 'var(--primary)', fontSize: '1.1rem', fontWeight: 800 }}>{fmt(total)}</span>
+              </div>
+            )}
+            <button
+              className="btn btn-primary btn-full btn-lg"
+              disabled={!orderItems.length || saving}
+              onClick={handleCreate}
+              style={{ gap: 7 }}
+            >
+              <PlusCircle size={15} />
+              {saving ? t('loading') : t('create_receipt')}
+            </button>
+          </div>
         </div>
       </div>
     </div>

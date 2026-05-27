@@ -23,24 +23,35 @@ function fmtDate(str) {
   })
 }
 
+function SectionHead({ Icon, label, color = 'var(--muted)' }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: '0.6rem' }}>
+      <Icon size={13} color={color} strokeWidth={2.3} />
+      <span style={{ fontSize: '0.69rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+        {label}
+      </span>
+    </div>
+  )
+}
+
 export default function BonDetail({ id, onBack }) {
   const { t } = useLang()
   const showToast  = useToast()
   const confirm    = useConfirm()
 
-  const [receipt, setReceipt]             = useState(null)
-  const [products, setProducts]           = useState([])
-  const [loading, setLoading]             = useState(true)
-  const [showAdd, setShowAdd]             = useState(false)
-  const [editingName, setEditingName]     = useState(false)
-  const [nameInput, setNameInput]         = useState('')
-  const [showPayment, setShowPayment]     = useState(false)
-  const [showKiosk, setShowKiosk]         = useState(false)
-  const [received, setReceived]           = useState('')
-  const [discountInput, setDiscountInput] = useState('0')
+  const [receipt, setReceipt]               = useState(null)
+  const [products, setProducts]             = useState([])
+  const [loading, setLoading]               = useState(true)
+  const [showAdd, setShowAdd]               = useState(false)
+  const [editingName, setEditingName]       = useState(false)
+  const [nameInput, setNameInput]           = useState('')
+  const [showPayment, setShowPayment]       = useState(false)
+  const [showKiosk, setShowKiosk]           = useState(false)
+  const [received, setReceived]             = useState('')
+  const [discountInput, setDiscountInput]   = useState('0')
   const [savingDiscount, setSavingDiscount] = useState(false)
-  const [editingNote, setEditingNote]     = useState(false)
-  const [noteInput, setNoteInput]         = useState('')
+  const [editingNote, setEditingNote]       = useState(false)
+  const [noteInput, setNoteInput]           = useState('')
 
   useEffect(() => {
     setLoading(true)
@@ -128,111 +139,140 @@ export default function BonDetail({ id, onBack }) {
   const change      = received.trim() !== '' ? receivedNum - total : null
 
   const productCatMap = Object.fromEntries(products.map(p => [p.id, p.category || 'overig']))
-
   const groups = CATEGORIES.map(cat => ({
     cat,
     items: products.filter(p => (p.category || 'overig') === cat.id),
   })).filter(g => g.items.length > 0)
 
   const receiptTitle = receipt.name || `${t('receipt_number')} #${receipt.id}`
+  const isPaid = !!receipt.paid
 
   return (
-    <div>
-      {/* Overlays */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
       {showPayment && <PaymentModal onClose={() => setShowPayment(false)} />}
       {showKiosk   && <KioskScreen total={total} name={receiptTitle} onClose={() => setShowKiosk(false)} />}
 
       {/* Back */}
-      <button className="btn btn-ghost btn-sm no-print" onClick={onBack} style={{ marginBottom: '0.85rem' }}>
+      <button className="btn btn-ghost btn-sm no-print" onClick={onBack} style={{ alignSelf: 'flex-start' }}>
         <ArrowLeft size={14} /> {t('back')}
       </button>
 
-      {/* ── Header card ─────────────────────────────────────────────────── */}
-      <div className="detail-header">
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {editingName ? (
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              <input
-                className="form-input"
-                style={{ flex: '1 1 180px' }}
-                value={nameInput}
-                onChange={e => setNameInput(e.target.value)}
-                autoFocus
-                onKeyDown={e => e.key === 'Enter' && saveName()}
-              />
-              <button className="btn btn-primary btn-sm" onClick={saveName}>{t('save')}</button>
-              <button className="btn btn-ghost btn-sm" onClick={() => setEditingName(false)}>{t('cancel')}</button>
+      {/* ── Hero header ─────────────────────────────────────────────────── */}
+      <div style={{
+        background: isPaid
+          ? 'linear-gradient(135deg, #052e16 0%, #14532d 60%, #166534 100%)'
+          : 'linear-gradient(135deg, #451a03 0%, #78350f 60%, #92400e 100%)',
+        borderRadius: 14,
+        padding: '1.1rem 1.25rem',
+        color: '#fff',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {/* Decorative circles */}
+        <div style={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
+        <div style={{ position: 'absolute', bottom: -30, right: 50, width: 70, height: 70, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, position: 'relative' }}>
+          {/* Left: title + meta */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {editingName ? (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                <input
+                  className="form-input"
+                  style={{ flex: '1 1 180px', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', color: '#fff' }}
+                  value={nameInput}
+                  onChange={e => setNameInput(e.target.value)}
+                  autoFocus
+                  onKeyDown={e => e.key === 'Enter' && saveName()}
+                  placeholder={receiptTitle}
+                />
+                <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none' }} onClick={saveName}>{t('save')}</button>
+                <button className="btn btn-sm" style={{ background: 'rgba(0,0,0,0.2)', color: 'rgba(255,255,255,0.7)', border: 'none' }} onClick={() => setEditingName(false)}>{t('cancel')}</button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
+                <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.3px' }}>
+                  {receiptTitle}
+                </span>
+                <button
+                  className="btn btn-ghost btn-sm no-print"
+                  onClick={() => { setNameInput(receipt.name ?? ''); setEditingName(true) }}
+                  style={{ padding: '3px 5px', color: 'rgba(255,255,255,0.5)' }}
+                >
+                  <Pencil size={12} />
+                </button>
+              </div>
+            )}
+            <div style={{ fontSize: '0.73rem', color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Calendar size={11} />
+              {fmtDate(receipt.created_at)}
             </div>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <span className="detail-title">{receiptTitle}</span>
+
+            {/* Status badge */}
+            <div style={{ marginTop: 10 }}>
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                padding: '4px 10px', borderRadius: 20,
+                fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px',
+                background: 'rgba(255,255,255,0.15)',
+                color: '#fff',
+              }}>
+                {isPaid ? <><Check size={11} /> {t('paid')}</> : <><X size={11} /> {t('unpaid')}</>}
+              </span>
+            </div>
+          </div>
+
+          {/* Right: total + actions */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
+            <div style={{ fontSize: 'clamp(1.5rem, 5vw, 2rem)', fontWeight: 900, letterSpacing: '-0.5px', color: isPaid ? '#86efac' : '#fcd34d' }}>
+              {fmt(total)}
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              {!isPaid && (
+                <button
+                  className="btn btn-sm no-print"
+                  onClick={() => setShowPayment(true)}
+                  style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', gap: 5 }}
+                >
+                  <QrCode size={13} /> {t('payment_btn')}
+                </button>
+              )}
               <button
-                className="btn btn-ghost btn-sm no-print"
-                title={t('edit_name')}
-                onClick={() => { setNameInput(receipt.name ?? ''); setEditingName(true) }}
-                style={{ padding: '4px 6px' }}
+                className="btn btn-sm no-print"
+                onClick={togglePaid}
+                style={{
+                  background: isPaid ? 'rgba(217,119,6,0.25)' : 'rgba(255,255,255,0.2)',
+                  color: '#fff', border: `1px solid ${isPaid ? 'rgba(217,119,6,0.4)' : 'rgba(255,255,255,0.25)'}`,
+                  gap: 5,
+                }}
               >
-                <Pencil size={13} />
+                {isPaid ? <><X size={12} /> {t('mark_unpaid')}</> : <><Check size={12} /> {t('mark_paid')}</>}
               </button>
             </div>
-          )}
-          <div className="detail-meta">
-            <Calendar size={11} />
-            {t('created')}: {fmtDate(receipt.created_at)}
-          </div>
-          <div style={{ marginTop: 8 }}>
-            <span className={`badge ${receipt.paid ? 'badge-paid' : 'badge-unpaid'}`}>
-              {receipt.paid
-                ? <><Check size={10} /> {t('paid')}</>
-                : <><X size={10} /> {t('unpaid')}</>}
-            </span>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end', flexShrink: 0 }}>
-          {/* Payment request button — only shown for unpaid receipts */}
-          {!receipt.paid && (
-            <button
-              className="btn btn-primary no-print"
-              onClick={() => setShowPayment(true)}
-              style={{ gap: 7 }}
-            >
-              <QrCode size={14} /> {t('payment_btn')}
-            </button>
-          )}
-          <button
-            className={`btn ${receipt.paid ? 'btn-warning' : 'btn-success'} no-print`}
-            onClick={togglePaid}
-          >
-            {receipt.paid
-              ? <><X size={13} /> {t('mark_unpaid')}</>
-              : <><Check size={13} /> {t('mark_paid')}</>}
-          </button>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button
-              className="btn btn-ghost btn-sm no-print"
-              onClick={() => setShowKiosk(true)}
-              title={t('kiosk_mode')}
-            >
-              <Monitor size={13} /> {t('kiosk_mode')}
-            </button>
-            <button
-              className="btn btn-ghost btn-sm no-print"
-              onClick={() => window.print()}
-              title={t('print')}
-            >
-              <Printer size={13} /> {t('print')}
-            </button>
-            <button className="btn btn-ghost-danger btn-sm no-print" onClick={handleDelete}>
-              <Trash2 size={13} /> {t('delete_receipt')}
-            </button>
+            <div style={{ display: 'flex', gap: 5 }}>
+              <button className="btn btn-ghost btn-sm no-print" onClick={() => setShowKiosk(true)} style={{ color: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.08)', fontSize: '0.72rem' }}>
+                <Monitor size={12} /> {t('kiosk_mode')}
+              </button>
+              <button className="btn btn-ghost btn-sm no-print" onClick={() => window.print()} style={{ color: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.08)' }}>
+                <Printer size={12} />
+              </button>
+              <button className="btn btn-ghost btn-sm no-print" onClick={handleDelete} style={{ color: '#fca5a5', background: 'rgba(220,38,38,0.2)' }}>
+                <Trash2 size={12} />
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       {/* ── Notitie ─────────────────────────────────────────────────────── */}
-      <div className="note-row">
-        <StickyNote size={14} style={{ color: 'var(--muted)', flexShrink: 0, marginTop: 2 }} />
+      <div style={{
+        background: 'var(--surface)', border: '1px solid var(--border)',
+        borderLeft: '3px solid #F59E0B', borderRadius: 12,
+        padding: '0.75rem 1rem',
+        display: 'flex', alignItems: 'flex-start', gap: 10,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+      }}>
+        <StickyNote size={14} style={{ color: '#F59E0B', flexShrink: 0, marginTop: 2 }} />
         {editingNote ? (
           <div style={{ display: 'flex', gap: 6, flex: 1, alignItems: 'flex-start' }}>
             <textarea
@@ -263,7 +303,6 @@ export default function BonDetail({ id, onBack }) {
               className="btn btn-ghost btn-sm no-print"
               onClick={() => { setNoteInput(receipt.note || ''); setEditingNote(true) }}
               style={{ padding: '3px 6px', flexShrink: 0 }}
-              title={t('note')}
             >
               <Pencil size={12} />
             </button>
@@ -272,7 +311,11 @@ export default function BonDetail({ id, onBack }) {
       </div>
 
       {/* ── Items table ─────────────────────────────────────────────────── */}
-      <div className="items-box">
+      <div style={{
+        background: 'var(--surface)', border: '1px solid var(--border)',
+        borderRadius: 12, overflow: 'hidden',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+      }}>
         <div className="items-head">
           <span>{t('product_name')}</span>
           <span style={{ textAlign: 'center' }}>{t('qty')}</span>
@@ -281,8 +324,8 @@ export default function BonDetail({ id, onBack }) {
         </div>
 
         {(!receipt.items?.length) && (
-          <div className="empty-state" style={{ padding: '1.5rem' }}>
-            <p>{t('no_items')}</p>
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--muted)', fontSize: '0.84rem' }}>
+            {t('no_items')}
           </div>
         )}
 
@@ -291,9 +334,7 @@ export default function BonDetail({ id, onBack }) {
           return (
             <div key={item.id} className="items-row">
               <span style={{ fontWeight: 500, fontSize: '0.86rem', display: 'flex', alignItems: 'center', gap: 7 }}>
-                <span
-                  style={{ width: 3, height: 16, borderRadius: 2, background: cat.color, flexShrink: 0 }}
-                />
+                <span style={{ width: 3, height: 16, borderRadius: 2, background: cat.color, flexShrink: 0 }} />
                 {item.product_name}
               </span>
               <div className="qty-wrap no-print" style={{ justifyContent: 'center' }}>
@@ -301,20 +342,13 @@ export default function BonDetail({ id, onBack }) {
                 <span className="qty-val">{item.quantity}</span>
                 <button className="qty-btn plus" onClick={() => changeQty(item, 1)}>+</button>
               </div>
-              <span className="qty-val print-only" style={{ textAlign: 'center', display: 'none' }}>
-                {item.quantity}
-              </span>
-              <span className="col-right" style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>
-                {fmt(item.product_price)}
-              </span>
-              <span className="col-right" style={{ fontWeight: 700, fontSize: '0.86rem' }}>
-                {fmt(item.product_price * item.quantity)}
-              </span>
+              <span className="qty-val print-only" style={{ textAlign: 'center', display: 'none' }}>{item.quantity}</span>
+              <span className="col-right" style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>{fmt(item.product_price)}</span>
+              <span className="col-right" style={{ fontWeight: 700, fontSize: '0.86rem' }}>{fmt(item.product_price * item.quantity)}</span>
             </div>
           )
         })}
 
-        {/* Discount rows */}
         {receipt.discount_pct > 0 && (
           <>
             <div className="items-row" style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>
@@ -322,9 +356,7 @@ export default function BonDetail({ id, onBack }) {
               <span style={{ textAlign: 'right', fontWeight: 600 }}>{fmt(subtotal)}</span>
             </div>
             <div className="items-row" style={{ fontSize: '0.82rem', color: 'var(--danger)' }}>
-              <span style={{ gridColumn: '1 / 4' }}>
-                {t('discount')} ({receipt.discount_pct}%)
-              </span>
+              <span style={{ gridColumn: '1 / 4' }}>{t('discount')} ({receipt.discount_pct}%)</span>
               <span style={{ textAlign: 'right', fontWeight: 600 }}>−{fmt(discountAmt)}</span>
             </div>
           </>
@@ -336,83 +368,91 @@ export default function BonDetail({ id, onBack }) {
         </div>
       </div>
 
-      {/* ── Korting (discount) ──────────────────────────────────────────── */}
-      <div className="discount-row no-print">
-        <span style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--s700)' }}>
-          {t('discount_pct')}
-        </span>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          <input
-            type="number"
-            className="form-input discount-input"
-            value={discountInput}
-            onChange={e => setDiscountInput(e.target.value)}
-            min="0" max="100" step="1"
-            onKeyDown={e => e.key === 'Enter' && saveDiscount()}
-          />
-          <button
-            className="btn btn-sm btn-outline"
-            onClick={saveDiscount}
-            disabled={savingDiscount}
-          >
-            {t('save')}
-          </button>
-        </div>
-      </div>
-
-      {/* ── Wisselgeld ──────────────────────────────────────────────────── */}
-      {!receipt.paid && (
-        <div className="change-box no-print">
-          <p style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.6rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Calculator size={13} />
-            {t('change_calc')}
-          </p>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+      {/* ── Korting + Wisselgeld side-by-side ───────────────────────────── */}
+      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+        {/* Korting */}
+        <div style={{
+          background: 'var(--surface)', border: '1px solid var(--border)',
+          borderRadius: 12, padding: '0.85rem 1rem', flex: '1 1 180px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+        }} className="no-print">
+          <SectionHead Icon={Pencil} label={t('discount_pct')} />
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <input
               type="number"
-              className="form-input"
-              style={{ width: 130 }}
-              placeholder={t('received')}
-              value={received}
-              onChange={e => setReceived(e.target.value)}
-              min="0" step="0.01"
+              className="form-input discount-input"
+              value={discountInput}
+              onChange={e => setDiscountInput(e.target.value)}
+              min="0" max="100" step="1"
+              onKeyDown={e => e.key === 'Enter' && saveDiscount()}
+              style={{ width: 80 }}
             />
-            {change !== null && (
-              <div className={`change-result ${change >= 0 ? 'change-pos' : 'change-neg'}`}>
-                {change === 0
-                  ? t('change_exact')
-                  : `${t('change')}: ${fmt(Math.abs(change))}`}
-              </div>
-            )}
+            <span style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>%</span>
+            <button className="btn btn-sm btn-outline" onClick={saveDiscount} disabled={savingDiscount}>
+              {t('save')}
+            </button>
           </div>
         </div>
-      )}
 
-      {/* ── Add more ─────────────────────────────────────────────────────── */}
+        {/* Wisselgeld */}
+        {!receipt.paid && (
+          <div style={{
+            background: 'var(--surface)', border: '1px solid var(--border)',
+            borderRadius: 12, padding: '0.85rem 1rem', flex: '1 1 200px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          }} className="no-print">
+            <SectionHead Icon={Calculator} label={t('change_calc')} />
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <input
+                type="number"
+                className="form-input"
+                style={{ width: 130 }}
+                placeholder={t('received')}
+                value={received}
+                onChange={e => setReceived(e.target.value)}
+                min="0" step="0.01"
+              />
+              {change !== null && (
+                <div style={{
+                  fontWeight: 800, fontSize: '1rem',
+                  color: change >= 0 ? '#16A34A' : 'var(--danger)',
+                }}>
+                  {change === 0 ? t('change_exact') : `${t('change')}: € ${Math.abs(change).toFixed(2)}`}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Meer toevoegen ───────────────────────────────────────────────── */}
       <button
         className="btn btn-outline btn-full no-print"
         onClick={() => setShowAdd(v => !v)}
-        style={{ marginBottom: '0.75rem' }}
+        style={{ borderRadius: 12, gap: 7 }}
       >
-        {showAdd ? <><ChevronUp size={14} /> {t('cancel')}</> : <><Plus size={14} /> {t('add_more')}</>}
+        {showAdd
+          ? <><ChevronUp size={14} /> {t('cancel')}</>
+          : <><Plus size={14} /> {t('add_more')}</>}
       </button>
 
       {showAdd && (
-        <div className="add-panel no-print">
+        <div style={{
+          background: 'var(--surface)', border: '1px solid var(--border)',
+          borderRadius: 12, padding: '1rem',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+        }} className="no-print">
           {products.length === 0 ? (
-            <div className="empty-state">
+            <div style={{ padding: '2rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', color: 'var(--muted)' }}>
               <Package size={30} strokeWidth={1.2} style={{ color: 'var(--s300)' }} />
-              <p>{t('no_products_hint')}</p>
+              <p style={{ fontSize: '0.84rem' }}>{t('no_products_hint')}</p>
             </div>
           ) : (
             groups.map(({ cat, items }) => {
               const { Icon } = cat
               return (
                 <div key={cat.id} style={{ marginBottom: '0.9rem' }}>
-                  <div className="cat-header">
-                    <Icon size={13} color={cat.color} strokeWidth={2.5} />
-                    <span className="cat-label" style={{ color: cat.color }}>{t(`cat_${cat.id}`)}</span>
-                  </div>
+                  <SectionHead Icon={Icon} label={t(`cat_${cat.id}`)} color={cat.color} />
                   <div className="product-grid">
                     {items.map(p => (
                       <div
