@@ -1,12 +1,11 @@
-// Central definition for all product categories.
-// Add new categories here and they'll appear everywhere automatically.
+import { ChefHat, Layers, Coffee, Tag } from 'lucide-react'
+
 export const CATEGORIES = [
-  { id: 'pannenkoeken', emoji: '🥞', color: '#F59E0B' },
-  { id: 'beleg',        emoji: '🍓', color: '#10B981' },
-  { id: 'drinken',      emoji: '🥤', color: '#3B82F6' },
-  { id: 'overig',       emoji: '📦', color: '#6B7280' },
+  { id: 'pannenkoeken', Icon: ChefHat, color: '#F59E0B', bg: '#FFFBEB' },
+  { id: 'beleg',        Icon: Layers,  color: '#10B981', bg: '#ECFDF5' },
+  { id: 'drinken',      Icon: Coffee,  color: '#3B82F6', bg: '#EFF6FF' },
+  { id: 'overig',       Icon: Tag,     color: '#6B7280', bg: '#F9FAFB' },
 ]
 
-/** Returns the category object for a given id, falls back to 'overig'. */
 export const getCat = (id) =>
   CATEGORIES.find(c => c.id === id) ?? CATEGORIES[CATEGORIES.length - 1]

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
+import { CheckCircle2, Clock, Trash2, Check, X, FileText, Calendar } from 'lucide-react'
 import { useLang } from '../App'
 import { fetchReceipts, updateReceipt, deleteReceipt } from '../api'
 
-const fmt = (price) => `€ ${parseFloat(price).toFixed(2)}`
+const fmt = p => `€ ${parseFloat(p).toFixed(2)}`
 
 function fmtDate(str) {
   return new Date(str).toLocaleString(undefined, {
@@ -34,11 +35,11 @@ export default function Bonnen({ onOpenDetail }) {
     setReceipts(prev => prev.filter(r => r.id !== receipt.id))
   }
 
-  const paidCount   = receipts.filter(r => r.paid).length
+  const paidCount   = receipts.filter(r =>  r.paid).length
   const unpaidCount = receipts.filter(r => !r.paid).length
 
   const visible = receipts.filter(r => {
-    if (filter === 'paid')   return r.paid
+    if (filter === 'paid')   return  r.paid
     if (filter === 'unpaid') return !r.paid
     return true
   })
@@ -47,59 +48,74 @@ export default function Bonnen({ onOpenDetail }) {
 
   return (
     <div>
+      {/* Filter tabs */}
       <div className="filter-tabs">
         <button className={`filter-tab ${filter === 'all'    ? 'active' : ''}`} onClick={() => setFilter('all')}>
           {t('all')} ({receipts.length})
         </button>
         <button className={`filter-tab ${filter === 'unpaid' ? 'active' : ''}`} onClick={() => setFilter('unpaid')}>
+          <Clock size={12} />
           {t('unpaid')} ({unpaidCount})
         </button>
         <button className={`filter-tab ${filter === 'paid'   ? 'active' : ''}`} onClick={() => setFilter('paid')}>
+          <CheckCircle2 size={12} />
           {t('paid')} ({paidCount})
         </button>
       </div>
 
+      {/* Receipt list */}
       {visible.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">🧾</div>
+          <FileText size={36} strokeWidth={1.2} style={{ color: 'var(--s300)' }} />
           <p>{t('no_receipts')}</p>
         </div>
       ) : (
         visible.map(receipt => (
-          <div key={receipt.id} className="receipt-card" onClick={() => onOpenDetail(receipt.id)}>
+          <div
+            key={receipt.id}
+            className={`receipt-card ${receipt.paid ? 'is-paid' : 'is-unpaid'}`}
+            onClick={() => onOpenDetail(receipt.id)}
+          >
             {/* Top row */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
               <div>
-                <div style={{ fontWeight: 700, fontSize: '1rem' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--s900)' }}>
                   {receipt.name || `${t('receipt_number')} #${receipt.id}`}
                 </div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--muted)', marginTop: 2 }}>
-                  {fmtDate(receipt.created_at)} &bull; {receipt.item_count} {t('items')}
+                <div style={{ fontSize: '0.74rem', color: 'var(--muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Calendar size={11} />
+                  {fmtDate(receipt.created_at)}
+                  <span style={{ color: 'var(--s300)' }}>·</span>
+                  {receipt.item_count} {t('items')}
                 </div>
               </div>
               <span className={`badge ${receipt.paid ? 'badge-paid' : 'badge-unpaid'}`}>
-                {receipt.paid ? t('paid') : t('unpaid')}
+                {receipt.paid
+                  ? <><CheckCircle2 size={10} /> {t('paid')}</>
+                  : <><Clock size={10} /> {t('unpaid')}</>}
               </span>
             </div>
 
             {/* Bottom row */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
-              <span style={{ fontWeight: 800, fontSize: '1.15rem', color: 'var(--green)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--primary)' }}>
                 {fmt(receipt.total)}
               </span>
-              <div style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
+              <div style={{ display: 'flex', gap: 5 }} onClick={e => e.stopPropagation()}>
                 <button
                   className={`btn btn-sm ${receipt.paid ? 'btn-warning' : 'btn-success'}`}
                   onClick={e => togglePaid(e, receipt)}
                 >
-                  {receipt.paid ? `✕ ${t('mark_unpaid')}` : `✓ ${t('mark_paid')}`}
+                  {receipt.paid
+                    ? <><X size={12} /> {t('mark_unpaid')}</>
+                    : <><Check size={12} /> {t('mark_paid')}</>}
                 </button>
                 <button
-                  className="btn btn-sm btn-danger"
+                  className="btn btn-sm btn-ghost-danger"
                   onClick={e => handleDelete(e, receipt)}
                   title={t('delete_receipt')}
                 >
-                  🗑️
+                  <Trash2 size={13} />
                 </button>
               </div>
             </div>

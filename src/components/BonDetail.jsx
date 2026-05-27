@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { ArrowLeft, Check, X, Trash2, Pencil, Calendar, Plus, Package, ChevronDown, ChevronUp } from 'lucide-react'
 import { useLang } from '../App'
 import {
   fetchReceipt, fetchProducts, updateReceipt, deleteReceipt,
@@ -6,7 +7,7 @@ import {
 } from '../api'
 import { CATEGORIES, getCat } from '../categories'
 
-const fmt = (price) => `€ ${parseFloat(price).toFixed(2)}`
+const fmt = p => `€ ${parseFloat(p).toFixed(2)}`
 
 function fmtDate(str) {
   return new Date(str).toLocaleString(undefined, {
@@ -17,19 +18,17 @@ function fmtDate(str) {
 
 export default function BonDetail({ id, onBack }) {
   const { t } = useLang()
-  const [receipt, setReceipt]   = useState(null)
-  const [products, setProducts] = useState([])
-  const [loading, setLoading]   = useState(true)
-  const [showAdd, setShowAdd]   = useState(false)
+  const [receipt, setReceipt]         = useState(null)
+  const [products, setProducts]       = useState([])
+  const [loading, setLoading]         = useState(true)
+  const [showAdd, setShowAdd]         = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput]     = useState('')
 
   useEffect(() => {
     setLoading(true)
     Promise.all([fetchReceipt(id), fetchProducts()]).then(([rec, prods]) => {
-      setReceipt(rec)
-      setProducts(prods)
-      setLoading(false)
+      setReceipt(rec); setProducts(prods); setLoading(false)
     })
   }, [id])
 
@@ -70,10 +69,8 @@ export default function BonDetail({ id, onBack }) {
       await changeQty(existing, 1)
     } else {
       const newItem = await addReceiptItem(id, {
-        product_id:    product.id,
-        product_name:  product.name,
-        product_price: product.price,
-        quantity:      1,
+        product_id: product.id, product_name: product.name,
+        product_price: product.price, quantity: 1,
       })
       setReceipt(prev => ({ ...prev, items: [...prev.items, newItem] }))
     }
@@ -83,26 +80,23 @@ export default function BonDetail({ id, onBack }) {
   if (!receipt) return null
 
   const total = receipt.items?.reduce((s, i) => s + i.product_price * i.quantity, 0) ?? 0
+  const productCatMap = Object.fromEntries(products.map(p => [p.id, p.category || 'overig']))
 
-  // For the add-more panel: group products by category
   const groups = CATEGORIES.map(cat => ({
     cat,
     items: products.filter(p => (p.category || 'overig') === cat.id),
   })).filter(g => g.items.length > 0)
 
-  // Build a quick lookup: product_id → category
-  const productCatMap = Object.fromEntries(products.map(p => [p.id, p.category || 'overig']))
-
   return (
     <div>
       {/* Back */}
-      <button className="btn btn-ghost" onClick={onBack} style={{ marginBottom: '0.75rem' }}>
-        ← {t('back')}
+      <button className="btn btn-ghost btn-sm" onClick={onBack} style={{ marginBottom: '0.85rem' }}>
+        <ArrowLeft size={14} /> {t('back')}
       </button>
 
       {/* ── Header card ─────────────────────────────────────────────────── */}
       <div className="detail-header">
-        <div>
+        <div style={{ flex: 1, minWidth: 0 }}>
           {editingName ? (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               <input
@@ -117,7 +111,7 @@ export default function BonDetail({ id, onBack }) {
               <button className="btn btn-ghost btn-sm" onClick={() => setEditingName(false)}>{t('cancel')}</button>
             </div>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
               <span className="detail-title">
                 {receipt.name || `${t('receipt_number')} #${receipt.id}`}
               </span>
@@ -125,26 +119,36 @@ export default function BonDetail({ id, onBack }) {
                 className="btn btn-ghost btn-sm"
                 title={t('edit_name')}
                 onClick={() => { setNameInput(receipt.name ?? ''); setEditingName(true) }}
-              >✏️</button>
+                style={{ padding: '4px 6px' }}
+              >
+                <Pencil size={13} />
+              </button>
             </div>
           )}
-          <p className="detail-meta">{t('created')}: {fmtDate(receipt.created_at)}</p>
+          <div className="detail-meta">
+            <Calendar size={11} />
+            {t('created')}: {fmtDate(receipt.created_at)}
+          </div>
           <div style={{ marginTop: 8 }}>
             <span className={`badge ${receipt.paid ? 'badge-paid' : 'badge-unpaid'}`}>
-              {receipt.paid ? t('paid') : t('unpaid')}
+              {receipt.paid
+                ? <><Check size={10} /> {t('paid')}</>
+                : <><X size={10} /> {t('unpaid')}</>}
             </span>
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 7, alignItems: 'flex-end' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end', flexShrink: 0 }}>
           <button
             className={`btn ${receipt.paid ? 'btn-warning' : 'btn-success'}`}
             onClick={togglePaid}
           >
-            {receipt.paid ? `✕ ${t('mark_unpaid')}` : `✓ ${t('mark_paid')}`}
+            {receipt.paid
+              ? <><X size={13} /> {t('mark_unpaid')}</>
+              : <><Check size={13} /> {t('mark_paid')}</>}
           </button>
-          <button className="btn btn-danger btn-sm" onClick={handleDelete}>
-            🗑️ {t('delete_receipt')}
+          <button className="btn btn-ghost-danger btn-sm" onClick={handleDelete}>
+            <Trash2 size={13} /> {t('delete_receipt')}
           </button>
         </div>
       </div>
@@ -154,13 +158,13 @@ export default function BonDetail({ id, onBack }) {
         <div className="items-head">
           <span>{t('product_name')}</span>
           <span style={{ textAlign: 'center' }}>{t('qty')}</span>
-          <span style={{ textAlign: 'right'  }}>{t('price')}</span>
-          <span style={{ textAlign: 'right'  }}>{t('subtotal')}</span>
+          <span style={{ textAlign: 'right' }}>{t('price')}</span>
+          <span style={{ textAlign: 'right' }}>{t('subtotal')}</span>
         </div>
 
-        {(!receipt.items || receipt.items.length === 0) && (
+        {(!receipt.items?.length) && (
           <div className="empty-state" style={{ padding: '1.5rem' }}>
-            {t('no_items')}
+            <p>{t('no_items')}</p>
           </div>
         )}
 
@@ -168,13 +172,9 @@ export default function BonDetail({ id, onBack }) {
           const cat = getCat(productCatMap[item.product_id] ?? 'overig')
           return (
             <div key={item.id} className="items-row">
-              <span style={{ fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontWeight: 500, fontSize: '0.86rem', display: 'flex', alignItems: 'center', gap: 7 }}>
                 <span
-                  style={{
-                    width: 8, height: 8, borderRadius: '50%',
-                    background: cat.color, flexShrink: 0,
-                  }}
-                  title={t(`cat_${cat.id}`)}
+                  style={{ width: 3, height: 16, borderRadius: 2, background: cat.color, flexShrink: 0 }}
                 />
                 {item.product_name}
               </span>
@@ -183,10 +183,10 @@ export default function BonDetail({ id, onBack }) {
                 <span className="qty-val">{item.quantity}</span>
                 <button className="qty-btn plus" onClick={() => changeQty(item, 1)}>+</button>
               </div>
-              <span className="col-right" style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>
+              <span className="col-right" style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>
                 {fmt(item.product_price)}
               </span>
-              <span className="col-right" style={{ fontWeight: 700 }}>
+              <span className="col-right" style={{ fontWeight: 700, fontSize: '0.86rem' }}>
                 {fmt(item.product_price * item.quantity)}
               </span>
             </div>
@@ -199,44 +199,47 @@ export default function BonDetail({ id, onBack }) {
         </div>
       </div>
 
-      {/* ── Add more products ────────────────────────────────────────────── */}
+      {/* ── Add more ─────────────────────────────────────────────────────── */}
       <button
         className="btn btn-outline btn-full"
-        onClick={() => setShowAdd(prev => !prev)}
+        onClick={() => setShowAdd(v => !v)}
         style={{ marginBottom: '0.75rem' }}
       >
-        {showAdd ? `▲ ${t('cancel')}` : `+ ${t('add_more')}`}
+        {showAdd ? <><ChevronUp size={14} /> {t('cancel')}</> : <><Plus size={14} /> {t('add_more')}</>}
       </button>
 
       {showAdd && (
         <div className="add-panel">
           {products.length === 0 ? (
-            <div className="empty-state"><p>{t('no_products_hint')}</p></div>
+            <div className="empty-state">
+              <Package size={30} strokeWidth={1.2} style={{ color: 'var(--s300)' }} />
+              <p>{t('no_products_hint')}</p>
+            </div>
           ) : (
-            groups.map(({ cat, items }) => (
-              <div key={cat.id} style={{ marginBottom: '1rem' }}>
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  marginBottom: '0.5rem',
-                  paddingBottom: '0.3rem',
-                  borderBottom: `2px solid ${cat.color}33`,
-                }}>
-                  <span style={{ fontSize: '1.1rem' }}>{cat.emoji}</span>
-                  <span style={{ fontWeight: 800, color: cat.color, fontSize: '0.88rem' }}>
-                    {t(`cat_${cat.id}`)}
-                  </span>
+            groups.map(({ cat, items }) => {
+              const { Icon } = cat
+              return (
+                <div key={cat.id} style={{ marginBottom: '0.9rem' }}>
+                  <div className="cat-header">
+                    <Icon size={13} color={cat.color} strokeWidth={2.5} />
+                    <span className="cat-label" style={{ color: cat.color }}>{t(`cat_${cat.id}`)}</span>
+                  </div>
+                  <div className="product-grid">
+                    {items.map(p => (
+                      <div
+                        key={p.id}
+                        className="product-tile"
+                        style={{ borderTopColor: cat.color + '70' }}
+                        onClick={() => addProduct(p)}
+                      >
+                        <div className="tile-name">{p.name}</div>
+                        <div className="tile-price" style={{ color: cat.color }}>{fmt(p.price)}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="product-grid">
-                  {items.map(p => (
-                    <div key={p.id} className="product-tile" onClick={() => addProduct(p)}
-                         style={{ '--cat-color': cat.color }}>
-                      <div className="tile-name">{p.name}</div>
-                      <div className="tile-price" style={{ color: cat.color }}>{fmt(p.price)}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))
+              )
+            })
           )}
         </div>
       )}
