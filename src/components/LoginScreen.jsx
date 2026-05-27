@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Tent, Lock, ArrowRight } from 'lucide-react'
-import { useLang } from '../App'
+import { useLang } from '../LangContext'
 import { login } from '../api'
 
 export default function LoginScreen({ onLogin, lang, setLang }) {
@@ -19,9 +19,10 @@ export default function LoginScreen({ onLogin, lang, setLang }) {
     setLoading(true)
     setError(false)
     try {
-      const { token } = await login(pin)
-      sessionStorage.setItem('kassa_token', token)
-      onLogin(token)
+      const { token, role } = await login(pin)
+      localStorage.setItem('kassa_token', token)
+      localStorage.setItem('kassa_role', role || 'admin')
+      onLogin(token, role || 'admin')
     } catch {
       setError(true)
       setShake(true)

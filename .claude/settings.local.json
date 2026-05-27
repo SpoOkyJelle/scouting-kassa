@@ -3,7 +3,8 @@
     "allow": [
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\nlkootwj\\\\Documents\\\\GitHub\\\\scouting-kassa\" -Recurse -Force)",
       "Bash(Select-Object FullName, Attributes)",
-      "Bash(Format-Table -AutoSize)"
+      "Bash(Format-Table -AutoSize)",
+      "Bash(npm run *)"
     ]
   }
 }

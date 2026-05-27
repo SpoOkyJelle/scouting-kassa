@@ -1,7 +1,7 @@
 const BASE = '/api'
 
 async function req(path, options = {}) {
-  const token = sessionStorage.getItem('kassa_token')
+  const token = localStorage.getItem('kassa_token')
   const res = await fetch(BASE + path, {
     headers: {
       'Content-Type': 'application/json',
@@ -10,13 +10,13 @@ async function req(path, options = {}) {
     ...options,
   })
 
-  // Session expired or invalid — clear token and reload to login screen
   if (res.status === 401) {
-    sessionStorage.removeItem('kassa_token')
+    localStorage.removeItem('kassa_token')
+    localStorage.removeItem('kassa_role')
     window.location.reload()
     throw new Error('Unauthorized')
   }
-
+  if (res.status === 403) throw new Error('Geen toegang')
   if (!res.ok) throw new Error(`API error: ${res.status}`)
   return res.json()
 }
@@ -30,11 +30,11 @@ export async function login(pin) {
     body: JSON.stringify({ pin }),
   })
   if (!res.ok) throw new Error('Wrong PIN')
-  return res.json()   // { token }
+  return res.json()   // { token, role }
 }
 
 export async function logout() {
-  const token = sessionStorage.getItem('kassa_token')
+  const token = localStorage.getItem('kassa_token')
   await fetch(`${BASE}/auth/logout`, {
     method: 'POST',
     headers: {
@@ -42,48 +42,39 @@ export async function logout() {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   })
-  sessionStorage.removeItem('kassa_token')
+  localStorage.removeItem('kassa_token')
+  localStorage.removeItem('kassa_role')
 }
 
 // ─── Products ──────────────────────────────────────────────────────────────
 
-export const fetchProducts = () => req('/products')
-
-export const createProduct = (name, price, category) =>
-  req('/products', { method: 'POST', body: JSON.stringify({ name, price, category }) })
-
-export const updateProduct = (id, name, price, category) =>
-  req(`/products/${id}`, { method: 'PUT', body: JSON.stringify({ name, price, category }) })
-
-export const deleteProduct = (id) =>
-  req(`/products/${id}`, { method: 'DELETE' })
+export const fetchProducts        = ()                    => req('/products')
+export const fetchPopularProducts = ()                    => req('/products/popular')
+export const createProduct        = (name, price, cat)   => req('/products', { method: 'POST', body: JSON.stringify({ name, price, category: cat }) })
+export const updateProduct        = (id, name, price, cat) => req(`/products/${id}`, { method: 'PUT', body: JSON.stringify({ name, price, category: cat }) })
+export const deleteProduct        = (id)                  => req(`/products/${id}`, { method: 'DELETE' })
 
 // ─── Receipts ─────────────────────────────────────────────────────────────
 
-export const fetchReceipts = () => req('/receipts')
+export const fetchReceipts  = ()         => req('/receipts')
+export const createReceipt  = (name, items) => req('/receipts', { method: 'POST', body: JSON.stringify({ name, items }) })
+export const fetchReceipt   = (id)       => req(`/receipts/${id}`)
+export const updateReceipt  = (id, data) => req(`/receipts/${id}`, { method: 'PUT', body: JSON.stringify(data) })
+export const deleteReceipt  = (id)       => req(`/receipts/${id}`, { method: 'DELETE' })
+export const bulkMarkPaid   = (ids, paid) => req('/receipts/bulk', { method: 'POST', body: JSON.stringify({ ids, paid }) })
 
-export const createReceipt = (name, items) =>
-  req('/receipts', { method: 'POST', body: JSON.stringify({ name, items }) })
+// ─── Settings ─────────────────────────────────────────────────────────────
 
-export const fetchReceipt = (id) => req(`/receipts/${id}`)
-
-export const updateReceipt = (id, data) =>
-  req(`/receipts/${id}`, { method: 'PUT', body: JSON.stringify(data) })
-
-export const deleteReceipt = (id) =>
-  req(`/receipts/${id}`, { method: 'DELETE' })
+export const fetchSettings  = ()     => req('/settings')
+export const updateSettings = (data) => req('/settings', { method: 'PUT', body: JSON.stringify(data) })
 
 // ─── Stats ────────────────────────────────────────────────────────────────
 
-export const fetchStats = () => req('/stats')
+export const fetchStats = (period) =>
+  req(`/stats${period ? `?period=${period}` : ''}`)
 
 // ─── Receipt items ────────────────────────────────────────────────────────
 
-export const addReceiptItem = (receiptId, item) =>
-  req(`/receipts/${receiptId}/items`, { method: 'POST', body: JSON.stringify(item) })
-
-export const updateReceiptItem = (receiptId, itemId, quantity) =>
-  req(`/receipts/${receiptId}/items/${itemId}`, { method: 'PUT', body: JSON.stringify({ quantity }) })
-
-export const deleteReceiptItem = (receiptId, itemId) =>
-  req(`/receipts/${receiptId}/items/${itemId}`, { method: 'DELETE' })
+export const addReceiptItem    = (receiptId, item)          => req(`/receipts/${receiptId}/items`, { method: 'POST', body: JSON.stringify(item) })
+export const updateReceiptItem = (receiptId, itemId, qty)   => req(`/receipts/${receiptId}/items/${itemId}`, { method: 'PUT', body: JSON.stringify({ quantity: qty }) })
+export const deleteReceiptItem = (receiptId, itemId)        => req(`/receipts/${receiptId}/items/${itemId}`, { method: 'DELETE' })

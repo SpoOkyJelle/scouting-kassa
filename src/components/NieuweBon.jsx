@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { ShoppingCart, Package } from 'lucide-react'
-import { useLang } from '../App'
-import { fetchProducts, createReceipt } from '../api'
+import { ShoppingCart, Package, Zap } from 'lucide-react'
+import { useLang } from '../LangContext'
+import { fetchProducts, fetchPopularProducts, createReceipt } from '../api'
 import { CATEGORIES, getCat } from '../categories'
 
 const fmt = p => `€ ${parseFloat(p).toFixed(2)}`
@@ -9,13 +9,21 @@ const fmt = p => `€ ${parseFloat(p).toFixed(2)}`
 export default function NieuweBon({ onCreated }) {
   const { t } = useLang()
   const [products, setProducts] = useState([])
+  const [popular, setPopular]   = useState([])
   const [loading, setLoading]   = useState(true)
   const [name, setName]         = useState('')
   const [order, setOrder]       = useState({})   // { [productId]: { product, quantity } }
   const [saving, setSaving]     = useState(false)
 
   useEffect(() => {
-    fetchProducts().then(data => { setProducts(data); setLoading(false) })
+    Promise.all([
+      fetchProducts(),
+      fetchPopularProducts().catch(() => []),
+    ]).then(([prods, pop]) => {
+      setProducts(prods)
+      setPopular(pop)
+      setLoading(false)
+    })
   }, [])
 
   function addProduct(product) {
@@ -78,46 +86,83 @@ export default function NieuweBon({ onCreated }) {
               <p>{t('no_products_hint')}</p>
             </div>
           ) : (
-            groups.map(({ cat, items }) => {
-              const { Icon } = cat
-              return (
-                <div key={cat.id} style={{ marginBottom: '1.1rem' }}>
+            <>
+              {/* Popular / quick select */}
+              {popular.length > 0 && (
+                <div style={{ marginBottom: '1.1rem' }}>
                   <div className="cat-header">
-                    <Icon size={14} color={cat.color} strokeWidth={2.5} />
-                    <span className="cat-label" style={{ color: cat.color }}>
-                      {t(`cat_${cat.id}`)}
+                    <Zap size={14} color="#F59E0B" strokeWidth={2.5} />
+                    <span className="cat-label" style={{ color: '#F59E0B' }}>
+                      {t('quick_select')}
                     </span>
-                    <span className="cat-count">{items.length}</span>
                   </div>
-                  <div className="product-grid">
-                    {items.map(p => {
+                  <div className="quick-grid">
+                    {popular.map(p => {
+                      const cat = getCat(p.category || 'overig')
                       const inOrder = !!order[p.id]
                       return (
                         <div
                           key={p.id}
-                          className={`product-tile ${inOrder ? 'in-order' : ''}`}
-                          style={{
-                            borderTopColor: inOrder ? cat.color : cat.color + '60',
-                            background: inOrder ? cat.bg : '#fff',
-                          }}
+                          className={`quick-tile${inOrder ? ' in-order' : ''}`}
+                          style={{ borderTopColor: inOrder ? cat.color : cat.color + '60' }}
                           onClick={() => addProduct(p)}
                         >
                           {inOrder && (
-                            <span className="tile-qty" style={{ background: cat.color }}>
+                            <span className="quick-tile-qty" style={{ background: cat.color }}>
                               {order[p.id].quantity}
                             </span>
                           )}
                           <div className="tile-name">{p.name}</div>
-                          <div className="tile-price" style={{ color: cat.color }}>
-                            {fmt(p.price)}
-                          </div>
+                          <div className="tile-price" style={{ color: cat.color }}>{fmt(p.price)}</div>
                         </div>
                       )
                     })}
                   </div>
                 </div>
-              )
-            })
+              )}
+
+              {/* Category groups */}
+              {groups.map(({ cat, items }) => {
+                const { Icon } = cat
+                return (
+                  <div key={cat.id} style={{ marginBottom: '1.1rem' }}>
+                    <div className="cat-header">
+                      <Icon size={14} color={cat.color} strokeWidth={2.5} />
+                      <span className="cat-label" style={{ color: cat.color }}>
+                        {t(`cat_${cat.id}`)}
+                      </span>
+                      <span className="cat-count">{items.length}</span>
+                    </div>
+                    <div className="product-grid">
+                      {items.map(p => {
+                        const inOrder = !!order[p.id]
+                        return (
+                          <div
+                            key={p.id}
+                            className={`product-tile ${inOrder ? 'in-order' : ''}`}
+                            style={{
+                              borderTopColor: inOrder ? cat.color : cat.color + '60',
+                              background: inOrder ? cat.bg : 'var(--surface)',
+                            }}
+                            onClick={() => addProduct(p)}
+                          >
+                            {inOrder && (
+                              <span className="tile-qty" style={{ background: cat.color }}>
+                                {order[p.id].quantity}
+                              </span>
+                            )}
+                            <div className="tile-name">{p.name}</div>
+                            <div className="tile-price" style={{ color: cat.color }}>
+                              {fmt(p.price)}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+            </>
           )}
         </div>
 

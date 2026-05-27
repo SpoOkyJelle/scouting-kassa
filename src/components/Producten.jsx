@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Pencil, Trash2, Package } from 'lucide-react'
-import { useLang } from '../App'
+import { useLang } from '../LangContext'
 import { fetchProducts, createProduct, updateProduct, deleteProduct } from '../api'
-import { CATEGORIES, getCat } from '../categories'
+import { CATEGORIES } from '../categories'
+import { useToast } from './Toast'
+import { useConfirm } from './ConfirmModal'
 
 const fmt = p => `€ ${parseFloat(p).toFixed(2)}`
 
@@ -22,17 +24,20 @@ function CatSelect({ value, onChange, t }) {
 }
 
 export default function Producten() {
-  const { t } = useLang()
-  const [products, setProducts]     = useState([])
-  const [loading, setLoading]       = useState(true)
-  const [editId, setEditId]         = useState(null)
-  const [editName, setEditName]     = useState('')
-  const [editPrice, setEditPrice]   = useState('')
-  const [editCat, setEditCat]       = useState('overig')
-  const [newName, setNewName]       = useState('')
-  const [newPrice, setNewPrice]     = useState('')
-  const [newCat, setNewCat]         = useState('pannenkoeken')
-  const [adding, setAdding]         = useState(false)
+  const { t }    = useLang()
+  const showToast = useToast()
+  const confirm   = useConfirm()
+
+  const [products, setProducts]   = useState([])
+  const [loading, setLoading]     = useState(true)
+  const [editId, setEditId]       = useState(null)
+  const [editName, setEditName]   = useState('')
+  const [editPrice, setEditPrice] = useState('')
+  const [editCat, setEditCat]     = useState('overig')
+  const [newName, setNewName]     = useState('')
+  const [newPrice, setNewPrice]   = useState('')
+  const [newCat, setNewCat]       = useState('pannenkoeken')
+  const [adding, setAdding]       = useState(false)
 
   useEffect(() => {
     fetchProducts().then(data => { setProducts(data); setLoading(false) })
@@ -46,6 +51,7 @@ export default function Producten() {
     setProducts(prev => [...prev, p].sort((a, b) => a.name.localeCompare(b.name)))
     setNewName(''); setNewPrice('')
     setAdding(false)
+    showToast(t('toast_saved'))
   }
 
   function startEdit(product) {
@@ -62,12 +68,15 @@ export default function Producten() {
       prev.map(p => p.id === id ? updated : p).sort((a, b) => a.name.localeCompare(b.name))
     )
     setEditId(null)
+    showToast(t('toast_saved'))
   }
 
   async function handleDelete(id) {
-    if (!confirm(t('confirm_delete'))) return
+    const ok = await confirm(t('confirm_delete'))
+    if (!ok) return
     await deleteProduct(id)
     setProducts(prev => prev.filter(p => p.id !== id))
+    showToast(t('toast_deleted'), 'info')
   }
 
   if (loading) return <div className="spinner" />
