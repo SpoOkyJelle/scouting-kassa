@@ -75,9 +75,12 @@ export default function App() {
     localStorage.setItem('kassa_theme', next ? 'dark' : '')
   }
 
-  // Restore dark mode on first mount
+  // Restore dark mode and font size on first mount
   useEffect(() => {
     document.documentElement.dataset.theme = darkMode ? 'dark' : ''
+    const fs = localStorage.getItem('kassa_fontsize') || 'normal'
+    const fsMap = { small: '90%', normal: '100%', large: '115%' }
+    document.documentElement.style.fontSize = fsMap[fs] || '100%'
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load settings when logged in
@@ -87,14 +90,63 @@ export default function App() {
     }
   }, [token])
 
+  // Session timeout: auto-logout after 30 min inactivity
+  useEffect(() => {
+    if (!token) return
+    const TIMEOUT = 30 * 60 * 1000
+    let timer = setTimeout(handleLogout, TIMEOUT)
+    function reset() {
+      clearTimeout(timer)
+      timer = setTimeout(handleLogout, TIMEOUT)
+    }
+    const events = ['mousemove', 'keydown', 'click', 'touchstart', 'scroll']
+    events.forEach(ev => window.addEventListener(ev, reset, { passive: true }))
+    return () => {
+      clearTimeout(timer)
+      events.forEach(ev => window.removeEventListener(ev, reset))
+    }
+  }, [token]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Seed initial history state so the first popstate has something to land on
+  useEffect(() => {
+    history.replaceState({ tab: 'receipts', detailId: null }, '')
+  }, [])
+
+  // Browser back/forward button
+  useEffect(() => {
+    function onPopState(e) {
+      const state = e.state
+      if (!state || !state.tab) {
+        // Gebruiker drukt voorbij de app-history — terugduwen zodat de site niet verlaten wordt
+        history.pushState({ tab: 'receipts', detailId: null }, '')
+        setTab('receipts')
+        setDetailId(null)
+        return
+      }
+      setTab(state.tab)
+      setDetailId(state.detailId ?? null)
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
+
   const visibleTabs = TABS.filter(tab => tab.roles.includes(role))
 
-  function openDetail(id) { setDetailId(id); setTab('detail') }
-  function closeDetail()  { setDetailId(null); setTab('receipts') }
+  function navigateTo(newTab, newDetailId = null) {
+    history.pushState({ tab: newTab, detailId: newDetailId }, '')
+    setTab(newTab)
+    setDetailId(newDetailId)
+  }
+
+  function openDetail(id) { navigateTo('detail', id) }
+  function closeDetail()  { navigateTo('receipts') }
+
+  function handleTabChange(id) { navigateTo(id) }
 
   function handleLogin(tok, r) {
     setToken(tok)
     setRole(r || 'admin')
+    history.replaceState({ tab: 'receipts', detailId: null }, '')
   }
 
   async function handleLogout() {
@@ -103,6 +155,7 @@ export default function App() {
     setRole('admin')
     setTab('receipts')
     setDetailId(null)
+    history.replaceState({ tab: 'receipts', detailId: null }, '')
   }
 
   return (
@@ -163,7 +216,7 @@ export default function App() {
                       <button
                         key={id}
                         className={`tab-btn ${tab === id ? 'active' : ''}`}
-                        onClick={() => setTab(id)}
+                        onClick={() => handleTabChange(id)}
                       >
                         <Icon size={15} strokeWidth={2} />
                         <span className="tab-label">{t(labelKey)}</span>

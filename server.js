@@ -42,6 +42,12 @@ if (!db.data.sessions || typeof db.data.sessions !== 'object') {
   await db.write()
 }
 
+// Migrate: assign sort_order to products that don't have one
+if (db.data.products.some(p => p.sort_order === undefined)) {
+  db.data.products.forEach((p, idx) => { if (p.sort_order === undefined) p.sort_order = idx })
+  await db.write()
+}
+
 // Sessions: Map<token, role>
 const sessions = new Map(Object.entries(db.data.sessions))
 
@@ -108,9 +114,7 @@ function requireAdmin(req, res, next) {
 // ─── Products ─────────────────────────────────────────────────────────────────
 
 app.get('/api/products', (_req, res) => {
-  res.json([...db.data.products].sort((a, b) =>
-    a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-  ))
+  res.json([...db.data.products].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)))
 })
 
 app.get('/api/products/popular', (_req, res) => {
@@ -131,15 +135,28 @@ app.get('/api/products/popular', (_req, res) => {
 app.post('/api/products', requireAdmin, async (req, res) => {
   const { name, price, category } = req.body
   if (!name || price === undefined) return res.status(400).json({ error: 'Name and price required' })
+  const maxOrder = db.data.products.reduce((m, p) => Math.max(m, p.sort_order ?? -1), -1)
   const product = {
     id: nextId('_pid'), name,
     price: parseFloat(price),
     category: category || 'overig',
+    sort_order: maxOrder + 1,
     created_at: new Date().toISOString(),
   }
   db.data.products.push(product)
   await db.write()
   res.json(product)
+})
+
+app.put('/api/products/reorder', requireAdmin, async (req, res) => {
+  const { order } = req.body
+  if (!Array.isArray(order)) return res.status(400).json({ error: 'order required' })
+  order.forEach((id, idx) => {
+    const p = db.data.products.find(p => p.id === id)
+    if (p) p.sort_order = idx
+  })
+  await db.write()
+  res.json({ ok: true })
 })
 
 app.put('/api/products/:id', requireAdmin, async (req, res) => {
@@ -395,6 +412,20 @@ app.get('/api/stats', (req, res) => {
     .slice(0, 8)
     .map(p => ({ ...p, revenue: Math.round(p.revenue * 100) / 100 }))
 
+  const categoryMap = {}
+  receipts.forEach(r => {
+    ;(r.items || []).forEach(i => {
+      const product = db.data.products.find(p => p.id === i.product_id)
+      const cat = product?.category || 'overig'
+      if (!categoryMap[cat]) categoryMap[cat] = { cat, quantity: 0, revenue: 0 }
+      categoryMap[cat].quantity += i.quantity
+      categoryMap[cat].revenue  += i.product_price * i.quantity
+    })
+  })
+  const categoryStats = Object.values(categoryMap)
+    .map(c => ({ ...c, revenue: Math.round(c.revenue * 100) / 100 }))
+    .sort((a, b) => b.revenue - a.revenue)
+
   // ── Inkoop / kosten ────────────────────────────────────────────────────────
   const allInkoop = db.data.inkoop || []
   const inkoopFiltered = filterToday
@@ -415,6 +446,7 @@ app.get('/api/stats', (req, res) => {
     unpaidCount:     receipts.length - paidCount,
     avgReceiptValue: receipts.length ? Math.round(totalRevenue / receipts.length * 100) / 100 : 0,
     topProducts,
+    categoryStats,
     revenueByHour,
     revenueByDay: filterToday ? [] : revenueByDay,
     multiDay: !filterToday && Object.keys(dayMap).length > 1,

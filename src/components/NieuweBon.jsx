@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ShoppingCart, Package, Zap, Search, X, PlusCircle } from 'lucide-react'
+import { ShoppingCart, Package, Zap, Search, X, PlusCircle, ChevronDown, ChevronUp } from 'lucide-react'
 import { useLang } from '../LangContext'
 import { fetchProducts, fetchPopularProducts, createReceipt } from '../api'
 import { CATEGORIES, getCat } from '../categories'
@@ -24,8 +24,10 @@ export default function NieuweBon({ onCreated }) {
   const [loading, setLoading]             = useState(true)
   const [productSearch, setProductSearch] = useState('')
   const [name, setName]                   = useState('')
+  const [note, setNote]                   = useState('')
   const [order, setOrder]                 = useState({})
   const [saving, setSaving]               = useState(false)
+  const [collapsed, setCollapsed]         = useState({})
 
   useEffect(() => {
     Promise.all([
@@ -64,8 +66,8 @@ export default function NieuweBon({ onCreated }) {
     const receipt = await createReceipt(name || null, orderItems.map(({ product, quantity }) => ({
       product_id: product.id, product_name: product.name,
       product_price: product.price, quantity,
-    })))
-    setOrder({}); setName(''); setSaving(false)
+    })), note.trim() || null)
+    setOrder({}); setName(''); setNote(''); setSaving(false)
     onCreated(receipt.id)
   }
 
@@ -77,7 +79,9 @@ export default function NieuweBon({ onCreated }) {
   })).filter(g => g.items.length > 0)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', paddingBottom: orderItems.length ? '4.5rem' : 0 }}
+      className="new-bon-wrap"
+    >
 
       {/* ── Naam / tafelnummer ───────────────────────────────────────────── */}
       <div style={{
@@ -91,6 +95,23 @@ export default function NieuweBon({ onCreated }) {
           placeholder={t('receipt_name_placeholder')}
           value={name}
           onChange={e => setName(e.target.value)}
+        />
+      </div>
+
+      {/* ── Notitie ─────────────────────────────────────────────────────── */}
+      <div style={{
+        background: 'var(--surface)', border: '1px solid var(--border)',
+        borderRadius: 12, padding: '0.9rem 1rem',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+      }}>
+        <label className="form-label">{t('note')}</label>
+        <textarea
+          className="form-input"
+          placeholder={t('note_placeholder')}
+          value={note}
+          onChange={e => setNote(e.target.value)}
+          rows={2}
+          style={{ resize: 'vertical', minHeight: 52 }}
         />
       </div>
 
@@ -185,24 +206,40 @@ export default function NieuweBon({ onCreated }) {
                 const { Icon } = cat
                 return (
                   <div key={cat.id} style={{ marginBottom: '1.1rem' }}>
-                    <SectionHead Icon={Icon} label={t(`cat_${cat.id}`)} color={cat.color} />
-                    <div className="product-grid">
-                      {items.map(p => {
-                        const inOrder = !!order[p.id]
-                        return (
-                          <div
-                            key={p.id}
-                            className={`product-tile ${inOrder ? 'in-order' : ''}`}
-                            style={{ borderTopColor: inOrder ? cat.color : cat.color + '60', background: inOrder ? cat.bg : 'var(--surface)' }}
-                            onClick={() => addProduct(p)}
-                          >
-                            {inOrder && <span className="tile-qty" style={{ background: cat.color }}>{order[p.id].quantity}</span>}
-                            <div className="tile-name">{p.name}</div>
-                            <div className="tile-price" style={{ color: cat.color }}>{fmt(p.price)}</div>
-                          </div>
-                        )
-                      })}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: collapsed[cat.id] ? 0 : '0.6rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                        <Icon size={13} color={cat.color} strokeWidth={2.3} />
+                        <span style={{ fontSize: '0.69rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                          {t(`cat_${cat.id}`)}
+                        </span>
+                      </div>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        style={{ padding: '2px 5px' }}
+                        onClick={() => setCollapsed(prev => ({ ...prev, [cat.id]: !prev[cat.id] }))}
+                      >
+                        {collapsed[cat.id] ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
+                      </button>
                     </div>
+                    {!collapsed[cat.id] && (
+                      <div className="product-grid">
+                        {items.map(p => {
+                          const inOrder = !!order[p.id]
+                          return (
+                            <div
+                              key={p.id}
+                              className={`product-tile ${inOrder ? 'in-order' : ''}`}
+                              style={{ borderTopColor: inOrder ? cat.color : cat.color + '60', background: inOrder ? cat.bg : 'var(--surface)' }}
+                              onClick={() => addProduct(p)}
+                            >
+                              {inOrder && <span className="tile-qty" style={{ background: cat.color }}>{order[p.id].quantity}</span>}
+                              <div className="tile-name">{p.name}</div>
+                              <div className="tile-price" style={{ color: cat.color }}>{fmt(p.price)}</div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -284,6 +321,29 @@ export default function NieuweBon({ onCreated }) {
           </div>
         </div>
       </div>
+
+      {/* ── Mobiele floating orderbar ────────────────────────────────────── */}
+      {orderItems.length > 0 && (
+        <div className="mobile-order-bar">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontWeight: 700, fontSize: '0.82rem', color: 'rgba(255,255,255,0.75)' }}>
+              {orderItems.reduce((s, { quantity }) => s + quantity, 0)}× items
+            </span>
+            <span style={{ fontWeight: 900, fontSize: '1.1rem', color: '#86efac', letterSpacing: '-0.3px' }}>
+              {fmt(total)}
+            </span>
+          </div>
+          <button
+            className="btn btn-primary btn-sm"
+            disabled={saving}
+            onClick={handleCreate}
+            style={{ gap: 6, background: '#16A34A', flexShrink: 0 }}
+          >
+            <PlusCircle size={14} />
+            {saving ? t('loading') : t('create_receipt')}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

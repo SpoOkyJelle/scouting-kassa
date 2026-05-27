@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import {
   ArrowLeft, Check, X, Trash2, Pencil, Calendar, Plus, Package,
-  ChevronDown, ChevronUp, Printer, QrCode, Monitor, Calculator, StickyNote,
+  ChevronDown, ChevronUp, Printer, QrCode, Monitor, Calculator, StickyNote, Search,
 } from 'lucide-react'
 import { useLang } from '../LangContext'
 import {
@@ -52,6 +52,7 @@ export default function BonDetail({ id, onBack }) {
   const [savingDiscount, setSavingDiscount] = useState(false)
   const [editingNote, setEditingNote]       = useState(false)
   const [noteInput, setNoteInput]           = useState('')
+  const [addSearch, setAddSearch]           = useState('')
 
   useEffect(() => {
     setLoading(true)
@@ -402,6 +403,18 @@ export default function BonDetail({ id, onBack }) {
             boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
           }} className="no-print">
             <SectionHead Icon={Calculator} label={t('change_calc')} />
+            <div style={{ display: 'flex', gap: 5, marginBottom: 8, flexWrap: 'wrap' }}>
+              {[5, 10, 20, 50].map(amt => (
+                <button
+                  key={amt}
+                  className="btn btn-sm btn-outline"
+                  style={{ flex: '1 1 auto', minWidth: 44 }}
+                  onClick={() => setReceived(String(amt))}
+                >
+                  €{amt}
+                </button>
+              ))}
+            </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <input
                 type="number"
@@ -428,7 +441,7 @@ export default function BonDetail({ id, onBack }) {
       {/* ── Meer toevoegen ───────────────────────────────────────────────── */}
       <button
         className="btn btn-outline btn-full no-print"
-        onClick={() => setShowAdd(v => !v)}
+        onClick={() => { setShowAdd(v => !v); setAddSearch('') }}
         style={{ borderRadius: 12, gap: 7 }}
       >
         {showAdd
@@ -448,27 +461,68 @@ export default function BonDetail({ id, onBack }) {
               <p style={{ fontSize: '0.84rem' }}>{t('no_products_hint')}</p>
             </div>
           ) : (
-            groups.map(({ cat, items }) => {
-              const { Icon } = cat
-              return (
-                <div key={cat.id} style={{ marginBottom: '0.9rem' }}>
-                  <SectionHead Icon={Icon} label={t(`cat_${cat.id}`)} color={cat.color} />
-                  <div className="product-grid">
-                    {items.map(p => (
-                      <div
-                        key={p.id}
-                        className="product-tile"
-                        style={{ borderTopColor: cat.color + '70' }}
-                        onClick={() => addProduct(p)}
-                      >
-                        <div className="tile-name">{p.name}</div>
-                        <div className="tile-price" style={{ color: cat.color }}>{fmt(p.price)}</div>
+            <>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginBottom: '0.85rem' }}>
+                <Search size={14} style={{ position: 'absolute', left: 10, color: 'var(--s400)', pointerEvents: 'none' }} />
+                <input
+                  className="form-input search-input"
+                  placeholder={t('search_products')}
+                  value={addSearch}
+                  onChange={e => setAddSearch(e.target.value)}
+                  autoFocus
+                />
+                {addSearch && (
+                  <button className="search-clear" onClick={() => setAddSearch('')}>
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+              {(() => {
+                const q = addSearch.trim().toLowerCase()
+                if (q) {
+                  const results = products.filter(p => p.name.toLowerCase().includes(q))
+                  if (!results.length) return (
+                    <p style={{ fontSize: '0.84rem', color: 'var(--muted)', textAlign: 'center', padding: '1rem 0' }}>
+                      {t('no_receipts')}
+                    </p>
+                  )
+                  return (
+                    <div className="product-grid">
+                      {results.map(p => {
+                        const cat = getCat(p.category || 'overig')
+                        return (
+                          <div key={p.id} className="product-tile" style={{ borderTopColor: cat.color + '70' }} onClick={() => addProduct(p)}>
+                            <div className="tile-name">{p.name}</div>
+                            <div className="tile-price" style={{ color: cat.color }}>{fmt(p.price)}</div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                }
+                return groups.map(({ cat, items }) => {
+                  const { Icon } = cat
+                  return (
+                    <div key={cat.id} style={{ marginBottom: '0.9rem' }}>
+                      <SectionHead Icon={Icon} label={t(`cat_${cat.id}`)} color={cat.color} />
+                      <div className="product-grid">
+                        {items.map(p => (
+                          <div
+                            key={p.id}
+                            className="product-tile"
+                            style={{ borderTopColor: cat.color + '70' }}
+                            onClick={() => addProduct(p)}
+                          >
+                            <div className="tile-name">{p.name}</div>
+                            <div className="tile-price" style={{ color: cat.color }}>{fmt(p.price)}</div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )
-            })
+                    </div>
+                  )
+                })
+              })()}
+            </>
           )}
         </div>
       )}

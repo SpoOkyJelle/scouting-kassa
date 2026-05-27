@@ -73,6 +73,15 @@ export default function Bonnen({ onOpenDetail }) {
     showToast(t('toast_marked_paid'))
   }
 
+  async function handleBulkUnpaid() {
+    const ids = [...selected]
+    await bulkMarkPaid(ids, false)
+    setReceipts(prev => prev.map(r => ids.includes(r.id) ? { ...r, paid: 0 } : r))
+    setSelected(new Set())
+    setSelectMode(false)
+    showToast(t('toast_marked_unpaid'))
+  }
+
   const paidCount   = receipts.filter(r =>  r.paid).length
   const unpaidCount = receipts.filter(r => !r.paid).length
   const totalPaid   = receipts.filter(r =>  r.paid).reduce((s, r) => s + r.total, 0)
@@ -95,6 +104,10 @@ export default function Bonnen({ onOpenDetail }) {
       if (sort === 'amount') return b.total - a.total
       return new Date(b.created_at) - new Date(a.created_at)
     })
+
+  function selectAll() {
+    setSelected(new Set(visible.map(r => r.id)))
+  }
 
   if (loading) return <div className="spinner" />
 
@@ -310,16 +323,28 @@ export default function Bonnen({ onOpenDetail }) {
       )}
 
       {/* ── Bulk action bar ──────────────────────────────────────────────── */}
-      {selectMode && selected.size > 0 && (
+      {selectMode && (
         <div className="bulk-bar">
           <span className="bulk-bar-count">
-            {selected.size} {t('bulk_selected')}
+            {selected.size > 0 ? `${selected.size} ${t('bulk_selected')}` : t('select_mode')}
           </span>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-success btn-sm" onClick={handleBulkPaid}>
-              <Check size={13} /> {t('bulk_mark_paid')}
-            </button>
-            <button className="btn btn-ghost btn-sm" onClick={toggleSelectMode}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {selected.size < visible.length && (
+              <button className="btn btn-ghost btn-sm" style={{ color: '#94A3B8' }} onClick={selectAll}>
+                Alles ({visible.length})
+              </button>
+            )}
+            {selected.size > 0 && (
+              <>
+                <button className="btn btn-success btn-sm" onClick={handleBulkPaid}>
+                  <Check size={13} /> {t('bulk_mark_paid')}
+                </button>
+                <button className="btn btn-warning btn-sm" onClick={handleBulkUnpaid}>
+                  <X size={13} /> {t('mark_unpaid')}
+                </button>
+              </>
+            )}
+            <button className="btn btn-ghost btn-sm" style={{ color: '#94A3B8' }} onClick={toggleSelectMode}>
               {t('select_cancel')}
             </button>
           </div>

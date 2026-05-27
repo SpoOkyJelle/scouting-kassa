@@ -5,49 +5,56 @@
       "name": "Pannekoek naturel",
       "price": 2,
       "created_at": "2026-05-27T09:07:13.657Z",
-      "category": "pannenkoeken"
+      "category": "pannenkoeken",
+      "sort_order": 0
     },
     {
       "id": 2,
       "name": "Cola",
       "price": 2,
       "created_at": "2026-05-27T09:20:04.347Z",
-      "category": "drinken"
+      "category": "drinken",
+      "sort_order": 1
     },
     {
       "id": 3,
       "name": "Sinas",
       "price": 2,
       "category": "drinken",
-      "created_at": "2026-05-27T09:26:00.408Z"
+      "created_at": "2026-05-27T09:26:00.408Z",
+      "sort_order": 2
     },
     {
       "id": 4,
       "name": "Pannekoek kaas",
       "price": 3,
       "category": "pannenkoeken",
-      "created_at": "2026-05-27T09:26:10.446Z"
+      "created_at": "2026-05-27T09:26:10.446Z",
+      "sort_order": 3
     },
     {
       "id": 5,
       "name": "Pannekoek spek",
       "price": 3,
       "category": "pannenkoeken",
-      "created_at": "2026-05-27T09:26:15.262Z"
+      "created_at": "2026-05-27T09:26:15.262Z",
+      "sort_order": 4
     },
     {
       "id": 6,
       "name": "Pannekoek spek + kaas",
       "price": 4,
       "category": "pannenkoeken",
-      "created_at": "2026-05-27T09:26:25.005Z"
+      "created_at": "2026-05-27T09:26:25.005Z",
+      "sort_order": 5
     },
     {
       "id": 7,
       "name": "Stroop",
       "price": 0.5,
       "category": "beleg",
-      "created_at": "2026-05-27T15:07:19.636Z"
+      "created_at": "2026-05-27T15:07:19.636Z",
+      "sort_order": 6
     }
   ],
   "receipts": [
@@ -171,13 +178,68 @@
           "quantity": 7
         }
       ]
+    },
+    {
+      "id": 7,
+      "name": null,
+      "note": "vegan",
+      "paid": 0,
+      "discount_pct": 0,
+      "created_at": "2026-05-27T16:59:14.097Z",
+      "items": [
+        {
+          "id": 12,
+          "receipt_id": 7,
+          "product_id": 4,
+          "product_name": "Pannekoek kaas",
+          "product_price": 3,
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": null,
+      "note": null,
+      "paid": 1,
+      "discount_pct": 0,
+      "created_at": "2026-05-27T17:05:37.295Z",
+      "items": [
+        {
+          "id": 13,
+          "receipt_id": 8,
+          "product_id": 1,
+          "product_name": "Pannekoek naturel",
+          "product_price": 2,
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": null,
+      "note": null,
+      "paid": 0,
+      "discount_pct": 0,
+      "created_at": "2026-05-27T18:56:43.989Z",
+      "items": [
+        {
+          "id": 14,
+          "receipt_id": 9,
+          "product_id": 3,
+          "product_name": "Sinas",
+          "product_price": 2,
+          "quantity": 1
+        }
+      ]
     }
   ],
   "_pid": 7,
-  "_rid": 6,
-  "_iid": 11,
+  "_rid": 9,
+  "_iid": 14,
   "sessions": {
-    "aa9d2a24-5ce2-48ac-a637-baa446159702": "cashier"
+    "aa9d2a24-5ce2-48ac-a637-baa446159702": "cashier",
+    "28dbda2e-f4f2-4a09-b642-54168e73afee": "admin"
   },
   "inkoop": [
     {

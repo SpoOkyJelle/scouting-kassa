@@ -1202,6 +1202,27 @@ hr.divider {
   line-height: 1.5;
 }
 
+/* ── Mobile floating order bar ───────────────────────────────────────────── */
+.mobile-order-bar {
+  display: none;
+}
+@media (max-width: 639px) {
+  .mobile-order-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 300;
+    background: linear-gradient(135deg, #052e16 0%, #166534 100%);
+    padding: 0.75rem 1rem;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.2);
+    gap: 12px;
+  }
+}
+
 /* ── Print styles ─────────────────────────────────────────────────────────── */
 @media print {
   .header, .tab-nav, .offline-banner, .no-print { display: none !important; }

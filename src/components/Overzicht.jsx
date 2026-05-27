@@ -390,6 +390,16 @@ export default function Overzicht() {
                     <Bar dataKey="revenue" fill={GREEN} radius={[5, 5, 0, 0]} maxBarSize={44} />
                   </BarChart>
                 </ResponsiveContainer>
+                {(() => {
+                  const peak = revenueByHour.reduce((a, b) => a.revenue > b.revenue ? a : b)
+                  const nextH = String(parseInt(peak.hour) + 1).padStart(2, '0')
+                  return (
+                    <div style={{ fontSize: '0.78rem', color: 'var(--muted)', paddingTop: '0.5rem', paddingBottom: '0.25rem', textAlign: 'center' }}>
+                      Drukste uur: <strong style={{ color: 'var(--s700)' }}>{peak.hour}–{nextH}:00</strong>
+                      {' · '}<span style={{ color: 'var(--primary)', fontWeight: 700 }}>{fmt(peak.revenue)}</span>
+                    </div>
+                  )
+                })()}
               </div>
             </div>
           )}

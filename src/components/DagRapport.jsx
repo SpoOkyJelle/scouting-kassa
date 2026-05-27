@@ -18,7 +18,7 @@ export default function DagRapport({ stats, onClose }) {
   const {
     totalRevenue, paidRevenue, unpaidRevenue,
     receiptCount, paidCount, unpaidCount, avgReceiptValue,
-    topProducts, totalCosts, profit,
+    topProducts, categoryStats = [], totalCosts, profit,
   } = stats
 
   return (
@@ -108,6 +108,26 @@ export default function DagRapport({ stats, onClose }) {
                   <span style={{ flex: 1, color: 'var(--s800)', fontWeight: 500 }}>{p.name}</span>
                   <span style={{ color: 'var(--muted)', fontSize: '0.75rem' }}>{p.quantity}×</span>
                   <span style={{ fontWeight: 700, color: 'var(--primary)', minWidth: 60, textAlign: 'right' }}>{fmt(p.revenue)}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Category breakdown */}
+        {categoryStats?.length > 0 && (
+          <>
+            <div style={{ height: 1, background: 'var(--border)', margin: '0.75rem 0' }} />
+            <p style={{ fontSize: '0.71rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.5rem' }}>
+              Per categorie
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {categoryStats.map((c, i) => (
+                <div key={c.cat} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem' }}>
+                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: PALETTE[i % PALETTE.length], flexShrink: 0 }} />
+                  <span style={{ flex: 1, color: 'var(--s800)', fontWeight: 500 }}>{t('cat_' + c.cat)}</span>
+                  <span style={{ color: 'var(--muted)', fontSize: '0.75rem' }}>{c.quantity}×</span>
+                  <span style={{ fontWeight: 700, color: 'var(--primary)', minWidth: 60, textAlign: 'right' }}>{fmt(c.revenue)}</span>
                 </div>
               ))}
             </div>

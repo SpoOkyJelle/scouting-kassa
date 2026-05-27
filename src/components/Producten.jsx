@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Pencil, Trash2, Package, PlusCircle } from 'lucide-react'
+import { Pencil, Trash2, Package, PlusCircle, GripVertical } from 'lucide-react'
 import { useLang } from '../LangContext'
-import { fetchProducts, createProduct, updateProduct, deleteProduct } from '../api'
+import { fetchProducts, createProduct, updateProduct, deleteProduct, reorderProducts } from '../api'
 import { CATEGORIES } from '../categories'
 import { useToast } from './Toast'
 import { useConfirm } from './ConfirmModal'
@@ -50,6 +50,32 @@ export default function Producten() {
   const [newPrice, setNewPrice]   = useState('')
   const [newCat, setNewCat]       = useState('pannenkoeken')
   const [adding, setAdding]       = useState(false)
+  const [dragId, setDragId]       = useState(null)
+  const [dragOverId, setDragOverId] = useState(null)
+
+  function handleDragStart(e, id) {
+    setDragId(id)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+  function handleDragOver(e, id) {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOverId(id)
+  }
+  function handleDrop(e, targetId) {
+    e.preventDefault()
+    if (!dragId || dragId === targetId) { setDragId(null); setDragOverId(null); return }
+    const newProducts = [...products]
+    const fromIdx = newProducts.findIndex(p => p.id === dragId)
+    const toIdx   = newProducts.findIndex(p => p.id === targetId)
+    const [moved] = newProducts.splice(fromIdx, 1)
+    newProducts.splice(toIdx, 0, moved)
+    setProducts(newProducts)
+    setDragId(null)
+    setDragOverId(null)
+    reorderProducts(newProducts.map(p => p.id))
+  }
+  function handleDragEnd() { setDragId(null); setDragOverId(null) }
 
   useEffect(() => {
     fetchProducts().then(data => { setProducts(data); setLoading(false) })
@@ -60,7 +86,7 @@ export default function Producten() {
     if (!newName.trim() || newPrice === '') return
     setAdding(true)
     const p = await createProduct(newName.trim(), parseFloat(newPrice), newCat)
-    setProducts(prev => [...prev, p].sort((a, b) => a.name.localeCompare(b.name)))
+    setProducts(prev => [...prev, p])
     setNewName(''); setNewPrice('')
     setAdding(false)
     showToast(t('toast_saved'))
@@ -76,9 +102,7 @@ export default function Producten() {
   async function saveEdit(id) {
     if (!editName.trim() || editPrice === '') return
     const updated = await updateProduct(id, editName.trim(), parseFloat(editPrice), editCat)
-    setProducts(prev =>
-      prev.map(p => p.id === id ? updated : p).sort((a, b) => a.name.localeCompare(b.name))
-    )
+    setProducts(prev => prev.map(p => p.id === id ? updated : p))
     setEditId(null)
     showToast(t('toast_saved'))
   }
@@ -192,14 +216,28 @@ export default function Producten() {
                       <button className="btn btn-ghost btn-sm" onClick={() => setEditId(null)}>{t('cancel')}</button>
                     </div>
                   ) : (
-                    <div key={product.id} style={{
-                      display: 'flex', alignItems: 'center', padding: '9px 14px',
-                      borderTop: idx > 0 ? '1px solid var(--s100)' : 'none',
-                      gap: 10, transition: 'background 0.1s',
-                    }}
+                    <div key={product.id}
+                      draggable={true}
+                      onDragStart={e => handleDragStart(e, product.id)}
+                      onDragOver={e => handleDragOver(e, product.id)}
+                      onDrop={e => handleDrop(e, product.id)}
+                      onDragEnd={handleDragEnd}
+                      style={{
+                        display: 'flex', alignItems: 'center', padding: '9px 14px',
+                        borderTop: idx > 0 ? '1px solid var(--s100)' : 'none',
+                        gap: 10, transition: 'background 0.1s',
+                        opacity: dragId === product.id ? 0.4 : 1,
+                        borderTop: dragOverId === product.id && dragId !== product.id ? '2px solid var(--primary)' : (idx > 0 ? '1px solid var(--s100)' : 'none'),
+                      }}
                       onMouseEnter={e => e.currentTarget.style.background = 'var(--s50)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
+                      <span
+                        style={{ color: 'var(--s300)', cursor: 'grab', flexShrink: 0, display: 'flex', alignItems: 'center' }}
+                        onDragStart={e => handleDragStart(e, product.id)}
+                      >
+                        <GripVertical size={14} />
+                      </span>
                       <span style={{ width: 3, alignSelf: 'stretch', background: cat.color, borderRadius: 2, flexShrink: 0, marginRight: 4 }} />
                       <span style={{ flex: 1, fontWeight: 500, fontSize: '0.86rem', color: 'var(--s800)' }}>{product.name}</span>
                       <span style={{ fontWeight: 700, color: 'var(--primary)', minWidth: 68, textAlign: 'right', fontSize: '0.86rem' }}>{fmt(product.price)}</span>

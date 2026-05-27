@@ -53,11 +53,12 @@ export const fetchPopularProducts = ()                    => req('/products/popu
 export const createProduct        = (name, price, cat)   => req('/products', { method: 'POST', body: JSON.stringify({ name, price, category: cat }) })
 export const updateProduct        = (id, name, price, cat) => req(`/products/${id}`, { method: 'PUT', body: JSON.stringify({ name, price, category: cat }) })
 export const deleteProduct        = (id)                  => req(`/products/${id}`, { method: 'DELETE' })
+export const reorderProducts      = (order)               => req('/products/reorder', { method: 'PUT', body: JSON.stringify({ order }) })
 
 // ─── Receipts ─────────────────────────────────────────────────────────────
 
 export const fetchReceipts  = ()         => req('/receipts')
-export const createReceipt  = (name, items) => req('/receipts', { method: 'POST', body: JSON.stringify({ name, items }) })
+export const createReceipt  = (name, items, note) => req('/receipts', { method: 'POST', body: JSON.stringify({ name, items, note }) })
 export const fetchReceipt   = (id)       => req(`/receipts/${id}`)
 export const updateReceipt  = (id, data) => req(`/receipts/${id}`, { method: 'PUT', body: JSON.stringify(data) })
 export const deleteReceipt  = (id)       => req(`/receipts/${id}`, { method: 'DELETE' })

@@ -42,6 +42,14 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
   const [paymentUrl,  setPaymentUrl]  = useState(settings.paymentUrl  ?? '')
   const [paymentName, setPaymentName] = useState(settings.paymentName ?? '')
   const [saving, setSaving] = useState(false)
+  const [fontSize, setFontSizeState] = useState(() => localStorage.getItem('kassa_fontsize') || 'normal')
+
+  function applyFontSize(key) {
+    const map = { small: '90%', normal: '100%', large: '115%' }
+    document.documentElement.style.fontSize = map[key]
+    localStorage.setItem('kassa_fontsize', key)
+    setFontSizeState(key)
+  }
 
   useEffect(() => {
     setPaymentUrl(settings.paymentUrl  ?? '')
@@ -98,6 +106,21 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
           >
             <span className="toggle-knob" />
           </button>
+        </div>
+        <div style={{ height: 1, background: 'var(--border)', margin: '0.75rem 0' }} />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontWeight: 600, fontSize: '0.87rem', color: 'var(--s800)' }}>Tekstgrootte</div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {[{ key: 'small', label: 'Klein' }, { key: 'normal', label: 'Normaal' }, { key: 'large', label: 'Groot' }].map(({ key, label }) => (
+              <button
+                key={key}
+                className={`btn btn-sm ${fontSize === key ? 'btn-primary' : 'btn-outline'}`}
+                onClick={() => applyFontSize(key)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </SettingsCard>
 
