@@ -510,17 +510,46 @@ textarea {
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px solid var(--divider);
+  gap: 8px;
 }
 
 .bon-footer-total {
   font-size: .82rem;
   color: var(--text-muted);
   font-weight: 500;
+  flex: 1;
 }
 
 .bon-footer-total strong {
   color: var(--text);
   font-weight: 700;
+}
+
+.bon-footer-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* Edit-knop in bon-kaart */
+.btn-edit {
+  padding: 6px 13px;
+  border-radius: var(--radius-sm);
+  font-size: .78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .12s;
+  -webkit-tap-highlight-color: transparent;
+  letter-spacing: .01em;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  color: var(--text-muted);
+}
+
+.btn-edit:hover {
+  border-color: var(--text);
+  color: var(--text);
+  background: var(--accent-soft);
 }
 
 .btn-pay {
@@ -533,6 +562,57 @@ textarea {
   -webkit-tap-highlight-color: transparent;
   letter-spacing: .01em;
   border: 1.5px solid;
+}
+
+/* ─── EDIT-BANNER ────────────────────────────── */
+.edit-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #1C1917;
+  color: #E7E5E4;
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  font-size: .85rem;
+  font-weight: 600;
+}
+
+.edit-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.edit-banner-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #FBBF24;
+  flex-shrink: 0;
+}
+
+.edit-banner-cancel {
+  background: none;
+  border: 1px solid #57534E;
+  color: #A8A29E;
+  font-size: .78rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all .12s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.edit-banner-cancel:hover {
+  border-color: #A8A29E;
+  color: #E7E5E4;
+}
+
+/* Opslaan-knop in bewerkingsmodus */
+.btn-save.editing {
+  background: #B45309;
 }
 
 .btn-pay.mark-paid {

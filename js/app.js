@@ -6,10 +6,11 @@
 const TYPES = ['Naturel', 'Stroop', 'Kaas', 'Spek', 'Spek & kaas', 'Suiker'];
 
 /* ─── STATE ──────────────────────────────────── */
-let bonnen       = [];   // alle opgeslagen bonnen
-let currentBon   = [];   // [ { type, qty } ]
+let bonnen       = [];    // alle opgeslagen bonnen
+let currentBon   = [];    // [ { type, qty } ]
 let activeFilter = 'alle';
 let nextNr       = 1;
+let editingNr    = null;  // bonnummer dat bewerkt wordt, of null
 
 /* ═══════════════════════════════════════════════
    NAVIGATIE
@@ -111,7 +112,7 @@ function renderCurrentBon() {
   document.getElementById('bon-subtotal').textContent = total;
 }
 
-/* ─── Bon opslaan ────────────────────────────── */
+/* ─── Bon opslaan (nieuw of bewerken) ───────── */
 function saveBon() {
   const naam = document.getElementById('inp-naam').value.trim();
 
@@ -125,28 +126,78 @@ function saveBon() {
     return;
   }
 
-  const now      = new Date();
-  const tijdstip = now.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
-  const datum    = now.toLocaleDateString('nl-NL',  { day: '2-digit', month: 'short' });
+  if (editingNr !== null) {
+    // ── Bestaande bon bijwerken ──────────────────
+    const bon = bonnen.find(b => b.nr === editingNr);
+    if (bon) {
+      bon.naam      = naam;
+      bon.opmerking = document.getElementById('inp-opmerking').value.trim();
+      bon.items     = [...currentBon];
+      bon.totaal    = currentBon.reduce((sum, i) => sum + i.qty, 0);
+    }
+    const nr = editingNr;
+    resetEditState();
+    toast(`Bon #${nr} bijgewerkt`);
+  } else {
+    // ── Nieuwe bon aanmaken ──────────────────────
+    const now      = new Date();
+    const tijdstip = now.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+    const datum    = now.toLocaleDateString('nl-NL',  { day: '2-digit', month: 'short' });
 
-  const bon = {
-    nr:        nextNr++,
-    naam,
-    opmerking: document.getElementById('inp-opmerking').value.trim(),
-    items:     [...currentBon],
-    tijdstip:  `${datum} ${tijdstip}`,
-    betaald:   false,
-    totaal:    currentBon.reduce((sum, i) => sum + i.qty, 0),
-  };
+    const bon = {
+      nr:        nextNr++,
+      naam,
+      opmerking: document.getElementById('inp-opmerking').value.trim(),
+      items:     [...currentBon],
+      tijdstip:  `${datum} ${tijdstip}`,
+      betaald:   false,
+      totaal:    currentBon.reduce((sum, i) => sum + i.qty, 0),
+    };
+    bonnen.unshift(bon);
+    resetEditState();
+    toast(`Bon #${bon.nr} opgeslagen`);
+  }
+}
 
-  bonnen.unshift(bon);
+/* ─── Bon bewerken ───────────────────────────── */
+function editBon(nr) {
+  const bon = bonnen.find(b => b.nr === nr);
+  if (!bon) return;
 
+  editingNr  = nr;
+  currentBon = bon.items.map(i => ({ ...i })); // diepe kopie
+
+  document.getElementById('inp-naam').value      = bon.naam;
+  document.getElementById('inp-opmerking').value = bon.opmerking || '';
+
+  // Toon edit-banner + pas opslaan-knop aan
+  document.getElementById('edit-banner').style.display = 'flex';
+  document.getElementById('edit-banner-text').textContent = `Bon #${nr} bewerken`;
+  document.getElementById('btn-save').textContent = 'Wijzigingen opslaan';
+  document.getElementById('btn-save').classList.add('editing');
+
+  renderTypeBtns();
+  renderCurrentBon();
+  showPage('nieuw');
+}
+
+/* ─── Bewerken annuleren ─────────────────────── */
+function cancelEdit() {
+  resetEditState();
+  toast('Bewerking geannuleerd');
+}
+
+/* ─── Reset naar lege nieuwe-bon staat ──────── */
+function resetEditState() {
+  editingNr  = null;
   currentBon = [];
   document.getElementById('inp-naam').value      = '';
   document.getElementById('inp-opmerking').value = '';
+  document.getElementById('edit-banner').style.display = 'none';
+  document.getElementById('btn-save').textContent = 'Bon opslaan';
+  document.getElementById('btn-save').classList.remove('editing');
   renderTypeBtns();
   renderCurrentBon();
-  toast(`Bon #${bon.nr} opgeslagen`);
 }
 
 /* ═══════════════════════════════════════════════
@@ -212,7 +263,10 @@ function renderBonnen() {
           <div class="bon-footer-total">
             <strong>${b.totaal} pannenkoek${b.totaal !== 1 ? 'en' : ''}</strong>
           </div>
-          <button class="btn-pay ${btnClass}" onclick="toggleBetaald(${b.nr})">${btnText}</button>
+          <div class="bon-footer-actions">
+            <button class="btn-edit" onclick="editBon(${b.nr})">Bewerk</button>
+            <button class="btn-pay ${btnClass}" onclick="toggleBetaald(${b.nr})">${btnText}</button>
+          </div>
         </div>
       </div>
     `;

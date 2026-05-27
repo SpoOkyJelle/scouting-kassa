@@ -28,6 +28,15 @@
 ════════════════════════════════════════════ -->
 <div class="page active" id="page-nieuw">
 
+  <!-- Edit-banner: zichtbaar bij het bewerken van een bestaande bon -->
+  <div class="edit-banner" id="edit-banner" style="display: none;">
+    <div class="edit-banner-left">
+      <span class="edit-banner-dot"></span>
+      <span id="edit-banner-text">Bon #0 bewerken</span>
+    </div>
+    <button class="edit-banner-cancel" onclick="cancelEdit()">Annuleer</button>
+  </div>
+
   <div class="card">
     <div class="card-title">Klantgegevens</div>
     <div class="field">
@@ -53,7 +62,7 @@
       <span class="bon-total-label">Totaal</span>
       <span class="bon-total-count" id="bon-subtotal">0</span>
     </div>
-    <button class="btn-save" onclick="saveBon()">Bon opslaan</button>
+    <button class="btn-save" id="btn-save" onclick="saveBon()">Bon opslaan</button>
   </div>
 
 </div>
