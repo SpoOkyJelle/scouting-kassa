@@ -6,10 +6,8 @@
 const TYPES = ['Naturel', 'Stroop', 'Kaas', 'Spek', 'Spek & kaas', 'Suiker'];
 
 /* ─── STATE ──────────────────────────────────── */
-let bonnen       = [];
+let bonnen       = [];   // alle opgeslagen bonnen
 let currentBon   = [];   // [ { type, qty } ]
-let selType      = null;
-let selQty       = 1;
 let activeFilter = 'alle';
 let nextNr       = 1;
 
@@ -30,100 +28,90 @@ function showPage(name) {
    PAGINA 1 · NIEUWE BON
 ═══════════════════════════════════════════════ */
 
+/* ─── Type-knoppen: tik = direct +1 ─────────── */
 function renderTypeBtns() {
-  document.getElementById('types-grid').innerHTML = TYPES.map(t => `
-    <button class="type-btn ${selType === t ? 'active' : ''}" data-type="${escHtml(t)}">
-      ${t}
-    </button>
-  `).join('');
+  document.getElementById('types-grid').innerHTML = TYPES.map(t => {
+    const item = currentBon.find(i => i.type === t);
+    const qty  = item ? item.qty : 0;
+    return `
+      <button class="type-btn ${qty > 0 ? 'has-items' : ''}" data-type="${escHtml(t)}">
+        ${escHtml(t)}
+        ${qty > 0 ? `<span class="type-count">${qty}</span>` : ''}
+      </button>`;
+  }).join('');
 
   document.getElementById('types-grid').onclick = e => {
     const btn = e.target.closest('.type-btn');
-    if (btn) selectType(btn.dataset.type);
+    if (btn) addItem(btn.dataset.type);
   };
 }
 
-function selectType(t) {
-  selType = t;
-  selQty  = 1;
-  document.getElementById('qty-label').textContent  = t;
-  document.getElementById('qty-display').textContent = 1;
-  document.getElementById('btn-minus').disabled      = true;
-  document.getElementById('btn-add-item').disabled   = false;
-  renderTypeBtns();
-}
-
-function changeQty(delta) {
-  selQty = Math.max(1, selQty + delta);
-  document.getElementById('qty-display').textContent = selQty;
-  document.getElementById('btn-minus').disabled      = selQty <= 1;
-}
-
-function addItem() {
-  if (!selType) return;
-
-  const type = selType;
-  const qty  = selQty;
-
+/* ─── Item toevoegen (+1 per tik) ────────────── */
+function addItem(type) {
   const existing = currentBon.find(i => i.type === type);
   if (existing) {
-    existing.qty += qty;
+    existing.qty += 1;
   } else {
-    currentBon.push({ type, qty });
+    currentBon.push({ type, qty: 1 });
   }
-
-  selType = null;
-  selQty  = 1;
-  document.getElementById('qty-label').textContent  = 'Selecteer een soort';
-  document.getElementById('qty-display').textContent = 1;
-  document.getElementById('btn-minus').disabled      = true;
-  document.getElementById('btn-add-item').disabled   = true;
-
   renderTypeBtns();
   renderCurrentBon();
-  toast(`${type} x${qty} toegevoegd`);
 }
 
-function removeItem(type) {
-  currentBon = currentBon.filter(i => i.type !== type);
+/* ─── Item verlagen (−1, verwijder bij 0) ────── */
+function decrementItem(type) {
+  const item = currentBon.find(i => i.type === type);
+  if (!item) return;
+  item.qty -= 1;
+  if (item.qty <= 0) currentBon = currentBon.filter(i => i.type !== type);
+  renderTypeBtns();
   renderCurrentBon();
 }
 
+/* ─── Item volledig verwijderen ──────────────── */
+function removeItem(type) {
+  currentBon = currentBon.filter(i => i.type !== type);
+  renderTypeBtns();
+  renderCurrentBon();
+}
+
+/* ─── Huidige bon weergeven ──────────────────── */
 function renderCurrentBon() {
+  const bonCard = document.getElementById('bon-card');
   const itemsEl = document.getElementById('current-items');
-  const saveEl  = document.getElementById('save-section');
 
   if (!currentBon.length) {
-    itemsEl.innerHTML = `
-      <div class="order-empty">
-        <span class="order-empty-line"></span>
-        Nog geen items toegevoegd
-      </div>`;
-    saveEl.style.display = 'none';
+    bonCard.style.display = 'none';
     return;
   }
+
+  bonCard.style.display = 'block';
 
   const total = currentBon.reduce((sum, i) => sum + i.qty, 0);
 
   itemsEl.innerHTML = currentBon.map(i => `
     <div class="order-item">
-      <div class="order-item-name">${i.type}</div>
-      <div class="order-item-right">
-        <span class="order-item-count">${i.qty}x</span>
+      <div class="order-item-name">${escHtml(i.type)}</div>
+      <div class="order-item-controls">
+        <button class="btn-decrement" data-type="${escHtml(i.type)}" title="Eén minder">−</button>
+        <span class="order-item-count">${i.qty}</span>
         <button class="btn-remove" data-type="${escHtml(i.type)}" title="Verwijder">&#x2715;</button>
       </div>
     </div>
   `).join('');
 
+  // Event delegatie voor beide knoppen
   itemsEl.onclick = e => {
-    const btn = e.target.closest('.btn-remove');
-    if (btn) removeItem(btn.dataset.type);
+    const dec = e.target.closest('.btn-decrement');
+    const rem = e.target.closest('.btn-remove');
+    if (dec) decrementItem(dec.dataset.type);
+    if (rem) removeItem(rem.dataset.type);
   };
 
   document.getElementById('bon-subtotal').textContent = total;
-  saveEl.style.display = 'block';
 }
 
+/* ─── Bon opslaan ────────────────────────────── */
 function saveBon() {
   const naam = document.getElementById('inp-naam').value.trim();
 
@@ -156,6 +144,7 @@ function saveBon() {
   currentBon = [];
   document.getElementById('inp-naam').value      = '';
   document.getElementById('inp-opmerking').value = '';
+  renderTypeBtns();
   renderCurrentBon();
   toast(`Bon #${bon.nr} opgeslagen`);
 }
@@ -203,7 +192,7 @@ function renderBonnen() {
 
     const itemLines = b.items.map(i => `
       <div class="bon-item-line">
-        <span>${i.type}</span>
+        <span>${escHtml(i.type)}</span>
         <span>${i.qty}x</span>
       </div>
     `).join('');

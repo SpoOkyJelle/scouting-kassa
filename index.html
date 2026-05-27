@@ -41,34 +41,19 @@
   </div>
 
   <div class="card">
-    <div class="card-title">Soort kiezen</div>
+    <div class="card-title">Tik om toe te voegen</div>
     <div class="types-grid" id="types-grid"></div>
-
-    <div class="qty-row">
-      <span class="qty-label" id="qty-label">Selecteer een soort</span>
-      <div class="qty-controls">
-        <button class="qty-btn" id="btn-minus" onclick="changeQty(-1)" disabled>−</button>
-        <span class="qty-display" id="qty-display">1</span>
-        <button class="qty-btn" onclick="changeQty(1)">+</button>
-      </div>
-    </div>
-
-    <button class="btn-add" id="btn-add-item" onclick="addItem()" disabled>
-      Voeg toe aan bon
-    </button>
   </div>
 
-  <div class="card">
+  <div class="card" id="bon-card" style="display: none;">
     <div class="card-title">Huidige bon</div>
     <div id="current-items"></div>
-    <div id="save-section" style="display: none;">
-      <div class="divider"></div>
-      <div class="bon-total-row">
-        <span class="bon-total-label">Totaal</span>
-        <span class="bon-total-count" id="bon-subtotal">0</span>
-      </div>
-      <button class="btn-save" onclick="saveBon()">Bon opslaan</button>
+    <div class="divider"></div>
+    <div class="bon-total-row">
+      <span class="bon-total-label">Totaal</span>
+      <span class="bon-total-count" id="bon-subtotal">0</span>
     </div>
+    <button class="btn-save" onclick="saveBon()">Bon opslaan</button>
   </div>
 
 </div>
