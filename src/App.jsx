@@ -1,89 +1,89 @@
-import { useState, useEffect } from 'react';
-import NieuweBon  from './components/NieuweBon.jsx';
-import Bonnen     from './components/Bonnen.jsx';
-import Overzicht  from './components/Overzicht.jsx';
-import Producten  from './components/Producten.jsx';
-import { api }    from './api.js';
-import { useToast } from './useToast.js';
+import { useState, createContext, useContext } from 'react'
+import { translations } from './i18n'
+import Bonnen from './components/Bonnen'
+import NieuweBon from './components/NieuweBon'
+import Producten from './components/Producten'
+import BonDetail from './components/BonDetail'
+import Overzicht from './components/Overzicht'
 
-const TABS = [
-  { id: 'nieuw',     label: 'Nieuwe bon' },
-  { id: 'bonnen',    label: 'Bonnen'     },
-  { id: 'overzicht', label: 'Overzicht'  },
-  { id: 'producten', label: 'Producten'  },
-];
+export const LangContext = createContext({ t: (k) => k, lang: 'nl' })
+export const useLang = () => useContext(LangContext)
 
 export default function App() {
-  const [activePage,  setActivePage]  = useState('nieuw');
-  const [products,    setProducts]    = useState([]);
-  const [editingBon,  setEditingBon]  = useState(null);
-  const [bonReload,   setBonReload]   = useState(0);
-  const { toast, toastMsg, toastVisible } = useToast();
+  const [lang, setLang] = useState('nl')
+  const [tab, setTab] = useState('receipts')
+  const [detailId, setDetailId] = useState(null)
 
-  /* Producten laden */
-  useEffect(() => {
-    api.getProducten()
-      .then(setProducts)
-      .catch(() => toast('Kon producten niet laden'));
-  }, []);
+  const t = (key) => translations[lang]?.[key] ?? key
 
-  const handleBonSaved    = ()    => setBonReload(k => k + 1);
-  const handleEditBon     = (bon) => { setEditingBon(bon); setActivePage('nieuw'); };
-  const handleCancelEdit  = ()    => setEditingBon(null);
-  const handleProductsChange = (ps) => setProducts(ps);
+  function openDetail(id) {
+    setDetailId(id)
+    setTab('detail')
+  }
+
+  function closeDetail() {
+    setDetailId(null)
+    setTab('receipts')
+  }
 
   return (
-    <>
-      {/* Header */}
+    <LangContext.Provider value={{ t, lang }}>
       <header className="header">
-        <div className="header-inner">
-          <span className="header-label">Scouting</span>
-          <h1>Pannenkoekenactie</h1>
+        <h1>🏕️ Kassa</h1>
+        <div className="lang-switcher">
+          <button
+            className={`lang-btn ${lang === 'nl' ? 'active' : ''}`}
+            onClick={() => setLang('nl')}
+          >
+            NL
+          </button>
+          <button
+            className={`lang-btn ${lang === 'en' ? 'active' : ''}`}
+            onClick={() => setLang('en')}
+          >
+            EN
+          </button>
         </div>
       </header>
 
-      {/* Tabs */}
-      <nav className="tabs">
-        {TABS.map(t => (
+      {tab !== 'detail' && (
+        <nav className="tab-nav">
           <button
-            key={t.id}
-            className={`tab ${activePage === t.id ? 'active' : ''}`}
-            onClick={() => setActivePage(t.id)}
+            className={`tab-btn ${tab === 'receipts' ? 'active' : ''}`}
+            onClick={() => setTab('receipts')}
           >
-            {t.label}
+            🧾 {t('receipts')}
           </button>
-        ))}
-      </nav>
+          <button
+            className={`tab-btn ${tab === 'new' ? 'active' : ''}`}
+            onClick={() => setTab('new')}
+          >
+            ➕ {t('new_receipt')}
+          </button>
+          <button
+            className={`tab-btn ${tab === 'products' ? 'active' : ''}`}
+            onClick={() => setTab('products')}
+          >
+            📦 {t('products')}
+          </button>
+          <button
+            className={`tab-btn ${tab === 'overview' ? 'active' : ''}`}
+            onClick={() => setTab('overview')}
+          >
+            📊 {t('overview')}
+          </button>
+        </nav>
+      )}
 
-      {/* Pagina's */}
-      <NieuweBon
-        className={`page ${activePage === 'nieuw'     ? 'active' : ''}`}
-        products={products}
-        editingBon={editingBon}
-        onBonSaved={handleBonSaved}
-        onCancelEdit={handleCancelEdit}
-        toast={toast}
-      />
-      <Bonnen
-        className={`page ${activePage === 'bonnen'    ? 'active' : ''}`}
-        reloadKey={bonReload}
-        onEditBon={handleEditBon}
-        toast={toast}
-      />
-      <Overzicht
-        className={`page ${activePage === 'overzicht' ? 'active' : ''}`}
-        reloadKey={bonReload}
-        toast={toast}
-      />
-      <Producten
-        className={`page ${activePage === 'producten' ? 'active' : ''}`}
-        products={products}
-        onProductsChange={handleProductsChange}
-        toast={toast}
-      />
-
-      {/* Toast */}
-      <div className={`toast ${toastVisible ? 'show' : ''}`}>{toastMsg}</div>
-    </>
-  );
+      <main className="main-content">
+        {tab === 'receipts' && <Bonnen onOpenDetail={openDetail} />}
+        {tab === 'new' && <NieuweBon onCreated={(id) => openDetail(id)} />}
+        {tab === 'products' && <Producten />}
+        {tab === 'overview' && <Overzicht />}
+        {tab === 'detail' && detailId && (
+          <BonDetail id={detailId} onBack={closeDetail} />
+        )}
+      </main>
+    </LangContext.Provider>
+  )
 }

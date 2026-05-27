@@ -1,181 +1,183 @@
-import { useState, useEffect } from 'react';
-import { api } from '../api.js';
+import { useState, useEffect } from 'react'
+import { useLang } from '../App'
+import { fetchProducts, createReceipt } from '../api'
+import { CATEGORIES, getCat } from '../categories'
 
-const euro = (n) => `€ ${(n || 0).toFixed(2).replace('.', ',')}`;
+const fmt = (price) => `€ ${parseFloat(price).toFixed(2)}`
 
-export default function NieuweBon({ className, products, editingBon, onBonSaved, onCancelEdit, toast }) {
-  const [naam,       setNaam]       = useState('');
-  const [opmerking,  setOpmerking]  = useState('');
-  const [currentBon, setCurrentBon] = useState([]);
+export default function NieuweBon({ onCreated }) {
+  const { t } = useLang()
+  const [products, setProducts]   = useState([])
+  const [loading, setLoading]     = useState(true)
+  const [receiptName, setName]    = useState('')
+  // order: { [productId]: { product, quantity } }
+  const [order, setOrder]         = useState({})
+  const [submitting, setSubmit]   = useState(false)
 
-  /* Formulier vullen bij bewerken */
   useEffect(() => {
-    if (editingBon) {
-      setNaam(editingBon.naam);
-      setOpmerking(editingBon.opmerking || '');
-      setCurrentBon(editingBon.items.map(i => ({ ...i })));
+    fetchProducts().then(data => { setProducts(data); setLoading(false) })
+  }, [])
+
+  function addProduct(product) {
+    setOrder(prev => ({
+      ...prev,
+      [product.id]: prev[product.id]
+        ? { ...prev[product.id], quantity: prev[product.id].quantity + 1 }
+        : { product, quantity: 1 },
+    }))
+  }
+
+  function setQty(productId, qty) {
+    if (qty <= 0) {
+      setOrder(prev => { const n = { ...prev }; delete n[productId]; return n })
+    } else {
+      setOrder(prev => ({ ...prev, [productId]: { ...prev[productId], quantity: qty } }))
     }
-  }, [editingBon]);
+  }
 
-  /* Prijzen op basis van huidige producten */
-  const priceMap = Object.fromEntries(products.map(p => [p.naam, p.prijs ?? 0]));
+  const orderItems = Object.values(order)
+  const total      = orderItems.reduce((s, { product, quantity }) => s + product.price * quantity, 0)
 
-  /* Helpers huidige bon */
-  const addItem = (type) => {
-    setCurrentBon(prev => {
-      const ex = prev.find(i => i.type === type);
-      if (ex) return prev.map(i => i.type === type ? { ...i, qty: i.qty + 1 } : i);
-      return [...prev, { type, qty: 1 }];
-    });
-  };
+  async function handleCreate() {
+    if (!orderItems.length) return
+    setSubmit(true)
+    const items = orderItems.map(({ product, quantity }) => ({
+      product_id:    product.id,
+      product_name:  product.name,
+      product_price: product.price,
+      quantity,
+    }))
+    const receipt = await createReceipt(receiptName || null, items)
+    setOrder({})
+    setName('')
+    setSubmit(false)
+    onCreated(receipt.id)
+  }
 
-  const decrementItem = (type) => {
-    setCurrentBon(prev =>
-      prev.flatMap(i => {
-        if (i.type !== type) return [i];
-        return i.qty > 1 ? [{ ...i, qty: i.qty - 1 }] : [];
-      })
-    );
-  };
+  if (loading) return <div className="spinner" />
 
-  const removeItem = (type) => setCurrentBon(prev => prev.filter(i => i.type !== type));
-
-  const total      = currentBon.reduce((s, i) => s + i.qty, 0);
-  const totalPrijs = currentBon.reduce((s, i) => s + i.qty * (priceMap[i.type] ?? 0), 0);
-
-  /* Opslaan */
-  const handleSave = async () => {
-    if (!naam.trim()) { toast('Vul eerst een naam in'); return; }
-    if (!currentBon.length) { toast('Voeg eerst pannenkoeken toe'); return; }
-
-    try {
-      if (editingBon) {
-        await api.updateBon(editingBon.id, { naam, opmerking, items: currentBon });
-        toast(`Bon #${editingBon.nr} bijgewerkt`);
-      } else {
-        const bon = await api.createBon({ naam, opmerking, items: currentBon });
-        toast(`Bon #${bon.nr} opgeslagen`);
-      }
-      reset();
-      onBonSaved();
-    } catch (e) {
-      toast(e.message);
-    }
-  };
-
-  const reset = () => {
-    setNaam(''); setOpmerking(''); setCurrentBon([]);
-  };
-
-  const handleCancel = () => {
-    reset();
-    onCancelEdit();
-    toast('Bewerking geannuleerd');
-  };
+  // Group products by category order
+  const groups = CATEGORIES.map(cat => ({
+    cat,
+    items: products.filter(p => (p.category || 'overig') === cat.id),
+  })).filter(g => g.items.length > 0)
 
   return (
-    <div className={className}>
-
-      {/* Edit-banner */}
-      {editingBon && (
-        <div className="edit-banner">
-          <div className="edit-banner-left">
-            <span className="edit-banner-dot" />
-            <span>Bon #{editingBon.nr} bewerken</span>
-          </div>
-          <button className="edit-banner-cancel" onClick={handleCancel}>Annuleer</button>
-        </div>
-      )}
-
-      {/* Klantgegevens */}
-      <div className="card">
-        <div className="card-title">Klantgegevens</div>
-        <div className="field">
-          <label htmlFor="inp-naam">Naam of omschrijving</label>
-          <input
-            id="inp-naam" type="text"
-            placeholder="Bijv. Tafel 3 of Jan de Vries"
-            value={naam}
-            onChange={e => setNaam(e.target.value)}
-          />
-        </div>
-        <div className="field">
-          <label htmlFor="inp-opmerking">
-            Opmerking <span className="optional">(optioneel)</span>
-          </label>
-          <textarea
-            id="inp-opmerking"
-            placeholder="Bijv. geen suiker, extra knapperig…"
-            value={opmerking}
-            onChange={e => setOpmerking(e.target.value)}
-          />
-        </div>
+    <div>
+      {/* Optional receipt name */}
+      <div className="form-group">
+        <label className="form-label">{t('receipt_name_label')}</label>
+        <input
+          className="form-input"
+          placeholder={t('receipt_name_placeholder')}
+          value={receiptName}
+          onChange={e => setName(e.target.value)}
+        />
       </div>
 
-      {/* Type-knoppen */}
-      <div className="card">
-        <div className="card-title">Tik om toe te voegen</div>
-        {products.length === 0 ? (
-          <p className="types-hint">
-            Nog geen producten. Voeg ze toe via het tabblad <strong>Producten</strong>.
-          </p>
-        ) : (
-          <div className="types-grid">
-            {products.map(p => {
-              const qty = currentBon.find(i => i.type === p.naam)?.qty ?? 0;
-              return (
-                <button
-                  key={p.id}
-                  className={`type-btn ${qty > 0 ? 'has-items' : ''}`}
-                  onClick={() => addItem(p.naam)}
-                >
-                  <span className="type-btn-name">{p.naam}</span>
-                  {p.prijs > 0 && <span className="type-btn-price">{euro(p.prijs)}</span>}
-                  {qty > 0 && <span className="type-count">{qty}</span>}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      <div className="new-receipt-layout">
+        {/* ── Left: product grid grouped by category ─────────────────────── */}
+        <div>
+          {products.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">📦</div>
+              <p>{t('no_products_hint')}</p>
+            </div>
+          ) : (
+            groups.map(({ cat, items }) => (
+              <div key={cat.id} style={{ marginBottom: '1.1rem' }}>
+                {/* Category header */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  marginBottom: '0.5rem',
+                  paddingBottom: '0.3rem',
+                  borderBottom: `2px solid ${cat.color}33`,
+                }}>
+                  <span style={{ fontSize: '1.15rem' }}>{cat.emoji}</span>
+                  <span style={{ fontWeight: 800, color: cat.color, fontSize: '0.9rem' }}>
+                    {t(`cat_${cat.id}`)}
+                  </span>
+                </div>
 
-      {/* Huidige bon */}
-      {currentBon.length > 0 && (
-        <div className="card">
-          <div className="card-title">Huidige bon</div>
-          {currentBon.map(i => {
-            const lineTotal = (priceMap[i.type] ?? 0) * i.qty;
-            return (
-              <div key={i.type} className="order-item">
-                <div className="order-item-name">{i.type}</div>
-                {lineTotal > 0 && (
-                  <div className="order-item-price">{euro(lineTotal)}</div>
-                )}
-                <div className="order-item-controls">
-                  <button className="btn-decrement" onClick={() => decrementItem(i.type)}>−</button>
-                  <span className="order-item-count">{i.qty}</span>
-                  <button className="btn-remove" onClick={() => removeItem(i.type)}>✕</button>
+                <div className="product-grid">
+                  {items.map(p => {
+                    const inOrder = !!order[p.id]
+                    return (
+                      <div
+                        key={p.id}
+                        className={`product-tile ${inOrder ? 'in-order' : ''}`}
+                        style={inOrder ? { borderColor: cat.color, background: cat.color + '15' } : {}}
+                        onClick={() => addProduct(p)}
+                      >
+                        {inOrder && (
+                          <span
+                            className="tile-qty"
+                            style={{ background: cat.color }}
+                          >
+                            ×{order[p.id].quantity}
+                          </span>
+                        )}
+                        <div className="tile-name">{p.name}</div>
+                        <div className="tile-price" style={inOrder ? { color: cat.color } : {}}>
+                          {fmt(p.price)}
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
-            );
-          })}
-          <div className="divider" />
-          <div className="bon-total-row">
-            <span className="bon-total-label">Totaal</span>
-            <div className="bon-total-right">
-              <span className="bon-total-count">{total} stuks</span>
-              {totalPrijs > 0 && <span className="bon-total-price">{euro(totalPrijs)}</span>}
-            </div>
+            ))
+          )}
+        </div>
+
+        {/* ── Right: order summary ──────────────────────────────────────── */}
+        <div className="order-panel">
+          <p className="section-title" style={{ marginBottom: '0.7rem' }}>
+            {t('order_summary')}
+          </p>
+
+          {orderItems.length === 0 ? (
+            <p style={{ color: 'var(--muted)', fontSize: '0.88rem', textAlign: 'center', padding: '1.2rem 0' }}>
+              {t('no_items_selected')}
+            </p>
+          ) : (
+            orderItems.map(({ product, quantity }) => {
+              const cat = getCat(product.category || 'overig')
+              return (
+                <div key={product.id} className="order-item">
+                  <span
+                    style={{
+                      width: 8, height: 8, borderRadius: '50%',
+                      background: cat.color, flexShrink: 0,
+                    }}
+                  />
+                  <span className="order-item-name">{product.name}</span>
+                  <div className="qty-wrap">
+                    <button className="qty-btn" onClick={() => setQty(product.id, quantity - 1)}>−</button>
+                    <span className="qty-val">{quantity}</span>
+                    <button className="qty-btn plus" onClick={() => setQty(product.id, quantity + 1)}>+</button>
+                  </div>
+                  <span className="order-item-price">{fmt(product.price * quantity)}</span>
+                </div>
+              )
+            })
+          )}
+
+          <div className="total-bar">
+            <span>{t('total')}</span>
+            <span className="total-amount">{fmt(total)}</span>
           </div>
+
           <button
-            className={`btn-save ${editingBon ? 'editing' : ''}`}
-            onClick={handleSave}
+            className="btn btn-primary btn-full btn-lg"
+            style={{ marginTop: '0.85rem' }}
+            disabled={orderItems.length === 0 || submitting}
+            onClick={handleCreate}
           >
-            {editingBon ? 'Wijzigingen opslaan' : 'Bon opslaan'}
+            {submitting ? '…' : `🧾 ${t('create_receipt')}`}
           </button>
         </div>
-      )}
-
+      </div>
     </div>
-  );
+  )
 }

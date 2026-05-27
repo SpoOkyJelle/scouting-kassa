@@ -1,6 +1,5 @@
 node_modules/
 dist/
-scouting.db
-scouting.db-shm
-scouting.db-wal
-.env
+kassa.db
+kassa.db-wal
+kassa.db-shm

@@ -1,96 +1,223 @@
-import { useState, useEffect } from 'react';
-import { api } from '../api.js';
+import { useState, useEffect } from 'react'
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  Cell, PieChart, Pie, Legend,
+} from 'recharts'
+import { useLang } from '../App'
 
-const euro = (n) => `€ ${(n || 0).toFixed(2).replace('.', ',')}`;
+const fmt   = (n) => `€ ${parseFloat(n ?? 0).toFixed(2)}`
+const GREEN  = '#2D7D46'
+const COLORS = ['#2D7D46', '#4CAF50', '#66BB6A', '#81C784', '#A5D6A7', '#198754', '#1F5C32', '#43A047']
 
-export default function Overzicht({ className, reloadKey, toast }) {
-  const [bonnen, setBonnen] = useState([]);
+// ── Stat card ────────────────────────────────────────────────────────────────
+function StatCard({ icon, label, value, sub, accent }) {
+  return (
+    <div style={{
+      background: '#fff',
+      borderRadius: 'var(--radius-lg)',
+      boxShadow: 'var(--shadow)',
+      padding: '1rem 1.1rem',
+      borderTop: `3px solid ${accent}`,
+    }}>
+      <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>{icon}</div>
+      <div style={{ fontSize: '1.35rem', fontWeight: 800, color: accent, lineHeight: 1 }}>
+        {value}
+      </div>
+      {sub != null && (
+        <div style={{ fontSize: '0.78rem', color: 'var(--muted)', marginTop: 3 }}>{sub}</div>
+      )}
+      <div style={{
+        fontSize: '0.72rem', fontWeight: 700, color: 'var(--muted)',
+        textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: 5,
+      }}>
+        {label}
+      </div>
+    </div>
+  )
+}
+
+// ── Custom chart tooltip ──────────────────────────────────────────────────────
+function ChartTip({ active, payload, label, isMoney = true }) {
+  if (!active || !payload?.length) return null
+  return (
+    <div style={{
+      background: '#fff', border: '1px solid var(--border)',
+      borderRadius: 8, padding: '8px 12px', boxShadow: 'var(--shadow)',
+    }}>
+      <p style={{ fontWeight: 700, marginBottom: 3 }}>{label}</p>
+      {payload.map((p, i) => (
+        <p key={i} style={{ color: p.color ?? GREEN, fontSize: '0.88rem' }}>
+          {isMoney ? fmt(p.value) : p.value}
+        </p>
+      ))}
+    </div>
+  )
+}
+
+// ── Section box ───────────────────────────────────────────────────────────────
+function Section({ title, children }) {
+  return (
+    <div style={{
+      background: '#fff', borderRadius: 'var(--radius-lg)',
+      boxShadow: 'var(--shadow)', padding: '1.1rem 1.25rem',
+      marginBottom: '1rem',
+    }}>
+      <p className="section-title" style={{ marginBottom: '1.1rem' }}>{title}</p>
+      {children}
+    </div>
+  )
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+export default function Overzicht() {
+  const { t, lang } = useLang()
+  const [stats, setStats]   = useState(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api.getBonnen()
-      .then(setBonnen)
-      .catch(() => toast('Kon overzicht niet laden'));
-  }, [reloadKey]);
+    fetch('/api/stats')
+      .then(r => r.json())
+      .then(data => { setStats(data); setLoading(false) })
+  }, [])
 
-  const total = bonnen.length;
-  const open  = bonnen.filter(b => !b.betaald).length;
-  const paid  = bonnen.filter(b =>  b.betaald).length;
+  if (loading) return <div className="spinner" />
 
-  const omzetTotaal = bonnen.reduce((s, b) => s + (b.totaal_prijs || 0), 0);
-  const omzetOpen   = bonnen.filter(b => !b.betaald).reduce((s, b) => s + (b.totaal_prijs || 0), 0);
-  const omzetPaid   = bonnen.filter(b =>  b.betaald).reduce((s, b) => s + (b.totaal_prijs || 0), 0);
+  const { totalRevenue, paidRevenue, unpaidRevenue, todayRevenue,
+          receiptCount, paidCount, unpaidCount, avgReceiptValue,
+          topProducts, revenueByHour, revenueByDay, multiDay } = stats
 
-  /* Breakdown per soort: qty + omzet */
-  const breakdown = {};
-  bonnen.forEach(b => b.items.forEach(i => {
-    if (!breakdown[i.type]) breakdown[i.type] = { qty: 0, omzet: 0 };
-    breakdown[i.type].qty   += i.qty;
-    breakdown[i.type].omzet += i.qty * (i.prijs || 0);
-  }));
-
-  const grandTotal = Object.values(breakdown).reduce((a, v) => a + v.qty, 0);
-  const rows = Object.entries(breakdown).sort(([a], [b]) => a.localeCompare(b));
-  const hasOmzet = omzetTotaal > 0;
+  // Pie data for paid vs unpaid
+  const pieData = [
+    { name: t('paid'),   value: paidCount   },
+    { name: t('unpaid'), value: unpaidCount },
+  ].filter(d => d.value > 0)
 
   return (
-    <div className={className}>
-
-      {/* Bon-statistieken */}
-      <div className="stats-grid">
-        <div className="stat-box s-total">
-          <div className="stat-num">{total}</div>
-          <div className="stat-label">Bonnen</div>
-        </div>
-        <div className="stat-box s-open">
-          <div className="stat-num">{open}</div>
-          <div className="stat-label">Open</div>
-        </div>
-        <div className="stat-box s-paid">
-          <div className="stat-num">{paid}</div>
-          <div className="stat-label">Betaald</div>
-        </div>
+    <div>
+      {/* ── Stat cards ──────────────────────────────────────────────────── */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+        gap: '0.75rem',
+        marginBottom: '1rem',
+      }}>
+        <StatCard icon="💰" label={t('stats_total')}     value={fmt(totalRevenue)}    accent="var(--green)"   />
+        <StatCard icon="📅" label={t('stats_today')}     value={fmt(todayRevenue)}    accent="#6366F1"        />
+        <StatCard icon="✅" label={t('stats_paid_amt')}  value={fmt(paidRevenue)}
+          sub={`${paidCount} ${t('stats_count').toLowerCase()}`}  accent="var(--success)"  />
+        <StatCard icon="⏳" label={t('stats_unpaid_amt')} value={fmt(unpaidRevenue)}
+          sub={`${unpaidCount} ${t('stats_count').toLowerCase()}`} accent="var(--warning)" />
+        <StatCard icon="📋" label={t('stats_count')}      value={receiptCount}         accent="var(--muted)"  />
+        <StatCard icon="🧾" label={t('stats_avg')}        value={fmt(avgReceiptValue)} accent="#0EA5E9"       />
       </div>
 
-      {/* Omzet-statistieken */}
-      {hasOmzet && (
-        <div className="stats-grid">
-          <div className="stat-box s-rev-total">
-            <div className="stat-num stat-num-sm">{euro(omzetTotaal)}</div>
-            <div className="stat-label">Omzet</div>
-          </div>
-          <div className="stat-box s-rev-open">
-            <div className="stat-num stat-num-sm">{euro(omzetOpen)}</div>
-            <div className="stat-label">Nog open</div>
-          </div>
-          <div className="stat-box s-rev-paid">
-            <div className="stat-num stat-num-sm">{euro(omzetPaid)}</div>
-            <div className="stat-label">Ontvangen</div>
-          </div>
+      {receiptCount === 0 && (
+        <div className="empty-state">
+          <div className="empty-icon">📊</div>
+          <p>{t('stats_empty')}</p>
         </div>
       )}
 
-      {/* Per soort */}
-      <div className="card">
-        <div className="card-title">Pannenkoeken per soort</div>
-        {rows.length === 0 ? (
-          <div className="products-empty">Nog geen bestellingen.</div>
-        ) : (
-          rows.map(([type, { qty, omzet }]) => (
-            <div key={type} className="breakdown-row">
-              <span className="breakdown-name">{type}</span>
-              <span className="breakdown-count">{qty}</span>
-              {omzet > 0 && <span className="breakdown-price">{euro(omzet)}</span>}
-            </div>
-          ))
+      {/* ── Revenue timeline ────────────────────────────────────────────── */}
+      {revenueByHour.length > 0 && (
+        <Section title={`📈 ${t('stats_by_hour')}`}>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={revenueByHour} margin={{ top: 4, right: 8, bottom: 0, left: -10 }}>
+              <XAxis dataKey="hour" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `€${v}`} />
+              <Tooltip content={<ChartTip />} />
+              <Bar dataKey="revenue" fill={GREEN} radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Section>
+      )}
+
+      {multiDay && revenueByDay.length > 0 && (
+        <Section title={`📅 ${t('stats_by_day')}`}>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={revenueByDay} margin={{ top: 4, right: 8, bottom: 0, left: -10 }}>
+              <XAxis dataKey="day" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `€${v}`} />
+              <Tooltip content={<ChartTip />} />
+              <Bar dataKey="revenue" radius={[4, 4, 0, 0]}>
+                {revenueByDay.map((_, i) => (
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </Section>
+      )}
+
+      {/* ── Bottom row: top products + paid/unpaid pie ───────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}
+           className="stats-bottom">
+        {/* Top products — horizontal bar chart */}
+        {topProducts.length > 0 && (
+          <Section title={`🏆 ${t('stats_top')}`}>
+            <ResponsiveContainer width="100%" height={Math.max(180, topProducts.length * 38)}>
+              <BarChart
+                data={topProducts}
+                layout="vertical"
+                margin={{ top: 0, right: 70, bottom: 0, left: 0 }}
+              >
+                <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={v => `€${v}`} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={110} />
+                <Tooltip content={({ active, payload, label }) => {
+                  if (!active || !payload?.length) return null
+                  return (
+                    <div style={{
+                      background: '#fff', border: '1px solid var(--border)',
+                      borderRadius: 8, padding: '8px 12px', boxShadow: 'var(--shadow)',
+                    }}>
+                      <p style={{ fontWeight: 700, marginBottom: 3 }}>{label}</p>
+                      <p style={{ color: GREEN }}>{fmt(payload[0]?.value)}</p>
+                      <p style={{ color: 'var(--muted)', fontSize: '0.82rem' }}>
+                        {payload[0]?.payload?.quantity} {t('stats_qty').toLowerCase()}
+                      </p>
+                    </div>
+                  )
+                }} />
+                <Bar dataKey="revenue" radius={[0, 4, 4, 0]}
+                  label={{ position: 'right', formatter: v => fmt(v), fontSize: 11, fill: 'var(--muted)' }}
+                >
+                  {topProducts.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </Section>
+        )}
+
+        {/* Paid vs unpaid pie */}
+        {receiptCount > 0 && (
+          <Section title={`🥧 ${t('paid')} vs ${t('unpaid')}`}>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={80}
+                  paddingAngle={3}
+                  dataKey="value"
+                  label={({ name, percent }) =>
+                    `${name} ${(percent * 100).toFixed(0)}%`
+                  }
+                  labelLine={true}
+                >
+                  {pieData.map((_, i) => (
+                    <Cell key={i} fill={i === 0 ? 'var(--success)' : 'var(--warning)'} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(v, name) => [`${v} ${t('stats_count').toLowerCase()}`, name]} />
+              </PieChart>
+            </ResponsiveContainer>
+          </Section>
         )}
       </div>
-
-      {/* Totaal */}
-      <div className="total-bar">
-        <span className="total-bar-label">Totaal pannenkoeken</span>
-        <span className="total-bar-num">{grandTotal}</span>
-      </div>
-
     </div>
-  );
+  )
 }

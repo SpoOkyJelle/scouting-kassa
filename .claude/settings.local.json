@@ -1,8 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm --version)",
-      "Bash(curl -s http://localhost:3001/api/producten)"
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\nlkootwj\\\\Documents\\\\GitHub\\\\scouting-kassa\" -Recurse -Force)",
+      "Bash(Select-Object FullName, Attributes)",
+      "Bash(Format-Table -AutoSize)"
     ]
   }
 }

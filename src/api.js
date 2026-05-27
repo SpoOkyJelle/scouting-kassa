@@ -1,28 +1,49 @@
-const BASE = '/api';
+const BASE = '/api'
 
-async function handle(res) {
-  if (res.status === 204) return null;
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-  return data;
+async function req(path, options = {}) {
+  const res = await fetch(BASE + path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...options,
+  })
+  if (!res.ok) throw new Error(`API error: ${res.status}`)
+  return res.json()
 }
 
-const json = (method, body) => ({
-  method,
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(body),
-});
+// ─── Products ──────────────────────────────────────────────────────────────
 
-export const api = {
-  /* Producten */
-  getProducten:  ()            => fetch(`${BASE}/producten`).then(handle),
-  addProduct:    (naam, prijs) => fetch(`${BASE}/producten`, json('POST', { naam, prijs })).then(handle),
-  updateProduct: (id, data)    => fetch(`${BASE}/producten/${id}`, json('PUT', data)).then(handle),
-  deleteProduct: (id)          => fetch(`${BASE}/producten/${id}`, { method: 'DELETE' }).then(handle),
+export const fetchProducts = () => req('/products')
 
-  /* Bonnen */
-  getBonnen:     ()         => fetch(`${BASE}/bonnen`).then(handle),
-  createBon:     (data)     => fetch(`${BASE}/bonnen`, json('POST', data)).then(handle),
-  updateBon:     (id, data) => fetch(`${BASE}/bonnen/${id}`, json('PUT', data)).then(handle),
-  toggleBetaald: (id)       => fetch(`${BASE}/bonnen/${id}/betaald`, { method: 'PATCH' }).then(handle),
-};
+export const createProduct = (name, price, category) =>
+  req('/products', { method: 'POST', body: JSON.stringify({ name, price, category }) })
+
+export const updateProduct = (id, name, price, category) =>
+  req(`/products/${id}`, { method: 'PUT', body: JSON.stringify({ name, price, category }) })
+
+export const deleteProduct = (id) =>
+  req(`/products/${id}`, { method: 'DELETE' })
+
+// ─── Receipts ─────────────────────────────────────────────────────────────
+
+export const fetchReceipts = () => req('/receipts')
+
+export const createReceipt = (name, items) =>
+  req('/receipts', { method: 'POST', body: JSON.stringify({ name, items }) })
+
+export const fetchReceipt = (id) => req(`/receipts/${id}`)
+
+export const updateReceipt = (id, data) =>
+  req(`/receipts/${id}`, { method: 'PUT', body: JSON.stringify(data) })
+
+export const deleteReceipt = (id) =>
+  req(`/receipts/${id}`, { method: 'DELETE' })
+
+// ─── Receipt items ────────────────────────────────────────────────────────
+
+export const addReceiptItem = (receiptId, item) =>
+  req(`/receipts/${receiptId}/items`, { method: 'POST', body: JSON.stringify(item) })
+
+export const updateReceiptItem = (receiptId, itemId, quantity) =>
+  req(`/receipts/${receiptId}/items/${itemId}`, { method: 'PUT', body: JSON.stringify({ quantity }) })
+
+export const deleteReceiptItem = (receiptId, itemId) =>
+  req(`/receipts/${receiptId}/items/${itemId}`, { method: 'DELETE' })
