@@ -50,6 +50,14 @@ export const translations = {
     no_items: 'Geen artikelen op deze bon.',
     edit_name: 'Naam bewerken',
 
+    // Login
+    login_heading:    'Welkom terug',
+    login_sub:        'Voer de PIN in om door te gaan',
+    login_placeholder:'PIN',
+    login_submit:     'Inloggen',
+    login_error:      'Verkeerde PIN. Probeer opnieuw.',
+    logout:           'Uitloggen',
+
     // Categories
     category:             'Categorie',
     cat_pannenkoeken:     'Pannenkoeken',
@@ -125,6 +133,14 @@ export const translations = {
     edit_name: 'Edit name',
 
     // Categories
+    // Login
+    login_heading:    'Welcome back',
+    login_sub:        'Enter the PIN to continue',
+    login_placeholder:'PIN',
+    login_submit:     'Sign in',
+    login_error:      'Wrong PIN. Please try again.',
+    logout:           'Sign out',
+
     category:             'Category',
     cat_pannenkoeken:     'Pancakes',
     cat_beleg:            'Toppings',

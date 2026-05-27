@@ -1,12 +1,22 @@
+import 'dotenv/config'   // ← must be first so process.env is populated
 import express from 'express'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
+import { randomUUID } from 'crypto'
 import { Low } from 'lowdb'
 import { JSONFile } from 'lowdb/node'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const app  = express()
 const PORT = 3001
+
+// ─── Require PIN in environment ───────────────────────────────────────────────
+const PIN = process.env.PIN
+if (!PIN) {
+  console.error('\n[kassa] FOUT: PIN niet ingesteld.')
+  console.error('[kassa] Maak een .env bestand aan met: PIN=jouw_pin\n')
+  process.exit(1)
+}
 
 // ─── Database setup ────────────────────────────────────────────────────────────
 const adapter = new JSONFile(join(__dirname, 'kassa.json'))
@@ -18,9 +28,39 @@ function nextId(key) {
   return db.data[key]
 }
 
+// ─── In-memory sessions ────────────────────────────────────────────────────────
+const sessions = new Set()
+
 // ─── Middleware ────────────────────────────────────────────────────────────────
 app.use(express.json())
 app.use(express.static(join(__dirname, 'dist')))
+
+// ─── Auth endpoints (no token required) ──────────────────────────────────────
+
+app.post('/api/auth/login', (req, res) => {
+  const { pin } = req.body
+  if (!pin || pin !== PIN) {
+    return res.status(401).json({ error: 'Verkeerde PIN' })
+  }
+  const token = randomUUID()
+  sessions.add(token)
+  res.json({ token })
+})
+
+app.post('/api/auth/logout', (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1]
+  if (token) sessions.delete(token)
+  res.json({ ok: true })
+})
+
+// ─── Auth middleware (all /api routes below this point require a token) ────────
+app.use('/api', (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1]
+  if (!token || !sessions.has(token)) {
+    return res.status(401).json({ error: 'Niet ingelogd' })
+  }
+  next()
+})
 
 // ─── Products ─────────────────────────────────────────────────────────────────
 
@@ -173,15 +213,12 @@ app.get('/api/stats', (_req, res) => {
   const todayStr = new Date().toDateString()
 
   let totalRevenue = 0, paidRevenue = 0, todayRevenue = 0
-  const productMap = {}
-  const hourMap    = {}
-  const dayMap     = {}
+  const productMap = {}, hourMap = {}, dayMap = {}
 
   receipts.forEach(r => {
     const rTotal = (r.items || []).reduce((s, i) => s + i.product_price * i.quantity, 0)
     totalRevenue += rTotal
     if (r.paid) paidRevenue += rTotal
-
     const date    = new Date(r.created_at)
     const isToday = date.toDateString() === todayStr
     if (isToday) {
@@ -189,39 +226,31 @@ app.get('/api/stats', (_req, res) => {
       const h = date.getHours()
       hourMap[h] = (hourMap[h] || 0) + rTotal
     }
-
     const dayKey = r.created_at.split('T')[0]
     dayMap[dayKey] = (dayMap[dayKey] || 0) + rTotal
-
     ;(r.items || []).forEach(i => {
-      if (!productMap[i.product_name]) {
+      if (!productMap[i.product_name])
         productMap[i.product_name] = { name: i.product_name, quantity: 0, revenue: 0 }
-      }
       productMap[i.product_name].quantity += i.quantity
       productMap[i.product_name].revenue  += i.product_price * i.quantity
     })
   })
 
-  const paidCount   = receipts.filter(r => r.paid).length
-  const unpaidCount = receipts.length - paidCount
+  const paidCount = receipts.filter(r => r.paid).length
 
-  // Revenue by hour (today, only hours that have data)
   const revenueByHour = []
   for (let h = 0; h < 24; h++) {
-    if (hourMap[h] != null) {
+    if (hourMap[h] != null)
       revenueByHour.push({ hour: `${String(h).padStart(2, '0')}:00`, revenue: Math.round(hourMap[h] * 100) / 100 })
-    }
   }
 
-  // Revenue by day (last 30 days that have data)
   const revenueByDay = Object.entries(dayMap)
     .sort(([a], [b]) => a.localeCompare(b))
     .slice(-30)
-    .map(([day, revenue]) => {
-      const d     = new Date(day)
-      const label = d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })
-      return { day: label, revenue: Math.round(revenue * 100) / 100 }
-    })
+    .map(([day, revenue]) => ({
+      day: new Date(day).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' }),
+      revenue: Math.round(revenue * 100) / 100,
+    }))
 
   const topProducts = Object.values(productMap)
     .sort((a, b) => b.revenue - a.revenue)
@@ -229,13 +258,13 @@ app.get('/api/stats', (_req, res) => {
     .map(p => ({ ...p, revenue: Math.round(p.revenue * 100) / 100 }))
 
   res.json({
-    totalRevenue:    Math.round(totalRevenue * 100) / 100,
-    paidRevenue:     Math.round(paidRevenue  * 100) / 100,
+    totalRevenue:    Math.round(totalRevenue    * 100) / 100,
+    paidRevenue:     Math.round(paidRevenue     * 100) / 100,
     unpaidRevenue:   Math.round((totalRevenue - paidRevenue) * 100) / 100,
-    todayRevenue:    Math.round(todayRevenue  * 100) / 100,
+    todayRevenue:    Math.round(todayRevenue    * 100) / 100,
     receiptCount:    receipts.length,
     paidCount,
-    unpaidCount,
+    unpaidCount:     receipts.length - paidCount,
     avgReceiptValue: receipts.length ? Math.round(totalRevenue / receipts.length * 100) / 100 : 0,
     topProducts,
     revenueByHour,
@@ -245,7 +274,6 @@ app.get('/api/stats', (_req, res) => {
 })
 
 // ─── SPA fallback ─────────────────────────────────────────────────────────────
-
 app.get('*', (_req, res) => {
   res.sendFile(join(__dirname, 'dist', 'index.html'))
 })

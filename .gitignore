@@ -3,3 +3,4 @@ dist/
 kassa.db
 kassa.db-wal
 kassa.db-shm
+.env

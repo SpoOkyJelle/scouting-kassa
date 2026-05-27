@@ -8,6 +8,7 @@ import {
   FileText, Divide, BarChart2, PieChart as PieIcon, Trophy,
 } from 'lucide-react'
 import { useLang } from '../App'
+import { fetchStats } from '../api'
 
 const fmt = n => `€ ${parseFloat(n ?? 0).toFixed(2)}`
 
@@ -50,7 +51,7 @@ export default function Overzicht() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/stats').then(r => r.json()).then(d => { setStats(d); setLoading(false) })
+    fetchStats().then(d => { setStats(d); setLoading(false) })
   }, [])
 
   if (loading) return <div className="spinner" />

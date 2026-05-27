@@ -1,12 +1,48 @@
 const BASE = '/api'
 
 async function req(path, options = {}) {
+  const token = sessionStorage.getItem('kassa_token')
   const res = await fetch(BASE + path, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     ...options,
   })
+
+  // Session expired or invalid — clear token and reload to login screen
+  if (res.status === 401) {
+    sessionStorage.removeItem('kassa_token')
+    window.location.reload()
+    throw new Error('Unauthorized')
+  }
+
   if (!res.ok) throw new Error(`API error: ${res.status}`)
   return res.json()
+}
+
+// ─── Auth ──────────────────────────────────────────────────────────────────
+
+export async function login(pin) {
+  const res = await fetch(`${BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pin }),
+  })
+  if (!res.ok) throw new Error('Wrong PIN')
+  return res.json()   // { token }
+}
+
+export async function logout() {
+  const token = sessionStorage.getItem('kassa_token')
+  await fetch(`${BASE}/auth/logout`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  })
+  sessionStorage.removeItem('kassa_token')
 }
 
 // ─── Products ──────────────────────────────────────────────────────────────
@@ -36,6 +72,10 @@ export const updateReceipt = (id, data) =>
 
 export const deleteReceipt = (id) =>
   req(`/receipts/${id}`, { method: 'DELETE' })
+
+// ─── Stats ────────────────────────────────────────────────────────────────
+
+export const fetchStats = () => req('/stats')
 
 // ─── Receipt items ────────────────────────────────────────────────────────
 
