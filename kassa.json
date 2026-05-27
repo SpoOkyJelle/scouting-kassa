@@ -177,13 +177,13 @@
   "_rid": 6,
   "_iid": 11,
   "sessions": {
-    "761b391f-1b34-4412-b0ed-e04bd0d734e4": "admin"
+    "18040f45-5dc9-42dd-8d8b-f8c85cf2927b": "cashier"
   },
   "inkoop": [
     {
       "id": 1,
       "description": "Boodschappen albert heijn",
-      "amount": 54.56,
+      "amount": 12,
       "date": "2026-05-27",
       "note": null,
       "created_at": "2026-05-27T15:14:35.617Z"

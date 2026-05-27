@@ -118,30 +118,16 @@ export default function InkoopBonnen() {
 
       {/* ── Form ────────────────────────────────────────────────────────── */}
       {showForm && (
-        <form
-          onSubmit={handleSubmit}
-          style={{
-            background: 'var(--surface)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--r-lg)',
-            padding: '1rem',
-            marginBottom: '1rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 10,
-          }}
-        >
-          <p style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--s800)', margin: 0 }}>
+        <form className="page-surface" onSubmit={handleSubmit} style={{ marginBottom: '1rem' }}>
+          <p className="section-title" style={{ marginBottom: '0.75rem' }}>
             {editId ? t('inkoop_edit') : t('inkoop_new')}
           </p>
 
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <div style={{ flex: '2 1 180px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <label style={{ fontSize: '0.75rem', color: 'var(--muted)', fontWeight: 600 }}>
-                {t('inkoop_description')}
-              </label>
+          <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div className="form-group" style={{ flex: '2 1 180px', marginBottom: 0 }}>
+              <label className="form-label">{t('inkoop_description')}</label>
               <input
-                className="input"
+                className="form-input"
                 placeholder={t('inkoop_description_ph')}
                 value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
@@ -150,12 +136,10 @@ export default function InkoopBonnen() {
               />
             </div>
 
-            <div style={{ flex: '1 1 100px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <label style={{ fontSize: '0.75rem', color: 'var(--muted)', fontWeight: 600 }}>
-                {t('inkoop_amount')}
-              </label>
+            <div className="form-group" style={{ flex: '1 1 100px', marginBottom: 0 }}>
+              <label className="form-label">{t('inkoop_amount')}</label>
               <input
-                className="input"
+                className="form-input"
                 type="number"
                 min="0"
                 step="0.01"
@@ -166,32 +150,28 @@ export default function InkoopBonnen() {
               />
             </div>
 
-            <div style={{ flex: '1 1 120px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <label style={{ fontSize: '0.75rem', color: 'var(--muted)', fontWeight: 600 }}>
-                {t('inkoop_date')}
-              </label>
+            <div className="form-group" style={{ flex: '1 1 130px', marginBottom: 0 }}>
+              <label className="form-label">{t('inkoop_date')}</label>
               <input
-                className="input"
+                className="form-input"
                 type="date"
                 value={form.date}
                 onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
               />
             </div>
+
+            <div className="form-group" style={{ flex: '2 1 180px', marginBottom: 0 }}>
+              <label className="form-label">{t('note')} ({t('inkoop_optional')})</label>
+              <input
+                className="form-input"
+                placeholder={t('inkoop_note_ph')}
+                value={form.note}
+                onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
+              />
+            </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <label style={{ fontSize: '0.75rem', color: 'var(--muted)', fontWeight: 600 }}>
-              {t('note')} ({t('inkoop_optional')})
-            </label>
-            <input
-              className="input"
-              placeholder={t('inkoop_note_ph')}
-              value={form.note}
-              onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
-            />
-          </div>
-
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: '0.75rem' }}>
             <button type="button" className="btn btn-ghost btn-sm" onClick={cancelForm}>
               <X size={13} /> {t('cancel')}
             </button>
