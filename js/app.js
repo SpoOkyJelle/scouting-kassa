@@ -5,22 +5,13 @@
 /* ─── CONSTANTEN ─────────────────────────────── */
 const TYPES = ['Naturel', 'Stroop', 'Kaas', 'Spek', 'Spek & kaas', 'Suiker'];
 
-const ICONS = {
-  'Naturel':     '🥞',
-  'Stroop':      '🍯',
-  'Kaas':        '🧀',
-  'Spek':        '🥓',
-  'Spek & kaas': '🥓🧀',
-  'Suiker':      '🍬',
-};
-
 /* ─── STATE ──────────────────────────────────── */
-let bonnen       = [];   // alle opgeslagen bonnen
-let currentBon   = [];   // items in de huidige bon  [ { type, qty } ]
-let selType      = null; // geselecteerde pannenkoeksoort
-let selQty       = 1;    // geselecteerd aantal
+let bonnen       = [];
+let currentBon   = [];   // [ { type, qty } ]
+let selType      = null;
+let selQty       = 1;
 let activeFilter = 'alle';
-let nextNr       = 1;    // oplopend bonnummer
+let nextNr       = 1;
 
 /* ═══════════════════════════════════════════════
    NAVIGATIE
@@ -39,16 +30,13 @@ function showPage(name) {
    PAGINA 1 · NIEUWE BON
 ═══════════════════════════════════════════════ */
 
-/* ─── Soortenknoppen ─────────────────────────── */
 function renderTypeBtns() {
   document.getElementById('types-grid').innerHTML = TYPES.map(t => `
-    <button class="type-btn ${selType === t ? 'active' : ''}"
-            data-type="${escHtml(t)}">
-      ${ICONS[t]}<br>${t}
+    <button class="type-btn ${selType === t ? 'active' : ''}" data-type="${escHtml(t)}">
+      ${t}
     </button>
   `).join('');
 
-  // Event listener via delegatie — vermijdt problemen met aanhalingstekens in onclick
   document.getElementById('types-grid').onclick = e => {
     const btn = e.target.closest('.type-btn');
     if (btn) selectType(btn.dataset.type);
@@ -65,14 +53,12 @@ function selectType(t) {
   renderTypeBtns();
 }
 
-/* ─── Aantal-selector ────────────────────────── */
 function changeQty(delta) {
   selQty = Math.max(1, selQty + delta);
   document.getElementById('qty-display').textContent = selQty;
   document.getElementById('btn-minus').disabled      = selQty <= 1;
 }
 
-/* ─── Item toevoegen aan bon ─────────────────── */
 function addItem() {
   if (!selType) return;
 
@@ -86,7 +72,6 @@ function addItem() {
     currentBon.push({ type, qty });
   }
 
-  // Reset selectie
   selType = null;
   selQty  = 1;
   document.getElementById('qty-label').textContent  = 'Selecteer een soort';
@@ -96,16 +81,14 @@ function addItem() {
 
   renderTypeBtns();
   renderCurrentBon();
-  toast(`✓ ${ICONS[type]} ${type} × ${qty} toegevoegd`);
+  toast(`${type} x${qty} toegevoegd`);
 }
 
-/* ─── Item verwijderen uit bon ───────────────── */
 function removeItem(type) {
   currentBon = currentBon.filter(i => i.type !== type);
   renderCurrentBon();
 }
 
-/* ─── Huidige bon weergeven ──────────────────── */
 function renderCurrentBon() {
   const itemsEl = document.getElementById('current-items');
   const saveEl  = document.getElementById('save-section');
@@ -113,7 +96,7 @@ function renderCurrentBon() {
   if (!currentBon.length) {
     itemsEl.innerHTML = `
       <div class="order-empty">
-        <span class="order-empty-icon">🥞</span>
+        <span class="order-empty-line"></span>
         Nog geen items toegevoegd
       </div>`;
     saveEl.style.display = 'none';
@@ -124,15 +107,14 @@ function renderCurrentBon() {
 
   itemsEl.innerHTML = currentBon.map(i => `
     <div class="order-item">
-      <div class="order-item-name">${ICONS[i.type]} ${i.type}</div>
+      <div class="order-item-name">${i.type}</div>
       <div class="order-item-right">
-        <span class="order-item-count">${i.qty}×</span>
-        <button class="btn-remove" data-type="${escHtml(i.type)}" title="Verwijder">✕</button>
+        <span class="order-item-count">${i.qty}x</span>
+        <button class="btn-remove" data-type="${escHtml(i.type)}" title="Verwijder">&#x2715;</button>
       </div>
     </div>
   `).join('');
 
-  // Event delegatie voor verwijderknoppen
   itemsEl.onclick = e => {
     const btn = e.target.closest('.btn-remove');
     if (btn) removeItem(btn.dataset.type);
@@ -142,17 +124,16 @@ function renderCurrentBon() {
   saveEl.style.display = 'block';
 }
 
-/* ─── Bon opslaan ────────────────────────────── */
 function saveBon() {
   const naam = document.getElementById('inp-naam').value.trim();
 
   if (!naam) {
     document.getElementById('inp-naam').focus();
-    toast('⚠️ Vul eerst een naam in');
+    toast('Vul eerst een naam in');
     return;
   }
   if (!currentBon.length) {
-    toast('⚠️ Voeg eerst pannenkoeken toe');
+    toast('Voeg eerst pannenkoeken toe');
     return;
   }
 
@@ -162,7 +143,7 @@ function saveBon() {
 
   const bon = {
     nr:        nextNr++,
-    naam:      naam,
+    naam,
     opmerking: document.getElementById('inp-opmerking').value.trim(),
     items:     [...currentBon],
     tijdstip:  `${datum} ${tijdstip}`,
@@ -172,12 +153,11 @@ function saveBon() {
 
   bonnen.unshift(bon);
 
-  // Formulier leegmaken
   currentBon = [];
   document.getElementById('inp-naam').value      = '';
   document.getElementById('inp-opmerking').value = '';
   renderCurrentBon();
-  toast(`🧾 Bon #${bon.nr} opgeslagen!`);
+  toast(`Bon #${bon.nr} opgeslagen`);
 }
 
 /* ═══════════════════════════════════════════════
@@ -193,8 +173,8 @@ function setFilter(f) {
 }
 
 function renderBonnen() {
-  const query    = (document.getElementById('inp-search')?.value || '').trim().toLowerCase();
-  const listEl   = document.getElementById('bonnen-list');
+  const query  = (document.getElementById('inp-search')?.value || '').trim().toLowerCase();
+  const listEl = document.getElementById('bonnen-list');
 
   const filtered = bonnen.filter(b => {
     const matchFilter =
@@ -208,41 +188,40 @@ function renderBonnen() {
   if (!filtered.length) {
     listEl.innerHTML = `
       <div class="empty-bonnen">
-        <span>🧾</span>
+        <span class="empty-bonnen-icon"></span>
         ${bonnen.length ? 'Geen bonnen gevonden' : 'Nog geen bonnen opgeslagen'}
       </div>`;
     return;
   }
 
   listEl.innerHTML = filtered.map(b => {
-    const statusClass = b.betaald ? 'betaald'       : 'open';
-    const badgeClass  = b.betaald ? 'badge-betaald'  : 'badge-open';
-    const badgeText   = b.betaald ? '✓ Betaald'      : 'Open';
-    const btnClass    = b.betaald ? 'mark-open'       : 'mark-paid';
-    const btnText     = b.betaald ? '↩ Zet op open'   : '✓ Markeer betaald';
+    const statusClass = b.betaald ? 'betaald'      : 'open';
+    const badgeClass  = b.betaald ? 'badge-betaald' : 'badge-open';
+    const badgeText   = b.betaald ? 'Betaald'       : 'Open';
+    const btnClass    = b.betaald ? 'mark-open'      : 'mark-paid';
+    const btnText     = b.betaald ? 'Zet op open'    : 'Markeer betaald';
 
     const itemLines = b.items.map(i => `
       <div class="bon-item-line">
-        <span>${ICONS[i.type]} ${i.type}</span>
-        <span>${i.qty}×</span>
+        <span>${i.type}</span>
+        <span>${i.qty}x</span>
       </div>
     `).join('');
 
     return `
       <div class="bon-card ${statusClass}">
         <div class="bon-top">
-          <div>
+          <div class="bon-meta">
             <div class="bon-name">${escHtml(b.naam)}</div>
-            <div class="bon-nr">Bon #${b.nr}</div>
-            <div class="bon-time">⏱ ${b.tijdstip}</div>
-            ${b.opmerking ? `<div class="bon-remark">💬 ${escHtml(b.opmerking)}</div>` : ''}
+            <div class="bon-sub">Bon #${b.nr} &middot; ${b.tijdstip}</div>
+            ${b.opmerking ? `<div class="bon-remark">${escHtml(b.opmerking)}</div>` : ''}
           </div>
           <span class="badge ${badgeClass}">${badgeText}</span>
         </div>
         <div class="bon-items">${itemLines}</div>
         <div class="bon-footer">
           <div class="bon-footer-total">
-            Totaal: <strong>${b.totaal} pannenkoek${b.totaal !== 1 ? 'en' : ''}</strong>
+            <strong>${b.totaal} pannenkoek${b.totaal !== 1 ? 'en' : ''}</strong>
           </div>
           <button class="btn-pay ${btnClass}" onclick="toggleBetaald(${b.nr})">${btnText}</button>
         </div>
@@ -258,12 +237,11 @@ function toggleBetaald(nr) {
   bon.betaald = !bon.betaald;
   renderBonnen();
 
-  // Overzicht bijwerken als dat tabblad actief is
   if (document.getElementById('page-overzicht').classList.contains('active')) {
     renderOverzicht();
   }
 
-  toast(bon.betaald ? `✓ Bon #${nr} betaald` : `↩ Bon #${nr} terug op open`);
+  toast(bon.betaald ? `Bon #${nr} betaald` : `Bon #${nr} terug op open`);
 }
 
 /* ═══════════════════════════════════════════════
@@ -278,14 +256,13 @@ function renderOverzicht() {
   document.getElementById('s-open').textContent  = open;
   document.getElementById('s-paid').textContent  = paid;
 
-  // Aantallen per soort
   const counts = Object.fromEntries(TYPES.map(t => [t, 0]));
   bonnen.forEach(b => b.items.forEach(i => { counts[i.type] += i.qty; }));
 
   document.getElementById('breakdown-list').innerHTML = TYPES.map(t => `
     <div class="breakdown-row ${counts[t] === 0 ? 'zero' : ''}">
-      <span class="breakdown-name">${ICONS[t]} ${t}</span>
-      <span class="breakdown-badge">${counts[t]}</span>
+      <span class="breakdown-name">${t}</span>
+      <span class="breakdown-count">${counts[t]}</span>
     </div>
   `).join('');
 
@@ -297,17 +274,15 @@ function renderOverzicht() {
    HULPFUNCTIES
 ═══════════════════════════════════════════════ */
 
-/* Toast-notificatie */
 let toastTimer;
 function toast(msg) {
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
 }
 
-/* HTML-escaping (voorkomt XSS bij gebruikersinvoer) */
 function escHtml(s) {
   return s
     .replace(/&/g, '&amp;')

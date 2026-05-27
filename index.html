@@ -3,28 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🥞 Scouting Pannenkoekenactie</title>
+  <title>Scouting — Pannenkoekenactie</title>
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
 
-<!-- ─── HEADER ────────────────────────────────── -->
+<!-- ─── HEADER ───────────────────────────────── -->
 <header class="header">
-  <h1>🥞 Pannenkoekenactie</h1>
-  <p>Scouting Bestelapp</p>
+  <div class="header-inner">
+    <span class="header-label">Scouting</span>
+    <h1>Pannenkoekenactie</h1>
+  </div>
 </header>
 
-<!-- ─── TABS ──────────────────────────────────── -->
+<!-- ─── TABS ─────────────────────────────────── -->
 <nav class="tabs">
-  <div class="tab active" id="tab-btn-nieuw" onclick="showPage('nieuw')">
-    <span class="tab-icon">📝</span>Nieuwe Bon
-  </div>
-  <div class="tab" id="tab-btn-bonnen" onclick="showPage('bonnen')">
-    <span class="tab-icon">🧾</span>Bonnen
-  </div>
-  <div class="tab" id="tab-btn-overzicht" onclick="showPage('overzicht')">
-    <span class="tab-icon">📊</span>Overzicht
-  </div>
+  <button class="tab active" id="tab-btn-nieuw"     onclick="showPage('nieuw')">Nieuwe bon</button>
+  <button class="tab"        id="tab-btn-bonnen"    onclick="showPage('bonnen')">Bonnen</button>
+  <button class="tab"        id="tab-btn-overzicht" onclick="showPage('overzicht')">Overzicht</button>
 </nav>
 
 <!-- ════════════════════════════════════════════
@@ -34,16 +30,18 @@
 
   <div class="card">
     <div class="card-title">Klantgegevens</div>
-    <label for="inp-naam">Naam / Omschrijving *</label>
-    <input type="text" id="inp-naam" placeholder="Bijv. Tafel 3 of Jan de Vries" />
-    <div style="margin-top: 10px;">
-      <label for="inp-opmerking">Opmerking (optioneel)</label>
+    <div class="field">
+      <label for="inp-naam">Naam of omschrijving</label>
+      <input type="text" id="inp-naam" placeholder="Bijv. Tafel 3 of Jan de Vries" />
+    </div>
+    <div class="field">
+      <label for="inp-opmerking">Opmerking <span class="optional">(optioneel)</span></label>
       <textarea id="inp-opmerking" placeholder="Bijv. geen suiker, extra knapperig…"></textarea>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-title">Pannenkoek toevoegen</div>
+    <div class="card-title">Soort kiezen</div>
     <div class="types-grid" id="types-grid"></div>
 
     <div class="qty-row">
@@ -56,7 +54,7 @@
     </div>
 
     <button class="btn-add" id="btn-add-item" onclick="addItem()" disabled>
-      ＋ Voeg toe aan bon
+      Voeg toe aan bon
     </button>
   </div>
 
@@ -66,10 +64,10 @@
     <div id="save-section" style="display: none;">
       <div class="divider"></div>
       <div class="bon-total-row">
-        <span class="bon-total-label">Totaal pannenkoeken:</span>
+        <span class="bon-total-label">Totaal</span>
         <span class="bon-total-count" id="bon-subtotal">0</span>
       </div>
-      <button class="btn-save" onclick="saveBon()">✓ Bon opslaan</button>
+      <button class="btn-save" onclick="saveBon()">Bon opslaan</button>
     </div>
   </div>
 
@@ -82,7 +80,7 @@
 
   <div class="search-row">
     <input class="search-input" type="text" id="inp-search"
-           placeholder="🔍 Zoek op naam…" oninput="renderBonnen()" />
+           placeholder="Zoek op naam…" oninput="renderBonnen()" />
   </div>
 
   <div class="filter-row">
@@ -103,7 +101,7 @@
   <div class="stats-grid">
     <div class="stat-box s-total">
       <div class="stat-num" id="s-total">0</div>
-      <div class="stat-label">Totaal bonnen</div>
+      <div class="stat-label">Bonnen</div>
     </div>
     <div class="stat-box s-open">
       <div class="stat-num" id="s-open">0</div>
@@ -116,21 +114,21 @@
   </div>
 
   <div class="card">
-    <div class="card-title">🥞 Pannenkoeken per soort</div>
+    <div class="card-title">Pannenkoeken per soort</div>
     <div id="breakdown-list"></div>
   </div>
 
-  <div class="grand-total-bar">
-    <span class="label">🥞 Totaal pannenkoeken</span>
-    <span class="num" id="grand-total">0</span>
+  <div class="total-bar">
+    <span class="total-bar-label">Totaal pannenkoeken</span>
+    <span class="total-bar-num" id="grand-total">0</span>
   </div>
 
 </div>
 
-<!-- ─── TOAST ──────────────────────────────────── -->
+<!-- ─── TOAST ─────────────────────────────────── -->
 <div class="toast" id="toast"></div>
 
-<!-- ─── SCRIPTS ────────────────────────────────── -->
+<!-- ─── SCRIPTS ──────────────────────────────── -->
 <script src="js/app.js"></script>
 
 </body>
