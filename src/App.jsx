@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Tent, FileText, PlusCircle, Package, BarChart2, LogOut, WifiOff, QrCode, Settings } from 'lucide-react'
+import { Tent, FileText, PlusCircle, Package, BarChart2, LogOut, WifiOff, QrCode, Settings, ShoppingCart } from 'lucide-react'
 import { translations } from './i18n'
 import { logout as apiLogout, fetchSettings } from './api'
 import { LangContext } from './LangContext'
@@ -13,17 +13,19 @@ import NieuweBon   from './components/NieuweBon'
 import Producten   from './components/Producten'
 import BonDetail   from './components/BonDetail'
 import Overzicht   from './components/Overzicht'
-import Instellingen from './components/Instellingen'
+import Instellingen  from './components/Instellingen'
+import InkoopBonnen from './components/InkoopBonnen'
 
 export { LangContext }
 export { useLang } from './LangContext'
 
 const TABS = [
-  { id: 'receipts',  Icon: FileText,   labelKey: 'receipts',    roles: ['admin','cashier'] },
-  { id: 'new',       Icon: PlusCircle, labelKey: 'new_receipt', roles: ['admin','cashier'] },
-  { id: 'overview',  Icon: BarChart2,  labelKey: 'overview',    roles: ['admin','cashier'] },
-  { id: 'products',  Icon: Package,    labelKey: 'products',    roles: ['admin'] },
-  { id: 'settings',  Icon: Settings,   labelKey: 'settings',    roles: ['admin'] },
+  { id: 'receipts',  Icon: FileText,      labelKey: 'receipts',    roles: ['admin','cashier'] },
+  { id: 'new',       Icon: PlusCircle,    labelKey: 'new_receipt', roles: ['admin','cashier'] },
+  { id: 'overview',  Icon: BarChart2,     labelKey: 'overview',    roles: ['admin','cashier'] },
+  { id: 'inkoop',    Icon: ShoppingCart,  labelKey: 'inkoop_tab',  roles: ['admin'] },
+  { id: 'products',  Icon: Package,       labelKey: 'products',    roles: ['admin'] },
+  { id: 'settings',  Icon: Settings,      labelKey: 'settings',    roles: ['admin'] },
 ]
 
 function OfflineBanner({ t }) {
@@ -175,6 +177,7 @@ export default function App() {
                   {tab === 'receipts'  && <Bonnen    onOpenDetail={openDetail} />}
                   {tab === 'new'       && <NieuweBon onCreated={id => openDetail(id)} />}
                   {tab === 'overview'  && <Overzicht />}
+                  {tab === 'inkoop'    && <InkoopBonnen />}
                   {tab === 'products'  && <Producten />}
                   {tab === 'settings'  && (
                     <Instellingen

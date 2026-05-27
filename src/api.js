@@ -73,6 +73,13 @@ export const updateSettings = (data) => req('/settings', { method: 'PUT', body: 
 export const fetchStats = (period) =>
   req(`/stats${period ? `?period=${period}` : ''}`)
 
+// ─── Inkoop bonnetjes ─────────────────────────────────────────────────────
+
+export const fetchInkoop  = ()       => req('/inkoop')
+export const createInkoop = (data)   => req('/inkoop', { method: 'POST', body: JSON.stringify(data) })
+export const updateInkoop = (id, data) => req(`/inkoop/${id}`, { method: 'PUT', body: JSON.stringify(data) })
+export const deleteInkoop = (id)     => req(`/inkoop/${id}`, { method: 'DELETE' })
+
 // ─── Receipt items ────────────────────────────────────────────────────────
 
 export const addReceiptItem    = (receiptId, item)          => req(`/receipts/${receiptId}/items`, { method: 'POST', body: JSON.stringify(item) })

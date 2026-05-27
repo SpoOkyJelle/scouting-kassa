@@ -41,6 +41,13 @@
       "price": 4,
       "category": "pannenkoeken",
       "created_at": "2026-05-27T09:26:25.005Z"
+    },
+    {
+      "id": 7,
+      "name": "Stroop",
+      "price": 0.5,
+      "category": "beleg",
+      "created_at": "2026-05-27T15:07:19.636Z"
     }
   ],
   "receipts": [
@@ -166,8 +173,21 @@
       ]
     }
   ],
-  "_pid": 6,
+  "_pid": 7,
   "_rid": 6,
   "_iid": 11,
-  "sessions": {}
+  "sessions": {
+    "761b391f-1b34-4412-b0ed-e04bd0d734e4": "admin"
+  },
+  "inkoop": [
+    {
+      "id": 1,
+      "description": "Boodschappen albert heijn",
+      "amount": 54.56,
+      "date": "2026-05-27",
+      "note": null,
+      "created_at": "2026-05-27T15:14:35.617Z"
+    }
+  ],
+  "_bid": 1
 }

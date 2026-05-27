@@ -1,4 +1,4 @@
-import { X, Printer } from 'lucide-react'
+import { X, Printer, ShoppingCart, TrendingUp, TrendingDown } from 'lucide-react'
 import { useLang } from '../LangContext'
 
 const fmt = n => `€ ${parseFloat(n ?? 0).toFixed(2)}`
@@ -18,7 +18,7 @@ export default function DagRapport({ stats, onClose }) {
   const {
     totalRevenue, paidRevenue, unpaidRevenue,
     receiptCount, paidCount, unpaidCount, avgReceiptValue,
-    topProducts,
+    topProducts, totalCosts, profit,
   } = stats
 
   return (
@@ -60,6 +60,25 @@ export default function DagRapport({ stats, onClose }) {
             <div className="rapport-card-lbl">{t('unpaid')}</div>
           </div>
         </div>
+
+        {/* Kosten & winst */}
+        {(totalCosts > 0 || profit !== undefined) && (
+          <>
+            <div style={{ height: 1, background: 'var(--border)', margin: '0.75rem 0' }} />
+            <div className="rapport-grid">
+              <div className="rapport-card">
+                <div className="rapport-card-val" style={{ color: '#DC2626' }}>{fmt(totalCosts)}</div>
+                <div className="rapport-card-lbl">{t('stats_costs')}</div>
+              </div>
+              <div className="rapport-card">
+                <div className="rapport-card-val" style={{ color: profit >= 0 ? '#16A34A' : '#DC2626' }}>
+                  {fmt(profit)}
+                </div>
+                <div className="rapport-card-lbl">{t('stats_profit')}</div>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Counts */}
         <div style={{ display: 'flex', gap: 16, marginBottom: '1.1rem', flexWrap: 'wrap' }}>

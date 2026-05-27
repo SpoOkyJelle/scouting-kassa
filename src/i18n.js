@@ -125,6 +125,23 @@ export const translations = {
     dag_rapport:        'Dag rapport',
     dag_rapport_title:  'Dagoverzicht',
 
+    // Inkoop bonnetjes
+    inkoop_tab:           'Inkoop',
+    inkoop_title:         'Inkoop bonnetjes',
+    inkoop_add:           'Bon toevoegen',
+    inkoop_new:           'Nieuw inkoop bonnetje',
+    inkoop_edit:          'Bonnetje bewerken',
+    inkoop_description:   'Omschrijving',
+    inkoop_description_ph:'Bijv. Pannenkoekenmix AH',
+    inkoop_amount:        'Bedrag (€)',
+    inkoop_date:          'Datum',
+    inkoop_note_ph:       'Optionele notitie…',
+    inkoop_optional:      'optioneel',
+    inkoop_empty:         'Nog geen inkoop bonnetjes. Voeg er een toe!',
+    inkoop_total_label:   'Totale kosten',
+    stats_costs:          'Inkoopkosten',
+    stats_profit:         'Winst',
+
     // Settings
     settings:                 'Instellingen',
     settings_language:        'Taal',
@@ -276,6 +293,23 @@ export const translations = {
     export_csv:         'Export CSV',
     dag_rapport:        'Day report',
     dag_rapport_title:  'Daily overview',
+
+    // Inkoop bonnetjes
+    inkoop_tab:           'Purchases',
+    inkoop_title:         'Purchase receipts',
+    inkoop_add:           'Add receipt',
+    inkoop_new:           'New purchase receipt',
+    inkoop_edit:          'Edit receipt',
+    inkoop_description:   'Description',
+    inkoop_description_ph:'E.g. Pancake mix AH',
+    inkoop_amount:        'Amount (€)',
+    inkoop_date:          'Date',
+    inkoop_note_ph:       'Optional note…',
+    inkoop_optional:      'optional',
+    inkoop_empty:         'No purchase receipts yet. Add one!',
+    inkoop_total_label:   'Total costs',
+    stats_costs:          'Purchase costs',
+    stats_profit:         'Profit',
 
     // Settings
     settings:                 'Settings',

@@ -23,7 +23,7 @@ if (!ADMIN_PIN) {
 // ─── Database ─────────────────────────────────────────────────────────────────
 const adapter = new JSONFile(join(__dirname, 'kassa.json'))
 const db = new Low(adapter, {
-  products: [], receipts: [], sessions: {}, settings: {}, _pid: 0, _rid: 0, _iid: 0,
+  products: [], receipts: [], sessions: {}, settings: {}, inkoop: [], _pid: 0, _rid: 0, _iid: 0, _bid: 0,
 })
 await db.read()
 
@@ -279,6 +279,51 @@ app.delete('/api/receipts/:id/items/:itemId', async (req, res) => {
   res.json({ ok: true })
 })
 
+// ─── Inkoop bonnetjes ─────────────────────────────────────────────────────────
+
+app.get('/api/inkoop', requireAdmin, (_req, res) => {
+  const list = (db.data.inkoop || [])
+    .slice()
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+  res.json(list)
+})
+
+app.post('/api/inkoop', requireAdmin, async (req, res) => {
+  const { description, amount, date, note } = req.body
+  if (!description || amount === undefined) return res.status(400).json({ error: 'description and amount required' })
+  if (!db.data.inkoop) db.data.inkoop = []
+  const bon = {
+    id:          nextId('_bid'),
+    description,
+    amount:      parseFloat(amount),
+    date:        date || new Date().toISOString().slice(0, 10),
+    note:        note || null,
+    created_at:  new Date().toISOString(),
+  }
+  db.data.inkoop.push(bon)
+  await db.write()
+  res.json(bon)
+})
+
+app.put('/api/inkoop/:id', requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id)
+  const bon = (db.data.inkoop || []).find(b => b.id === id)
+  if (!bon) return res.status(404).json({ error: 'Not found' })
+  if (req.body.description !== undefined) bon.description = req.body.description
+  if (req.body.amount      !== undefined) bon.amount      = parseFloat(req.body.amount)
+  if (req.body.date        !== undefined) bon.date        = req.body.date
+  if (req.body.note        !== undefined) bon.note        = req.body.note || null
+  await db.write()
+  res.json(bon)
+})
+
+app.delete('/api/inkoop/:id', requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id)
+  db.data.inkoop = (db.data.inkoop || []).filter(b => b.id !== id)
+  await db.write()
+  res.json({ ok: true })
+})
+
 // ─── Settings ─────────────────────────────────────────────────────────────────
 
 app.get('/api/settings', (_req, res) => {
@@ -350,6 +395,16 @@ app.get('/api/stats', (req, res) => {
     .slice(0, 8)
     .map(p => ({ ...p, revenue: Math.round(p.revenue * 100) / 100 }))
 
+  // ── Inkoop / kosten ────────────────────────────────────────────────────────
+  const allInkoop = db.data.inkoop || []
+  const inkoopFiltered = filterToday
+    ? allInkoop.filter(b => new Date(b.created_at).toDateString() === todayStr)
+    : allInkoop
+  const totalCosts    = inkoopFiltered.reduce((s, b) => s + (b.amount || 0), 0)
+  const todayCosts    = allInkoop
+    .filter(b => new Date(b.created_at).toDateString() === todayStr)
+    .reduce((s, b) => s + (b.amount || 0), 0)
+
   res.json({
     totalRevenue:    Math.round(totalRevenue    * 100) / 100,
     paidRevenue:     Math.round(paidRevenue     * 100) / 100,
@@ -363,6 +418,10 @@ app.get('/api/stats', (req, res) => {
     revenueByHour,
     revenueByDay: filterToday ? [] : revenueByDay,
     multiDay: !filterToday && Object.keys(dayMap).length > 1,
+    totalCosts:      Math.round(totalCosts   * 100) / 100,
+    profit:          Math.round((totalRevenue - totalCosts) * 100) / 100,
+    todayCosts:      Math.round(todayCosts   * 100) / 100,
+    todayProfit:     Math.round((todayRevenue - todayCosts) * 100) / 100,
   })
 })
 

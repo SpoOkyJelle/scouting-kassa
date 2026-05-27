@@ -6,7 +6,7 @@ import {
 import {
   TrendingUp, CalendarDays, CheckCircle2, Clock,
   FileText, Divide, BarChart2, PieChart as PieIcon, Trophy,
-  Download, FileBarChart,
+  Download, FileBarChart, ShoppingCart, TrendingDown,
 } from 'lucide-react'
 import { useLang } from '../LangContext'
 import { fetchStats, fetchReceipts } from '../api'
@@ -90,6 +90,7 @@ export default function Overzicht() {
     totalRevenue, paidRevenue, unpaidRevenue, todayRevenue,
     receiptCount, paidCount, unpaidCount, avgReceiptValue,
     topProducts, revenueByHour, revenueByDay, multiDay,
+    totalCosts, profit,
   } = stats ?? {}
 
   const pieData = [
@@ -172,6 +173,20 @@ export default function Overzicht() {
               Icon={Divide} label={t('stats_avg')} value={fmt(avgReceiptValue)}
               iconBg="#EFF6FF" iconColor="#2563EB"
             />
+            {(totalCosts > 0 || profit !== undefined) && (
+              <>
+                <StatCard
+                  Icon={ShoppingCart} label={t('stats_costs')} value={fmt(totalCosts)}
+                  iconBg="#FEF2F2" iconColor="#DC2626"
+                />
+                <StatCard
+                  Icon={profit >= 0 ? TrendingUp : TrendingDown}
+                  label={t('stats_profit')} value={fmt(profit)}
+                  iconBg={profit >= 0 ? '#F0FDF4' : '#FEF2F2'}
+                  iconColor={profit >= 0 ? GREEN : '#DC2626'}
+                />
+              </>
+            )}
           </div>
 
           {receiptCount === 0 && (
