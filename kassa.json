@@ -238,18 +238,9 @@
   "_rid": 9,
   "_iid": 14,
   "sessions": {
-    "aa9d2a24-5ce2-48ac-a637-baa446159702": "cashier",
-    "28dbda2e-f4f2-4a09-b642-54168e73afee": "admin"
+    "28dbda2e-f4f2-4a09-b642-54168e73afee": "admin",
+    "6303767a-fadd-4991-ad31-490d2c415965": "admin"
   },
-  "inkoop": [
-    {
-      "id": 1,
-      "description": "Boodschappen albert heijn",
-      "amount": 12,
-      "date": "2026-05-27",
-      "note": null,
-      "created_at": "2026-05-27T15:14:35.617Z"
-    }
-  ],
+  "inkoop": [],
   "_bid": 1
 }

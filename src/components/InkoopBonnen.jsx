@@ -27,7 +27,7 @@ const EMPTY_FORM = { description: '', amount: '', date: today(), note: '' }
 export default function InkoopBonnen() {
   const { t } = useLang()
   const { showToast } = useToast()
-  const { confirm }   = useConfirm()
+  const confirm       = useConfirm()
 
   const [bonnen, setBonnen]     = useState([])
   const [loading, setLoading]   = useState(true)
