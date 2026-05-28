@@ -409,11 +409,18 @@ export default function BonDetail({ id, onBack }) {
                   key={amt}
                   className="btn btn-sm btn-outline"
                   style={{ flex: '1 1 auto', minWidth: 44 }}
-                  onClick={() => setReceived(String(amt))}
+                  onClick={() => setReceived(prev => String((parseFloat(prev) || 0) + amt))}
                 >
                   €{amt}
                 </button>
               ))}
+              <button
+                className="btn btn-sm btn-outline"
+                style={{ flex: '1 1 auto', minWidth: 44, color: 'var(--danger)', borderColor: 'var(--danger)' }}
+                onClick={() => setReceived('')}
+              >
+                <X size={13} />
+              </button>
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <input

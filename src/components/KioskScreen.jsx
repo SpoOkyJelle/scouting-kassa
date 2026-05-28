@@ -23,7 +23,6 @@ export default function KioskScreen({ total, name, onClose }) {
   return (
     <div className="kiosk-overlay">
       <div className="kiosk-inner">
-        {name && <div className="kiosk-name">{name}</div>}
         <div className="kiosk-label">{t('total')}</div>
         <div className="kiosk-total">{fmt(total)}</div>
 
