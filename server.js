@@ -199,6 +199,7 @@ app.post('/api/receipts', async (req, res) => {
     note:         note || null,
     paid:         0,
     discount_pct: 0,
+    donation:     0,
     created_at:   new Date().toISOString(),
     items:        (items || []).map(item => ({
       id:            nextId('_iid'),
@@ -230,6 +231,7 @@ app.put('/api/receipts/:id', async (req, res) => {
   if (req.body.note         !== undefined) receipt.note         = req.body.note || null
   if (req.body.paid         !== undefined) receipt.paid         = req.body.paid ? 1 : 0
   if (req.body.discount_pct !== undefined) receipt.discount_pct = parseFloat(req.body.discount_pct) || 0
+  if (req.body.donation     !== undefined) receipt.donation     = parseFloat(req.body.donation) || 0
   await db.write()
   const { items, ...rest } = receipt
   res.json(rest)
@@ -341,6 +343,52 @@ app.delete('/api/inkoop/:id', requireAdmin, async (req, res) => {
   res.json({ ok: true })
 })
 
+// ─── Losse donaties ───────────────────────────────────────────────────────────
+
+app.get('/api/donaties', (_req, res) => {
+  const list = (db.data.donaties || [])
+    .slice()
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+  res.json(list)
+})
+
+app.post('/api/donaties', async (req, res) => {
+  const { name, amount, date, note } = req.body
+  if (amount === undefined) return res.status(400).json({ error: 'amount required' })
+  if (!db.data.donaties) db.data.donaties = []
+  if (!db.data._did) db.data._did = 0
+  const donatie = {
+    id:         nextId('_did'),
+    name:       name?.trim() || null,
+    amount:     parseFloat(amount),
+    date:       date || new Date().toISOString().slice(0, 10),
+    note:       note?.trim() || null,
+    created_at: new Date().toISOString(),
+  }
+  db.data.donaties.push(donatie)
+  await db.write()
+  res.json(donatie)
+})
+
+app.put('/api/donaties/:id', async (req, res) => {
+  const id = parseInt(req.params.id)
+  const donatie = (db.data.donaties || []).find(d => d.id === id)
+  if (!donatie) return res.status(404).json({ error: 'Not found' })
+  if (req.body.name   !== undefined) donatie.name   = req.body.name?.trim() || null
+  if (req.body.amount !== undefined) donatie.amount = parseFloat(req.body.amount)
+  if (req.body.date   !== undefined) donatie.date   = req.body.date
+  if (req.body.note   !== undefined) donatie.note   = req.body.note?.trim() || null
+  await db.write()
+  res.json(donatie)
+})
+
+app.delete('/api/donaties/:id', async (req, res) => {
+  const id = parseInt(req.params.id)
+  db.data.donaties = (db.data.donaties || []).filter(d => d.id !== id)
+  await db.write()
+  res.json({ ok: true })
+})
+
 // ─── Settings ─────────────────────────────────────────────────────────────────
 
 app.get('/api/settings', (_req, res) => {
@@ -363,25 +411,29 @@ app.get('/api/stats', (req, res) => {
     ? db.data.receipts.filter(r => new Date(r.created_at).toDateString() === todayStr)
     : db.data.receipts
 
-  let totalRevenue = 0, paidRevenue = 0, todayRevenue = 0
+  let totalRevenue = 0, paidRevenue = 0, todayRevenue = 0, todayPaidRevenue = 0, totalDonations = 0, todayDonations = 0
   const productMap = {}, hourMap = {}, dayMap = {}
 
   receipts.forEach(r => {
-    const rTotal = calcTotal(r.items, r.discount_pct)
-    totalRevenue += rTotal
-    if (r.paid) paidRevenue += rTotal
+    const rTotal    = calcTotal(r.items, r.discount_pct)
+    const rDonation = r.donation || 0
+    totalRevenue   += rTotal + rDonation
+    totalDonations += rDonation
+    if (r.paid) paidRevenue += rTotal + rDonation
 
     const date    = new Date(r.created_at)
     const isToday = date.toDateString() === todayStr
 
     if (isToday) {
-      todayRevenue += rTotal
+      todayRevenue     += rTotal + rDonation
+      if (r.paid) todayPaidRevenue += rTotal + rDonation
+      todayDonations  += rDonation
       const h = date.getHours()
-      hourMap[h] = (hourMap[h] || 0) + rTotal
+      hourMap[h] = (hourMap[h] || 0) + rTotal + rDonation
     }
 
     const dayKey = r.created_at.split('T')[0]
-    dayMap[dayKey] = (dayMap[dayKey] || 0) + rTotal
+    dayMap[dayKey] = (dayMap[dayKey] || 0) + rTotal + rDonation
 
     ;(r.items || []).forEach(i => {
       if (!productMap[i.product_name])
@@ -426,6 +478,28 @@ app.get('/api/stats', (req, res) => {
     .map(c => ({ ...c, revenue: Math.round(c.revenue * 100) / 100 }))
     .sort((a, b) => b.revenue - a.revenue)
 
+  // ── Losse donaties ────────────────────────────────────────────────────────
+  const allDonaties = db.data.donaties || []
+  const donatiesFiltered = filterToday
+    ? allDonaties.filter(d => new Date(d.created_at).toDateString() === todayStr)
+    : allDonaties
+  donatiesFiltered.forEach(d => {
+    const amt = d.amount || 0
+    totalRevenue   += amt
+    paidRevenue    += amt
+    totalDonations += amt
+    const isToday = new Date(d.created_at).toDateString() === todayStr
+    if (isToday) {
+      todayRevenue      += amt
+      todayPaidRevenue  += amt
+      todayDonations    += amt
+      const h = new Date(d.created_at).getHours()
+      hourMap[h] = (hourMap[h] || 0) + amt
+    }
+    const dayKey = d.created_at.split('T')[0]
+    dayMap[dayKey] = (dayMap[dayKey] || 0) + amt
+  })
+
   // ── Inkoop / kosten ────────────────────────────────────────────────────────
   const allInkoop = db.data.inkoop || []
   const inkoopFiltered = filterToday
@@ -450,10 +524,12 @@ app.get('/api/stats', (req, res) => {
     revenueByHour,
     revenueByDay: filterToday ? [] : revenueByDay,
     multiDay: !filterToday && Object.keys(dayMap).length > 1,
-    totalCosts:      Math.round(totalCosts   * 100) / 100,
-    profit:          Math.round((totalRevenue - totalCosts) * 100) / 100,
-    todayCosts:      Math.round(todayCosts   * 100) / 100,
-    todayProfit:     Math.round((todayRevenue - todayCosts) * 100) / 100,
+    totalCosts:      Math.round(totalCosts      * 100) / 100,
+    profit:          Math.round((paidRevenue - totalCosts) * 100) / 100,
+    todayCosts:      Math.round(todayCosts      * 100) / 100,
+    todayProfit:     Math.round((todayPaidRevenue - todayCosts) * 100) / 100,
+    totalDonations:  Math.round(totalDonations  * 100) / 100,
+    todayDonations:  Math.round(todayDonations  * 100) / 100,
   })
 })
 

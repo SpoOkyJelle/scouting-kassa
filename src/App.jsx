@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Tent, FileText, PlusCircle, Package, BarChart2, LogOut, WifiOff, QrCode, Settings, ShoppingCart } from 'lucide-react'
+import { Tent, FileText, PlusCircle, Package, BarChart2, LogOut, WifiOff, QrCode, Settings, ShoppingCart, Heart } from 'lucide-react'
 import { translations } from './i18n'
 import { logout as apiLogout, fetchSettings } from './api'
 import { LangContext } from './LangContext'
@@ -15,6 +15,7 @@ import BonDetail   from './components/BonDetail'
 import Overzicht   from './components/Overzicht'
 import Instellingen  from './components/Instellingen'
 import InkoopBonnen from './components/InkoopBonnen'
+import Donaties      from './components/Donaties'
 
 export { LangContext }
 export { useLang } from './LangContext'
@@ -23,7 +24,8 @@ const TABS = [
   { id: 'receipts',  Icon: FileText,      labelKey: 'receipts',    roles: ['admin','cashier'] },
   { id: 'new',       Icon: PlusCircle,    labelKey: 'new_receipt', roles: ['admin','cashier'] },
   { id: 'overview',  Icon: BarChart2,     labelKey: 'overview',    roles: ['admin','cashier'] },
-  { id: 'inkoop',    Icon: ShoppingCart,  labelKey: 'inkoop_tab',  roles: ['admin'] },
+  { id: 'inkoop',    Icon: ShoppingCart,  labelKey: 'inkoop_tab',    roles: ['admin'] },
+  { id: 'donaties',  Icon: Heart,         labelKey: 'donaties_tab',  roles: ['admin', 'cashier'] },
   { id: 'products',  Icon: Package,       labelKey: 'products',    roles: ['admin'] },
   { id: 'settings',  Icon: Settings,      labelKey: 'settings',    roles: ['admin'] },
 ]
@@ -231,6 +233,7 @@ export default function App() {
                   {tab === 'new'       && <NieuweBon onCreated={id => openDetail(id)} />}
                   {tab === 'overview'  && <Overzicht />}
                   {tab === 'inkoop'    && <InkoopBonnen />}
+                  {tab === 'donaties'  && <Donaties />}
                   {tab === 'products'  && <Producten />}
                   {tab === 'settings'  && (
                     <Instellingen

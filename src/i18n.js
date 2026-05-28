@@ -80,6 +80,23 @@ export const translations = {
     discount_amt: 'Kortingsbedrag',
     original:     'Subtotaal',
 
+    // Donatie
+    donation:          'Donatie',
+    donation_label:    'Donatie (€)',
+    donation_hint:     'Extra bedrag bovenop de bon',
+    total_due:         'Totaal te ontvangen',
+    stats_donations:   'Donaties',
+    donaties_tab:      'Donaties',
+    donaties_title:    'Losse donaties',
+    donaties_add:      'Donatie toevoegen',
+    donaties_new:      'Nieuwe donatie',
+    donaties_edit:     'Donatie bewerken',
+    donaties_name:     'Naam (optioneel)',
+    donaties_name_ph:  'Bijv. Jan de Vries',
+    donaties_amount:   'Bedrag (€)',
+    donaties_empty:    'Nog geen losse donaties.',
+    donaties_total:    'Totaal donaties',
+
     // Wisselgeld
     change_calc:  'Wisselgeld',
     received:     'Ontvangen (€)',
@@ -248,6 +265,23 @@ export const translations = {
     discount_pct: 'Discount (%)',
     discount_amt: 'Discount amount',
     original:     'Subtotal',
+
+    // Donatie
+    donation:          'Donation',
+    donation_label:    'Donation (€)',
+    donation_hint:     'Extra amount on top of the receipt',
+    total_due:         'Total to receive',
+    stats_donations:   'Donations',
+    donaties_tab:      'Donations',
+    donaties_title:    'Standalone donations',
+    donaties_add:      'Add donation',
+    donaties_new:      'New donation',
+    donaties_edit:     'Edit donation',
+    donaties_name:     'Name (optional)',
+    donaties_name_ph:  'E.g. John Smith',
+    donaties_amount:   'Amount (€)',
+    donaties_empty:    'No standalone donations yet.',
+    donaties_total:    'Total donations',
 
     // Wisselgeld
     change_calc:  'Change',

@@ -57,190 +57,26 @@
       "sort_order": 6
     }
   ],
-  "receipts": [
-    {
-      "id": 1,
-      "name": "tafel 2",
-      "paid": 1,
-      "created_at": "2026-05-27T09:07:24.128Z",
-      "items": [
-        {
-          "id": 1,
-          "receipt_id": 1,
-          "product_id": 1,
-          "product_name": "Pannekoek naturel",
-          "product_price": 2,
-          "quantity": 4
-        }
-      ]
-    },
-    {
-      "id": 2,
-      "name": null,
-      "paid": 1,
-      "created_at": "2026-05-27T09:09:19.424Z",
-      "items": [
-        {
-          "id": 2,
-          "receipt_id": 2,
-          "product_id": 1,
-          "product_name": "Pannekoek naturel",
-          "product_price": 2,
-          "quantity": 2
-        }
-      ]
-    },
-    {
-      "id": 3,
-      "name": null,
-      "paid": 1,
-      "created_at": "2026-05-27T09:26:33.110Z",
-      "items": [
-        {
-          "id": 3,
-          "receipt_id": 3,
-          "product_id": 3,
-          "product_name": "Sinas",
-          "product_price": 2,
-          "quantity": 2
-        },
-        {
-          "id": 4,
-          "receipt_id": 3,
-          "product_id": 4,
-          "product_name": "Pannekoek kaas",
-          "product_price": 3,
-          "quantity": 1
-        },
-        {
-          "id": 5,
-          "receipt_id": 3,
-          "product_id": 5,
-          "product_name": "Pannekoek spek",
-          "product_price": 3,
-          "quantity": 1
-        },
-        {
-          "id": 6,
-          "receipt_id": 3,
-          "product_id": 6,
-          "product_name": "Pannekoek spek + kaas",
-          "product_price": 4,
-          "quantity": 1
-        }
-      ]
-    },
-    {
-      "id": 4,
-      "name": null,
-      "paid": 1,
-      "created_at": "2026-05-27T11:24:23.113Z",
-      "items": [
-        {
-          "id": 7,
-          "receipt_id": 4,
-          "product_id": 3,
-          "product_name": "Sinas",
-          "product_price": 2,
-          "quantity": 1
-        },
-        {
-          "id": 8,
-          "receipt_id": 4,
-          "product_id": 6,
-          "product_name": "Pannekoek spek + kaas",
-          "product_price": 4,
-          "quantity": 2
-        }
-      ]
-    },
-    {
-      "id": 6,
-      "name": null,
-      "paid": 1,
-      "discount_pct": 0,
-      "created_at": "2026-05-27T12:26:28.178Z",
-      "items": [
-        {
-          "id": 10,
-          "receipt_id": 6,
-          "product_id": 2,
-          "product_name": "Cola",
-          "product_price": 2,
-          "quantity": 13
-        },
-        {
-          "id": 11,
-          "receipt_id": 6,
-          "product_id": 6,
-          "product_name": "Pannekoek spek + kaas",
-          "product_price": 4,
-          "quantity": 7
-        }
-      ]
-    },
-    {
-      "id": 7,
-      "name": null,
-      "note": "vegan",
-      "paid": 0,
-      "discount_pct": 0,
-      "created_at": "2026-05-27T16:59:14.097Z",
-      "items": [
-        {
-          "id": 12,
-          "receipt_id": 7,
-          "product_id": 4,
-          "product_name": "Pannekoek kaas",
-          "product_price": 3,
-          "quantity": 2
-        }
-      ]
-    },
-    {
-      "id": 8,
-      "name": null,
-      "note": null,
-      "paid": 1,
-      "discount_pct": 0,
-      "created_at": "2026-05-27T17:05:37.295Z",
-      "items": [
-        {
-          "id": 13,
-          "receipt_id": 8,
-          "product_id": 1,
-          "product_name": "Pannekoek naturel",
-          "product_price": 2,
-          "quantity": 2
-        }
-      ]
-    },
-    {
-      "id": 9,
-      "name": null,
-      "note": null,
-      "paid": 0,
-      "discount_pct": 0,
-      "created_at": "2026-05-27T18:56:43.989Z",
-      "items": [
-        {
-          "id": 14,
-          "receipt_id": 9,
-          "product_id": 3,
-          "product_name": "Sinas",
-          "product_price": 2,
-          "quantity": 1
-        }
-      ]
-    }
-  ],
+  "receipts": [],
   "_pid": 7,
-  "_rid": 9,
-  "_iid": 14,
+  "_rid": 12,
+  "_iid": 17,
   "sessions": {
     "28dbda2e-f4f2-4a09-b642-54168e73afee": "admin",
-    "6303767a-fadd-4991-ad31-490d2c415965": "admin"
+    "6303767a-fadd-4991-ad31-490d2c415965": "admin",
+    "f2618f4b-df17-42f5-ae27-1baba6d733d2": "cashier"
   },
   "inkoop": [],
-  "_bid": 1
+  "_bid": 1,
+  "donaties": [
+    {
+      "id": 1,
+      "name": "Oma van Ise",
+      "amount": 5,
+      "date": "2026-05-28",
+      "note": null,
+      "created_at": "2026-05-28T16:56:16.558Z"
+    }
+  ],
+  "_did": 1
 }

@@ -5,7 +5,7 @@ import {
 import {
   TrendingUp, TrendingDown, CalendarDays, CheckCircle2, Clock,
   FileText, Divide, BarChart2, Trophy, Download, FileBarChart,
-  ShoppingCart, RefreshCw, ArrowUpRight,
+  ShoppingCart, RefreshCw, ArrowUpRight, Heart,
 } from 'lucide-react'
 import { useLang } from '../LangContext'
 import { fetchStats, fetchReceipts } from '../api'
@@ -127,7 +127,7 @@ export default function Overzicht() {
     totalRevenue = 0, paidRevenue = 0, unpaidRevenue = 0, todayRevenue = 0,
     receiptCount = 0, paidCount = 0, unpaidCount = 0, avgReceiptValue = 0,
     topProducts = [], revenueByHour = [], revenueByDay = [], multiDay = false,
-    totalCosts = 0, profit = 0,
+    totalCosts = 0, profit = 0, totalDonations = 0,
   } = stats ?? {}
 
   const paidPct = totalRevenue > 0 ? Math.round((paidRevenue / totalRevenue) * 100) : 0
@@ -197,7 +197,7 @@ export default function Overzicht() {
       {loading ? <div className="spinner" /> : (
         <>
           {/* ── Hero cards ──────────────────────────────────────────────────── */}
-          <div style={{ display: 'grid', gridTemplateColumns: hasInkoop ? '1fr 1fr' : '1fr', gap: '0.75rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
 
             {/* Omzet hero */}
             <div style={{
@@ -258,7 +258,7 @@ export default function Overzicht() {
             </div>
 
             {/* Winst hero */}
-            {hasInkoop && (
+            {(
               <div style={{
                 background: profit >= 0
                   ? 'linear-gradient(135deg, #022c22 0%, #064e3b 60%, #065f46 100%)'
@@ -359,6 +359,12 @@ export default function Overzicht() {
                   <KpiCard
                     Icon={ShoppingCart} label={t('stats_costs')} value={fmt(totalCosts)}
                     accent="#DC2626" accentBg="#FEF2F2"
+                  />
+                )}
+                {totalDonations > 0 && (
+                  <KpiCard
+                    Icon={Heart} label={t('stats_donations')} value={fmt(totalDonations)}
+                    accent="#16A34A" accentBg="#F0FDF4"
                   />
                 )}
               </div>
@@ -512,7 +518,7 @@ export default function Overzicht() {
           </div>
 
           {/* ── Betaald / onbetaald breakdown ────────────────────────────────── */}
-          {receiptCount > 0 && (paidCount > 0 || unpaidCount > 0) && (
+          {totalRevenue > 0 && (
             <div>
               <SectionHead Icon={ArrowUpRight} label="Betaalstatus" />
               <div style={{
@@ -530,7 +536,7 @@ export default function Overzicht() {
                       <div>
                         <div style={{ fontSize: '1rem', fontWeight: 800, color: item.color }}>{item.value}</div>
                         <div style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>
-                          {item.label} · {item.count} {t('stats_count').toLowerCase()}
+                          {item.label}{item.count > 0 ? ` · ${item.count} ${t('stats_count').toLowerCase()}` : ''}
                         </div>
                       </div>
                     </div>
@@ -545,7 +551,7 @@ export default function Overzicht() {
                       transition: 'width 0.6s ease',
                     }} />
                   )}
-                  {paidPct < 100 && unpaidCount > 0 && (
+                  {paidPct < 100 && unpaidRevenue > 0 && (
                     <div style={{
                       flex: 1, background: '#D97706', borderRadius: paidPct > 0 ? '0 6px 6px 0' : 6,
                     }} />

@@ -81,6 +81,13 @@ export const createInkoop = (data)   => req('/inkoop', { method: 'POST', body: J
 export const updateInkoop = (id, data) => req(`/inkoop/${id}`, { method: 'PUT', body: JSON.stringify(data) })
 export const deleteInkoop = (id)     => req(`/inkoop/${id}`, { method: 'DELETE' })
 
+// ─── Losse donaties ───────────────────────────────────────────────────────
+
+export const fetchDonaties  = ()           => req('/donaties')
+export const createDonatie  = (data)       => req('/donaties', { method: 'POST', body: JSON.stringify(data) })
+export const updateDonatie  = (id, data)   => req(`/donaties/${id}`, { method: 'PUT', body: JSON.stringify(data) })
+export const deleteDonatie  = (id)         => req(`/donaties/${id}`, { method: 'DELETE' })
+
 // ─── Receipt items ────────────────────────────────────────────────────────
 
 export const addReceiptItem    = (receiptId, item)          => req(`/receipts/${receiptId}/items`, { method: 'POST', body: JSON.stringify(item) })

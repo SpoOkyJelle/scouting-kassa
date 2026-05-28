@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import {
   ArrowLeft, Check, X, Trash2, Pencil, Calendar, Plus, Package,
-  ChevronDown, ChevronUp, Printer, QrCode, Monitor, Calculator, StickyNote, Search,
+  ChevronDown, ChevronUp, Printer, QrCode, Monitor, Calculator, StickyNote, Search, Heart,
 } from 'lucide-react'
 import { useLang } from '../LangContext'
 import {
@@ -50,6 +50,8 @@ export default function BonDetail({ id, onBack }) {
   const [received, setReceived]             = useState('')
   const [discountInput, setDiscountInput]   = useState('0')
   const [savingDiscount, setSavingDiscount] = useState(false)
+  const [donationInput, setDonationInput]   = useState('0')
+  const [savingDonation, setSavingDonation] = useState(false)
   const [editingNote, setEditingNote]       = useState(false)
   const [noteInput, setNoteInput]           = useState('')
   const [addSearch, setAddSearch]           = useState('')
@@ -60,6 +62,7 @@ export default function BonDetail({ id, onBack }) {
       setReceipt(rec)
       setProducts(prods)
       setDiscountInput(String(rec.discount_pct || 0))
+      setDonationInput(String(rec.donation || 0))
       setNoteInput(rec.note || '')
       setLoading(false)
     })
@@ -102,6 +105,15 @@ export default function BonDetail({ id, onBack }) {
     showToast(t('toast_saved'))
   }
 
+  async function saveDonation() {
+    const amt = Math.max(0, parseFloat(donationInput) || 0)
+    setSavingDonation(true)
+    const updated = await updateReceipt(id, { donation: amt })
+    setReceipt(prev => ({ ...prev, ...updated }))
+    setSavingDonation(false)
+    showToast(t('toast_saved'))
+  }
+
   async function changeQty(item, delta) {
     const newQty = item.quantity + delta
     if (newQty <= 0) {
@@ -135,9 +147,11 @@ export default function BonDetail({ id, onBack }) {
   const subtotal    = receipt.items?.reduce((s, i) => s + i.product_price * i.quantity, 0) ?? 0
   const discountAmt = subtotal * (receipt.discount_pct || 0) / 100
   const total       = subtotal - discountAmt
+  const donation    = receipt.donation || 0
+  const totalDue    = total + donation
 
   const receivedNum = parseFloat(received) || 0
-  const change      = received.trim() !== '' ? receivedNum - total : null
+  const change      = received.trim() !== '' ? receivedNum - totalDue : null
 
   const productCatMap = Object.fromEntries(products.map(p => [p.id, p.category || 'overig']))
   const groups = CATEGORIES.map(cat => ({
@@ -367,6 +381,21 @@ export default function BonDetail({ id, onBack }) {
           <span>{t('total')}</span>
           <span className="grand-total">{fmt(total)}</span>
         </div>
+
+        {donation > 0 && (
+          <>
+            <div className="items-row" style={{ fontSize: '0.82rem', color: '#16A34A' }}>
+              <span style={{ gridColumn: '1 / 4', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Heart size={12} /> {t('donation')}
+              </span>
+              <span style={{ textAlign: 'right', fontWeight: 600 }}>+{fmt(donation)}</span>
+            </div>
+            <div className="items-total" style={{ background: 'var(--surface)' }}>
+              <span style={{ color: 'var(--muted)', fontSize: '0.82rem' }}>{t('total_due')}</span>
+              <span className="grand-total">{fmt(totalDue)}</span>
+            </div>
+          </>
+        )}
       </div>
 
       {/* ── Korting + Wisselgeld side-by-side ───────────────────────────── */}
@@ -395,6 +424,35 @@ export default function BonDetail({ id, onBack }) {
           </div>
         </div>
 
+        {/* Donatie */}
+        <div style={{
+          background: 'var(--surface)', border: '1px solid var(--border)',
+          borderRadius: 12, padding: '0.85rem 1rem', flex: '1 1 180px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+        }} className="no-print">
+          <SectionHead Icon={Heart} label={t('donation')} color="#16A34A" />
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <span style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>€</span>
+            <input
+              type="number"
+              className="form-input discount-input"
+              value={donationInput}
+              onChange={e => setDonationInput(e.target.value)}
+              min="0" step="0.50"
+              onKeyDown={e => e.key === 'Enter' && saveDonation()}
+              style={{ width: 80 }}
+            />
+            <button className="btn btn-sm btn-outline" onClick={saveDonation} disabled={savingDonation}>
+              {t('save')}
+            </button>
+          </div>
+          {donation > 0 && (
+            <div style={{ fontSize: '0.75rem', color: '#16A34A', marginTop: 5 }}>
+              {t('total_due')}: {fmt(totalDue)}
+            </div>
+          )}
+        </div>
+
         {/* Wisselgeld */}
         {!receipt.paid && (
           <div style={{
@@ -403,6 +461,11 @@ export default function BonDetail({ id, onBack }) {
             boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
           }} className="no-print">
             <SectionHead Icon={Calculator} label={t('change_calc')} />
+            {donation > 0 && (
+              <div style={{ fontSize: '0.73rem', color: '#16A34A', marginBottom: 6 }}>
+                {t('total_due')}: {fmt(totalDue)} ({fmt(total)} + {fmt(donation)} {t('donation').toLowerCase()})
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 5, marginBottom: 8, flexWrap: 'wrap' }}>
               {[5, 10, 20, 50].map(amt => (
                 <button
