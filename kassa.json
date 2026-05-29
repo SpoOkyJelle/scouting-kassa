@@ -97,36 +97,14 @@
       "created_at": "2026-05-29T10:03:23.752Z"
     }
   ],
-  "receipts": [
-    {
-      "id": 15,
-      "name": "Testbon",
-      "note": null,
-      "paid": 0,
-      "discount_pct": 0,
-      "donation": 0,
-      "created_at": "2026-05-29T11:04:57.386Z",
-      "items": [
-        {
-          "id": 22,
-          "receipt_id": 15,
-          "product_id": 1,
-          "product_name": "Pannekoek naturel",
-          "product_price": 2,
-          "quantity": 2
-        }
-      ],
-      "payment_method": null,
-      "payments": []
-    }
-  ],
+  "receipts": [],
   "_pid": 10,
   "_rid": 16,
-  "_iid": 29,
+  "_iid": 56,
   "sessions": {
     "28dbda2e-f4f2-4a09-b642-54168e73afee": "admin",
     "f2618f4b-df17-42f5-ae27-1baba6d733d2": "cashier",
-    "552dd60b-4964-4f24-9499-04b3fe1e67a0": "cashier"
+    "7d01d9de-cf3c-4135-85d4-cfc5143ebe13": "admin"
   },
   "inkoop": [],
   "_bid": 1,

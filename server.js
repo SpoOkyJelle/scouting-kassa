@@ -90,23 +90,14 @@ function getDisplayPayload() {
 
 function broadcastDisplay() {
   const payload = `data: ${JSON.stringify(getDisplayPayload())}\n\n`
-  let sent = 0
   for (const client of sseClients) {
-    try { client.write(payload); sent++ } catch { sseClients.delete(client) }
+    try { client.write(payload) } catch { sseClients.delete(client) }
   }
-  console.log(`[display] broadcast → ${sent} client(s) | active=${displayState.active} id=${displayState.id}`)
 }
 
 // Auto-broadcast als een receipt dat op het klantenscherm staat wijzigt
 function autoUpdateDisplay(receiptId) {
-  if (!displayState.active) {
-    console.log(`[display] autoUpdate skip – niet actief (receiptId=${receiptId})`)
-    return
-  }
-  if (displayState.id !== receiptId) {
-    console.log(`[display] autoUpdate skip – id mismatch (display=${displayState.id}, receipt=${receiptId})`)
-    return
-  }
+  if (!displayState.active || displayState.id !== receiptId) return
   const receipt = db.data.receipts.find(r => r.id === receiptId)
   if (!receipt) return
   const sub  = (receipt.items || []).reduce((s, i) => s + i.product_price * i.quantity, 0)
@@ -137,7 +128,6 @@ app.get('/display-events', (req, res) => {
   res.flushHeaders()
 
   sseClients.add(res)
-  console.log(`[display] SSE client verbonden (totaal: ${sseClients.size})`)
 
   // Stuur huidige staat direct bij verbinding
   res.write(`data: ${JSON.stringify(getDisplayPayload())}\n\n`)
@@ -147,7 +137,7 @@ app.get('/display-events', (req, res) => {
     try { res.write(': ping\n\n') } catch { clearInterval(ping); sseClients.delete(res) }
   }, 20000)
 
-  req.on('close', () => { clearInterval(ping); sseClients.delete(res); console.log(`[display] SSE client weg (totaal: ${sseClients.size})`) })
+  req.on('close', () => { clearInterval(ping); sseClients.delete(res) })
 })
 
 // Fallback polling endpoint (blijft bestaan voor backwards compat)
@@ -212,14 +202,12 @@ function requireAdmin(req, res, next) {
 // ─── Display endpoints (require auth via middleware) ─────────────────────────
 
 app.put('/api/display', async (req, res) => {
-  console.log(`[display] PUT ontvangen – active=${req.body.active} id=${req.body.id} paid=${req.body.paid} payment_requested=${req.body.payment_requested}`)
   displayState = { ...req.body, updatedAt: new Date().toISOString() }
   broadcastDisplay()
   res.json(displayState)
 })
 
 app.delete('/api/display', async (req, res) => {
-  console.log('[display] DELETE – display gewist')
   displayState = { active: false, updatedAt: null }
   broadcastDisplay()
   res.json({ ok: true })
