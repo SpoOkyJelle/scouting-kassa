@@ -365,16 +365,23 @@ export default function Bonnen({ onOpenDetail }) {
                         ? <><CheckCircle2 size={10} /> {t('paid')}</>
                         : <><Clock size={10} /> {t('unpaid')}</>}
                     </span>
-                    {receipt.paid && receipt.payment_method && (
+                    {receipt.paid && (receipt.payments?.length > 0 || receipt.payment_method) && (
                       <span style={{
                         display: 'inline-flex', alignItems: 'center', gap: 3,
                         padding: '3px 7px', borderRadius: 20,
                         fontSize: '0.66rem', fontWeight: 600,
                         background: '#EFF6FF', color: '#1D4ED8',
                       }}>
-                        {receipt.payment_method === 'contant' && <Banknote size={10} />}
-                        {receipt.payment_method === 'pin'     && <CreditCard size={10} />}
-                        {receipt.payment_method === 'qr'      && <Smartphone size={10} />}
+                        {(receipt.payments?.length > 0
+                          ? receipt.payments.map(p => p.method)
+                          : [receipt.payment_method]
+                        ).map(m => (
+                          <span key={m}>
+                            {m === 'contant' && <Banknote size={10} />}
+                            {m === 'pin'     && <CreditCard size={10} />}
+                            {m === 'qr'      && <Smartphone size={10} />}
+                          </span>
+                        ))}
                       </span>
                     )}
                   </div>

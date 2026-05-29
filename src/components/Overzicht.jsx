@@ -416,6 +416,7 @@ export default function Overzicht({ role }) {
               .filter(m => m.amount > 0)
 
             if (!methods.length) return null
+            const breakdownTotal = methods.reduce((s, m) => s + m.amount, 0)
             const maxAmount = Math.max(...methods.map(m => m.amount))
 
             return (
@@ -427,7 +428,7 @@ export default function Overzicht({ role }) {
                   boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
                 }}>
                   {methods.map((m, i) => {
-                    const pct = paidRevenue > 0 ? Math.round((m.amount / paidRevenue) * 100) : 0
+                    const pct = breakdownTotal > 0 ? Math.round((m.amount / breakdownTotal) * 100) : 0
                     const barW = maxAmount > 0 ? (m.amount / maxAmount) * 100 : 0
                     return (
                       <div

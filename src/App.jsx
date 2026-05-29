@@ -212,20 +212,18 @@ export default function App() {
                 </header>
 
                 {/* ── Tab nav ───────────────────────────────────────────── */}
-                {tab !== 'detail' && (
-                  <nav className="tab-nav">
-                    {visibleTabs.map(({ id, Icon, labelKey }) => (
-                      <button
-                        key={id}
-                        className={`tab-btn ${tab === id ? 'active' : ''}`}
-                        onClick={() => handleTabChange(id)}
-                      >
-                        <Icon size={15} strokeWidth={2} />
-                        <span className="tab-label">{t(labelKey)}</span>
-                      </button>
-                    ))}
-                  </nav>
-                )}
+                <nav className="tab-nav">
+                  {visibleTabs.map(({ id, Icon, labelKey }) => (
+                    <button
+                      key={id}
+                      className={`tab-btn ${tab === id || (tab === 'detail' && id === 'receipts') ? 'active' : ''}`}
+                      onClick={() => handleTabChange(id)}
+                    >
+                      <Icon size={15} strokeWidth={2} />
+                      <span className="tab-label">{t(labelKey)}</span>
+                    </button>
+                  ))}
+                </nav>
 
                 {/* ── Content ───────────────────────────────────────────── */}
                 <main className="main-content">

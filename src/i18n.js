@@ -232,6 +232,14 @@ export const translations = {
     kas_klopt:       'Kas klopt!',
     kas_saved:       'Kasregistratie opgeslagen',
 
+    // Gesplitste betaling
+    split_payment:   'Betaling registreren',
+    split_pay_btn:   'Betaling registreren',
+    split_enter:     'Ingevoerd',
+    split_remaining: 'Resterend',
+    split_fill:      'Vul aan tot maximum',
+    split_confirm:   'Bevestig betaling',
+
     // Korting presets
     discount_free:   'Gratis',
   },
@@ -470,6 +478,14 @@ export const translations = {
     kas_saved:       'Cash record saved',
 
     // Discount presets
+    // Split payment
+    split_payment:   'Register payment',
+    split_pay_btn:   'Register payment',
+    split_enter:     'Entered',
+    split_remaining: 'Remaining',
+    split_fill:      'Fill to maximum',
+    split_confirm:   'Confirm payment',
+
     discount_free:   'Free',
   },
 }

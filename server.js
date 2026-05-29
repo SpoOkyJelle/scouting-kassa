@@ -279,6 +279,7 @@ app.put('/api/receipts/:id', async (req, res) => {
   if (req.body.discount_pct  !== undefined) receipt.discount_pct  = parseFloat(req.body.discount_pct) || 0
   if (req.body.donation      !== undefined) receipt.donation      = parseFloat(req.body.donation) || 0
   if (req.body.payment_method !== undefined) receipt.payment_method = req.body.payment_method || null
+  if (req.body.payments       !== undefined) receipt.payments       = req.body.payments || []
   await db.write()
   const { items, ...rest } = receipt
   res.json(rest)
@@ -518,8 +519,15 @@ app.get('/api/stats', (req, res) => {
     totalDonations += rDonation
     if (r.paid) {
       paidRevenue += rTotal + rDonation
-      const method = r.payment_method || 'onbekend'
-      paymentBreakdown[method] = (paymentBreakdown[method] || 0) + rTotal + rDonation
+      if (r.payments?.length > 0) {
+        r.payments.forEach(p => {
+          const m = p.method || 'onbekend'
+          paymentBreakdown[m] = (paymentBreakdown[m] || 0) + (p.amount || 0)
+        })
+      } else {
+        const method = r.payment_method || 'onbekend'
+        paymentBreakdown[method] = (paymentBreakdown[method] || 0) + rTotal + rDonation
+      }
     }
 
     const date    = new Date(r.created_at)
@@ -529,8 +537,15 @@ app.get('/api/stats', (req, res) => {
       todayRevenue     += rTotal + rDonation
       if (r.paid) {
         todayPaidRevenue += rTotal + rDonation
-        const method = r.payment_method || 'onbekend'
-        todayPaymentBreakdown[method] = (todayPaymentBreakdown[method] || 0) + rTotal + rDonation
+        if (r.payments?.length > 0) {
+          r.payments.forEach(p => {
+            const m = p.method || 'onbekend'
+            todayPaymentBreakdown[m] = (todayPaymentBreakdown[m] || 0) + (p.amount || 0)
+          })
+        } else {
+          const method = r.payment_method || 'onbekend'
+          todayPaymentBreakdown[method] = (todayPaymentBreakdown[method] || 0) + rTotal + rDonation
+        }
       }
       todayDonations  += rDonation
       const h = date.getHours()

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   ArrowLeft, Check, X, Trash2, Pencil, Calendar, Plus, Package,
   ChevronDown, ChevronUp, Printer, QrCode, Monitor, Calculator, StickyNote, Search, Heart,
-  Banknote, CreditCard, Smartphone,
+  Banknote, CreditCard, Smartphone, Layers,
 } from 'lucide-react'
 import { useLang } from '../LangContext'
 import {
@@ -44,6 +44,9 @@ export default function BonDetail({ id, onBack }) {
   const [products, setProducts]             = useState([])
   const [loading, setLoading]               = useState(true)
   const [showAdd, setShowAdd]               = useState(false)
+  const [showSplitPay, setShowSplitPay]     = useState(false)
+  const [splitAmounts, setSplitAmounts]     = useState({ contant: '', pin: '', qr: '' })
+  const [savingPayment, setSavingPayment]   = useState(false)
   const [editingName, setEditingName]       = useState(false)
   const [nameInput, setNameInput]           = useState('')
   const [showPayment, setShowPayment]       = useState(false)
@@ -76,9 +79,29 @@ export default function BonDetail({ id, onBack }) {
   }
 
   async function markUnpaid() {
-    const updated = await updateReceipt(id, { paid: false, payment_method: null })
+    const updated = await updateReceipt(id, { paid: false, payment_method: null, payments: [] })
     setReceipt(prev => ({ ...prev, ...updated }))
+    setShowSplitPay(false)
+    setSplitAmounts({ contant: '', pin: '', qr: '' })
     showToast(t('toast_marked_unpaid'))
+  }
+
+  async function confirmSplitPay() {
+    const payments = ['contant', 'pin', 'qr']
+      .map(method => ({ method, amount: Math.round((parseFloat(splitAmounts[method]) || 0) * 100) / 100 }))
+      .filter(p => p.amount > 0)
+    if (!payments.length) return
+    setSavingPayment(true)
+    const updated = await updateReceipt(id, {
+      paid: true,
+      payment_method: payments[0].method,
+      payments,
+    })
+    setReceipt(prev => ({ ...prev, ...updated }))
+    setShowSplitPay(false)
+    setSplitAmounts({ contant: '', pin: '', qr: '' })
+    setSavingPayment(false)
+    showToast(t('toast_marked_paid'))
   }
 
   async function setPaymentMethod(method) {
@@ -257,19 +280,34 @@ export default function BonDetail({ id, onBack }) {
               }}>
                 {isPaid ? <><Check size={11} /> {t('paid')}</> : <><X size={11} /> {t('unpaid')}</>}
               </span>
-              {isPaid && receipt.payment_method && (
-                <span style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4,
-                  padding: '4px 9px', borderRadius: 20,
-                  fontSize: '0.7rem', fontWeight: 600,
-                  background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.85)',
-                }}>
-                  {receipt.payment_method === 'contant' && <Banknote size={11} />}
-                  {receipt.payment_method === 'pin'     && <CreditCard size={11} />}
-                  {receipt.payment_method === 'qr'      && <Smartphone size={11} />}
-                  {t(`payment_method_${receipt.payment_method}`)}
-                </span>
-              )}
+              {isPaid && receipt.payments?.length > 0
+                ? receipt.payments.map(p => (
+                    <span key={p.method} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      padding: '4px 9px', borderRadius: 20,
+                      fontSize: '0.7rem', fontWeight: 600,
+                      background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.85)',
+                    }}>
+                      {p.method === 'contant' && <Banknote size={11} />}
+                      {p.method === 'pin'     && <CreditCard size={11} />}
+                      {p.method === 'qr'      && <Smartphone size={11} />}
+                      {t(`payment_method_${p.method}`)} {fmt(p.amount)}
+                    </span>
+                  ))
+                : isPaid && receipt.payment_method && (
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      padding: '4px 9px', borderRadius: 20,
+                      fontSize: '0.7rem', fontWeight: 600,
+                      background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.85)',
+                    }}>
+                      {receipt.payment_method === 'contant' && <Banknote size={11} />}
+                      {receipt.payment_method === 'pin'     && <CreditCard size={11} />}
+                      {receipt.payment_method === 'qr'      && <Smartphone size={11} />}
+                      {t(`payment_method_${receipt.payment_method}`)}
+                    </span>
+                  )
+              }
             </div>
           </div>
 
@@ -288,20 +326,16 @@ export default function BonDetail({ id, onBack }) {
                   >
                     <QrCode size={13} /> {t('payment_btn')}
                   </button>
-                  {[
-                    { key: 'contant', Icon: Banknote,    label: t('payment_method_contant') },
-                    { key: 'pin',     Icon: CreditCard,  label: t('payment_method_pin') },
-                    { key: 'qr',      Icon: Smartphone,  label: t('payment_method_qr') },
-                  ].map(({ key, Icon, label }) => (
-                    <button
-                      key={key}
-                      className="btn btn-sm no-print"
-                      onClick={() => markPaid(key)}
-                      style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.28)', gap: 5 }}
-                    >
-                      <Icon size={12} /> {label}
-                    </button>
-                  ))}
+                  <button
+                    className="btn btn-sm no-print"
+                    onClick={() => setShowSplitPay(v => !v)}
+                    style={{
+                      background: showSplitPay ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.2)',
+                      color: '#fff', border: '1px solid rgba(255,255,255,0.35)', gap: 5,
+                    }}
+                  >
+                    <Layers size={13} /> {t('split_pay_btn')}
+                  </button>
                 </>
               )}
               {isPaid && (
@@ -328,6 +362,114 @@ export default function BonDetail({ id, onBack }) {
           </div>
         </div>
       </div>
+
+      {/* ── Split betaling paneel ───────────────────────────────────────── */}
+      {!isPaid && showSplitPay && (() => {
+        const METHODS = [
+          { key: 'contant', Icon: Banknote,   label: t('payment_method_contant') },
+          { key: 'pin',     Icon: CreditCard, label: t('payment_method_pin') },
+          { key: 'qr',      Icon: Smartphone, label: t('payment_method_qr') },
+        ]
+        const entered   = METHODS.reduce((s, m) => s + (parseFloat(splitAmounts[m.key]) || 0), 0)
+        const remaining = Math.round((totalDue - entered) * 100) / 100
+        const cashAmt   = parseFloat(splitAmounts.contant) || 0
+        const change    = remaining < -0.005 ? Math.abs(remaining) : null
+        const canConfirm = remaining <= 0.005 && entered > 0
+
+        return (
+          <div className="no-print" style={{
+            background: 'var(--surface)', border: '2px solid var(--primary)',
+            borderRadius: 12, padding: '1rem',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                <Layers size={14} color="var(--primary)" strokeWidth={2.3} />
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                  {t('split_payment')}
+                </span>
+              </div>
+              <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--primary)' }}>
+                {t('total_due')}: {fmt(totalDue)}
+              </span>
+            </div>
+
+            {METHODS.map(({ key, Icon, label }) => {
+              const others = METHODS.filter(m => m.key !== key)
+              const otherTotal = others.reduce((s, m) => s + (parseFloat(splitAmounts[m.key]) || 0), 0)
+              const fillAmount = Math.max(0, totalDue - otherTotal)
+              return (
+                <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 8,
+                    background: parseFloat(splitAmounts[key]) > 0 ? 'var(--primary)' : 'var(--s100)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    transition: 'background 0.15s',
+                  }}>
+                    <Icon size={14} color={parseFloat(splitAmounts[key]) > 0 ? '#fff' : 'var(--s500)'} />
+                  </div>
+                  <span style={{ flex: 1, fontSize: '0.84rem', fontWeight: 500, color: 'var(--s800)' }}>{label}</span>
+                  <span style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>€</span>
+                  <input
+                    type="number"
+                    className="form-input"
+                    style={{ width: 105 }}
+                    value={splitAmounts[key]}
+                    onChange={e => setSplitAmounts(prev => ({ ...prev, [key]: e.target.value }))}
+                    min="0" step="0.01"
+                    placeholder="0,00"
+                  />
+                  <button
+                    className="btn btn-sm btn-outline"
+                    style={{ flexShrink: 0 }}
+                    title={t('split_fill')}
+                    onClick={() => setSplitAmounts(prev => ({ ...prev, [key]: fillAmount.toFixed(2) }))}
+                  >
+                    Max
+                  </button>
+                </div>
+              )
+            })}
+
+            {/* Samenvatting */}
+            <div style={{ borderTop: '1px solid var(--s100)', paddingTop: '0.65rem', marginTop: 4, marginBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 3 }}>
+                <span style={{ color: 'var(--muted)' }}>{t('split_enter')}</span>
+                <span style={{ fontWeight: 700, color: canConfirm ? '#16A34A' : 'var(--s700)' }}>{fmt(entered)}</span>
+              </div>
+              {remaining > 0.005 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 3 }}>
+                  <span style={{ color: 'var(--danger)' }}>{t('split_remaining')}</span>
+                  <span style={{ fontWeight: 700, color: 'var(--danger)' }}>{fmt(remaining)}</span>
+                </div>
+              )}
+              {change !== null && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
+                  <span style={{ color: '#16A34A', fontWeight: 600 }}>{t('change')}</span>
+                  <span style={{ fontWeight: 800, color: '#16A34A', fontSize: '1rem' }}>{fmt(change)}</span>
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                className="btn btn-primary"
+                style={{ flex: 1, gap: 6 }}
+                disabled={!canConfirm || savingPayment}
+                onClick={confirmSplitPay}
+              >
+                <Check size={14} /> {t('split_confirm')}
+              </button>
+              <button
+                className="btn btn-ghost"
+                onClick={() => { setShowSplitPay(false); setSplitAmounts({ contant: '', pin: '', qr: '' }) }}
+              >
+                {t('cancel')}
+              </button>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ── Notitie ─────────────────────────────────────────────────────── */}
       <div style={{
@@ -456,28 +598,47 @@ export default function BonDetail({ id, onBack }) {
           boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
         }} className="no-print">
           <SectionHead Icon={CreditCard} label={t('payment_method')} />
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {[
-              { key: 'contant', Icon: Banknote,   label: t('payment_method_contant') },
-              { key: 'pin',     Icon: CreditCard, label: t('payment_method_pin') },
-              { key: 'qr',      Icon: Smartphone, label: t('payment_method_qr') },
-            ].map(({ key, Icon, label }) => (
-              <button
-                key={key}
-                className="btn btn-sm"
-                style={{
-                  flex: '1 1 80px',
-                  background: receipt.payment_method === key ? 'var(--primary)' : 'var(--surface)',
-                  color:      receipt.payment_method === key ? '#fff' : 'var(--s600)',
-                  border:     `1px solid ${receipt.payment_method === key ? 'var(--primary)' : 'var(--border)'}`,
-                  gap: 5,
-                }}
-                onClick={() => setPaymentMethod(key)}
-              >
-                <Icon size={13} /> {label}
-              </button>
-            ))}
-          </div>
+          {receipt.payments?.length > 0 ? (
+            // Read-only split payment breakdown
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {receipt.payments.map(p => {
+                const Icon = p.method === 'contant' ? Banknote : p.method === 'pin' ? CreditCard : Smartphone
+                return (
+                  <div key={p.method} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.4rem 0.6rem', background: 'var(--s50)', borderRadius: 8 }}>
+                    <Icon size={14} color="var(--s500)" />
+                    <span style={{ flex: 1, fontSize: '0.84rem', color: 'var(--s700)', fontWeight: 500 }}>
+                      {t(`payment_method_${p.method}`)}
+                    </span>
+                    <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--primary)' }}>{fmt(p.amount)}</span>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            // Single method selector
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {[
+                { key: 'contant', Icon: Banknote,   label: t('payment_method_contant') },
+                { key: 'pin',     Icon: CreditCard, label: t('payment_method_pin') },
+                { key: 'qr',      Icon: Smartphone, label: t('payment_method_qr') },
+              ].map(({ key, Icon, label }) => (
+                <button
+                  key={key}
+                  className="btn btn-sm"
+                  style={{
+                    flex: '1 1 80px',
+                    background: receipt.payment_method === key ? 'var(--primary)' : 'var(--surface)',
+                    color:      receipt.payment_method === key ? '#fff' : 'var(--s600)',
+                    border:     `1px solid ${receipt.payment_method === key ? 'var(--primary)' : 'var(--border)'}`,
+                    gap: 5,
+                  }}
+                  onClick={() => setPaymentMethod(key)}
+                >
+                  <Icon size={13} /> {label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
