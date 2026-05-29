@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"nodemon server.js\" \"wait-on tcp:3001 && vite\"",
+    "dev": "concurrently \"nodemon --ignore kassa.json server.js\" \"wait-on tcp:3001 && vite\"",
     "build": "vite build",
     "start": "node server.js",
     "preview": "vite preview"

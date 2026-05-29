@@ -4,19 +4,70 @@ import { CheckCircle2, Tent, Clock } from 'lucide-react'
 const fmt = n => `€ ${parseFloat(n ?? 0).toFixed(2)}`
 
 function useDisplayState() {
-  const [data, setData] = useState(null)
+  const [data,      setData]      = useState(null)
+  const [status,    setStatus]    = useState('connecting') // connecting | connected | error
+  const [lastUpdate, setLastUpdate] = useState(null)
+  const [errorCount, setErrorCount] = useState(0)
+
   useEffect(() => {
-    async function poll() {
-      try {
-        const res = await fetch('/display-data')
-        if (res.ok) setData(await res.json())
-      } catch {}
+    let es
+
+    function connect() {
+      console.log('[display] SSE verbinden...')
+      es = new EventSource('/display-events')
+
+      es.onopen = () => {
+        console.log('[display] SSE verbonden')
+        setStatus('connected')
+        setErrorCount(0)
+      }
+
+      es.onmessage = e => {
+        try {
+          const d = JSON.parse(e.data)
+          if (e.data.includes('"active"')) {
+            console.log('[display] ontvangen:', {
+              active: d.active,
+              paid: d.paid,
+              payment_requested: d.payment_requested,
+              id: d.id,
+              items: d.items?.length ?? 0,
+              updatedAt: d.updatedAt,
+            })
+          }
+          setData(d)
+          setLastUpdate(new Date())
+          setStatus('connected')
+        } catch (err) {
+          console.error('[display] parse fout:', err, e.data)
+        }
+      }
+
+      es.onerror = err => {
+        console.warn('[display] SSE fout – browser herverbindt automatisch', err)
+        setStatus('error')
+        setErrorCount(n => n + 1)
+        fetch('/display-data')
+          .then(r => r.ok ? r.json() : null)
+          .then(d => {
+            if (d) {
+              console.log('[display] fallback polling gelukt:', { active: d.active, id: d.id })
+              setData(d)
+              setLastUpdate(new Date())
+            }
+          })
+          .catch(e => console.error('[display] fallback polling mislukt:', e))
+      }
     }
-    poll()
-    const id = setInterval(poll, 2000)
-    return () => clearInterval(id)
+
+    connect()
+    return () => {
+      console.log('[display] SSE gesloten')
+      if (es) es.close()
+    }
   }, [])
-  return data
+
+  return { data, status, lastUpdate, errorCount }
 }
 
 function Logo({ settings, size = 48 }) {
@@ -290,8 +341,35 @@ function OrderScreen({ order, settings }) {
   )
 }
 
+function StatusBar({ status, lastUpdate, errorCount, data }) {
+  const dotColor = status === 'connected' ? '#4ade80' : status === 'error' ? '#f87171' : '#fbbf24'
+  const timeStr  = lastUpdate
+    ? lastUpdate.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    : '—'
+  const screen = !data ? 'laden' : !data.active ? 'idle' : data.paid ? 'betaald' : data.payment_requested ? 'betaalQR' : 'bon'
+
+  return (
+    <div style={{
+      position: 'fixed', bottom: 10, right: 12, zIndex: 999,
+      display: 'flex', alignItems: 'center', gap: 7,
+      background: 'rgba(0,0,0,0.55)', borderRadius: 20,
+      padding: '4px 10px', backdropFilter: 'blur(6px)',
+      fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)',
+      pointerEvents: 'none',
+    }}>
+      <span style={{ width: 7, height: 7, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
+      <span>{status}</span>
+      <span style={{ opacity: 0.4 }}>·</span>
+      <span>{screen}</span>
+      <span style={{ opacity: 0.4 }}>·</span>
+      <span>{timeStr}</span>
+      {errorCount > 0 && <span style={{ color: '#f87171' }}>({errorCount} err)</span>}
+    </div>
+  )
+}
+
 export default function KlantenschermDisplay() {
-  const data = useDisplayState()
+  const { data, status, lastUpdate, errorCount } = useDisplayState()
 
   const bgStyle = {
     minHeight: '100dvh',
@@ -307,6 +385,7 @@ export default function KlantenschermDisplay() {
       <div style={{ ...bgStyle, alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ width: 40, height: 40, border: '3px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+        <StatusBar status={status} lastUpdate={lastUpdate} errorCount={errorCount} data={data} />
       </div>
     )
   }
@@ -315,6 +394,7 @@ export default function KlantenschermDisplay() {
 
   return (
     <div style={bgStyle}>
+      <StatusBar status={status} lastUpdate={lastUpdate} errorCount={errorCount} data={data} />
       {!active
         ? <IdleScreen settings={settings} />
         : paid

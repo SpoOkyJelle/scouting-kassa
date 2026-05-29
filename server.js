@@ -69,22 +69,90 @@ async function deleteSession(token) {
   await db.write()
 }
 
-// ─── Klantenscherm display state (in-memory, resets on restart) ──────────────
+// ─── Klantenscherm display state + SSE ───────────────────────────────────────
 let displayState = { active: false, updatedAt: null }
+const sseClients = new Set()
 
-app.get('/display-data', (_req, res) => {
+function getDisplayPayload() {
   const data = { ...displayState }
-  if (data.updatedAt && Date.now() - new Date(data.updatedAt).getTime() > 30 * 1000) {
+  if (data.updatedAt && Date.now() - new Date(data.updatedAt).getTime() > 10 * 60 * 1000) {
     data.active = false
   }
-  res.json({
+  return {
     ...data,
     settings: {
-      logoDataUrl:  db.data.settings?.logoDataUrl  || null,
-      paymentUrl:   db.data.settings?.paymentUrl   || SETTING_DEFAULTS.paymentUrl,
-      paymentName:  db.data.settings?.paymentName  || SETTING_DEFAULTS.paymentName,
+      logoDataUrl: db.data.settings?.logoDataUrl || null,
+      paymentUrl:  db.data.settings?.paymentUrl  || SETTING_DEFAULTS.paymentUrl,
+      paymentName: db.data.settings?.paymentName || SETTING_DEFAULTS.paymentName,
     },
-  })
+  }
+}
+
+function broadcastDisplay() {
+  const payload = `data: ${JSON.stringify(getDisplayPayload())}\n\n`
+  let sent = 0
+  for (const client of sseClients) {
+    try { client.write(payload); sent++ } catch { sseClients.delete(client) }
+  }
+  console.log(`[display] broadcast → ${sent} client(s) | active=${displayState.active} id=${displayState.id}`)
+}
+
+// Auto-broadcast als een receipt dat op het klantenscherm staat wijzigt
+function autoUpdateDisplay(receiptId) {
+  if (!displayState.active) {
+    console.log(`[display] autoUpdate skip – niet actief (receiptId=${receiptId})`)
+    return
+  }
+  if (displayState.id !== receiptId) {
+    console.log(`[display] autoUpdate skip – id mismatch (display=${displayState.id}, receipt=${receiptId})`)
+    return
+  }
+  const receipt = db.data.receipts.find(r => r.id === receiptId)
+  if (!receipt) return
+  const sub  = (receipt.items || []).reduce((s, i) => s + i.product_price * i.quantity, 0)
+  const disc = sub * (receipt.discount_pct || 0) / 100
+  const tot  = sub - disc
+  const don  = receipt.donation || 0
+  displayState = {
+    ...displayState,
+    name:         receipt.name,
+    items:        (receipt.items || []).map(i => ({
+      name: i.product_name, qty: i.quantity,
+      price: i.product_price, subtotal: i.product_price * i.quantity,
+    })),
+    subtotal:     sub, discount_pct: receipt.discount_pct || 0, discount_amt: disc,
+    total:        tot, donation:     don,  total_due:    tot + don,
+    paid:         !!receipt.paid,
+    updatedAt:    new Date().toISOString(),
+  }
+  broadcastDisplay()
+}
+
+// SSE endpoint — geen auth, klantenscherm heeft geen token
+app.get('/display-events', (req, res) => {
+  res.setHeader('Content-Type',  'text/event-stream')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('Connection',    'keep-alive')
+  res.setHeader('X-Accel-Buffering', 'no')
+  res.flushHeaders()
+
+  sseClients.add(res)
+  console.log(`[display] SSE client verbonden (totaal: ${sseClients.size})`)
+
+  // Stuur huidige staat direct bij verbinding
+  res.write(`data: ${JSON.stringify(getDisplayPayload())}\n\n`)
+
+  // Ping elke 20s om verbinding levend te houden
+  const ping = setInterval(() => {
+    try { res.write(': ping\n\n') } catch { clearInterval(ping); sseClients.delete(res) }
+  }, 20000)
+
+  req.on('close', () => { clearInterval(ping); sseClients.delete(res); console.log(`[display] SSE client weg (totaal: ${sseClients.size})`) })
+})
+
+// Fallback polling endpoint (blijft bestaan voor backwards compat)
+app.get('/display-data', (_req, res) => {
+  res.json(getDisplayPayload())
 })
 
 // ─── PIN helpers (env = initial value, db.settings = runtime override) ────────
@@ -144,12 +212,16 @@ function requireAdmin(req, res, next) {
 // ─── Display endpoints (require auth via middleware) ─────────────────────────
 
 app.put('/api/display', async (req, res) => {
+  console.log(`[display] PUT ontvangen – active=${req.body.active} id=${req.body.id} paid=${req.body.paid} payment_requested=${req.body.payment_requested}`)
   displayState = { ...req.body, updatedAt: new Date().toISOString() }
+  broadcastDisplay()
   res.json(displayState)
 })
 
 app.delete('/api/display', async (req, res) => {
+  console.log('[display] DELETE – display gewist')
   displayState = { active: false, updatedAt: null }
+  broadcastDisplay()
   res.json({ ok: true })
 })
 
@@ -311,6 +383,7 @@ app.put('/api/receipts/:id', async (req, res) => {
   if (req.body.payment_method !== undefined) receipt.payment_method = req.body.payment_method || null
   if (req.body.payments       !== undefined) receipt.payments       = req.body.payments || []
   await db.write()
+  autoUpdateDisplay(receipt.id)
   const { items, ...rest } = receipt
   res.json(rest)
 })
@@ -351,6 +424,7 @@ app.post('/api/receipts/:id/items', async (req, res) => {
   }
   receipt.items.push(item)
   await db.write()
+  autoUpdateDisplay(receiptId)
   res.json(item)
 })
 
@@ -363,6 +437,7 @@ app.put('/api/receipts/:id/items/:itemId', async (req, res) => {
   if (!item) return res.status(404).json({ error: 'Item not found' })
   item.quantity = req.body.quantity
   await db.write()
+  autoUpdateDisplay(receiptId)
   res.json(item)
 })
 
@@ -373,6 +448,7 @@ app.delete('/api/receipts/:id/items/:itemId', async (req, res) => {
   if (!receipt) return res.status(404).json({ error: 'Not found' })
   receipt.items = receipt.items.filter(i => i.id !== itemId)
   await db.write()
+  autoUpdateDisplay(receiptId)
   res.json({ ok: true })
 })
 

@@ -1,4 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
+
+// Module-level teller: elke mount van BonDetail verhoogt deze.
+// Zo weet de cleanup of hij de meest recente mount is (echte unmount)
+// of een tussentijdse React-herstart (StrictMode / HMR).
+let _displayMountGen = 0
 import {
   ArrowLeft, Check, X, Trash2, Pencil, Calendar, Plus, Package,
   ChevronDown, ChevronUp, Printer, QrCode, Monitor, Calculator, StickyNote, Search, Heart,
@@ -78,15 +83,22 @@ export default function BonDetail({ id, onBack }) {
       setDonationInput(String(rec.donation || 0))
       setNoteInput(rec.note || '')
       setLoading(false)
+      pushToDisplay(rec)
     })
   }, [id])
 
-  // Heartbeat: push elke 1,5s naar klantenscherm, gebruikt altijd de meest recente receipt via ref
+  // Wis klantenscherm bij echte unmount (pijltje terug, ander menu-item).
+  // Generatieteller zorgt dat StrictMode-herstart of snelle navigatie geen vals signaal geeft.
   useEffect(() => {
-    const iv = setInterval(() => {
-      if (receiptRef.current) pushToDisplay(receiptRef.current)
-    }, 1500)
-    return () => clearInterval(iv)
+    const gen = ++_displayMountGen
+    return () => {
+      setTimeout(() => {
+        if (_displayMountGen === gen) {
+          clearDisplay().catch(() => {})
+          paymentRequestedRef.current = false
+        }
+      }, 150)
+    }
   }, [])
 
   // Zet receipt state én ref tegelijk
