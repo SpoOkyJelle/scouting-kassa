@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   CheckCircle2, Clock, Trash2, Check, X, FileText,
   Calendar, Search, CheckSquare, StickyNote, Euro,
+  Banknote, CreditCard, Smartphone,
 } from 'lucide-react'
 import { useLang } from '../LangContext'
 import { fetchReceipts, updateReceipt, deleteReceipt, bulkMarkPaid } from '../api'
@@ -27,12 +28,36 @@ export default function Bonnen({ onOpenDetail }) {
   const [filter, setFilter]         = useState('unpaid')
   const [search, setSearch]         = useState('')
   const [sort, setSort]             = useState('date')
-  const [selectMode, setSelectMode] = useState(false)
-  const [selected, setSelected]     = useState(new Set())
+  const [selectMode, setSelectMode]   = useState(false)
+  const [selected, setSelected]       = useState(new Set())
+  const [dateFilter, setDateFilter]   = useState('all')
+  const [customDate, setCustomDate]   = useState('')
+  const [now, setNow]                 = useState(Date.now())
 
   useEffect(() => {
     fetchReceipts().then(data => { setReceipts(data); setLoading(false) })
   }, [])
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30000)
+    return () => clearInterval(id)
+  }, [])
+
+  function elapsedMin(createdAt) {
+    return Math.floor((now - new Date(createdAt).getTime()) / 60000)
+  }
+  function elapsedLabel(createdAt) {
+    const m = elapsedMin(createdAt)
+    if (m < 60) return `${m}m`
+    const h = Math.floor(m / 60), r = m % 60
+    return r > 0 ? `${h}u ${r}m` : `${h}u`
+  }
+  function elapsedColor(createdAt) {
+    const m = elapsedMin(createdAt)
+    if (m >= 30) return '#DC2626'
+    if (m >= 15) return '#D97706'
+    return 'var(--muted)'
+  }
 
   async function togglePaid(e, receipt) {
     e.stopPropagation()
@@ -87,11 +112,21 @@ export default function Bonnen({ onOpenDetail }) {
   const totalPaid   = receipts.filter(r =>  r.paid).reduce((s, r) => s + r.total, 0)
   const totalUnpaid = receipts.filter(r => !r.paid).reduce((s, r) => s + r.total, 0)
 
+  const todayStr     = new Date().toDateString()
+  const yesterdayStr = new Date(Date.now() - 86400000).toDateString()
+
   const q = search.trim().toLowerCase()
   const visible = receipts
     .filter(r => {
       if (filter === 'paid')   return  r.paid
       if (filter === 'unpaid') return !r.paid
+      return true
+    })
+    .filter(r => {
+      const d = new Date(r.created_at)
+      if (dateFilter === 'today')     return d.toDateString() === todayStr
+      if (dateFilter === 'yesterday') return d.toDateString() === yesterdayStr
+      if (dateFilter === 'custom' && customDate) return r.created_at.startsWith(customDate)
       return true
     })
     .filter(r => {
@@ -211,6 +246,38 @@ export default function Bonnen({ onOpenDetail }) {
         ))}
       </div>
 
+      {/* ── Datumfilter ─────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+        {[
+          { key: 'all',       label: t('all') },
+          { key: 'today',     label: t('stats_period_today') },
+          { key: 'yesterday', label: t('filter_yesterday') },
+        ].map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => { setDateFilter(key); setCustomDate('') }}
+            style={{
+              border: 'none', borderRadius: 7, padding: '5px 11px',
+              fontSize: '0.76rem', fontWeight: 600, fontFamily: 'inherit',
+              cursor: 'pointer', transition: 'all 0.15s',
+              background: dateFilter === key && !customDate ? 'var(--primary)' : 'var(--s100)',
+              color:      dateFilter === key && !customDate ? '#fff' : 'var(--muted)',
+            }}
+          >
+            {label}
+          </button>
+        ))}
+        <input
+          type="date"
+          className="form-input"
+          style={{ flex: '0 0 auto', fontSize: '0.78rem', padding: '5px 8px', height: 'auto',
+            outline: customDate ? '2px solid var(--primary)' : 'none' }}
+          value={customDate}
+          onChange={e => { setCustomDate(e.target.value); setDateFilter('custom') }}
+          title={t('filter_date')}
+        />
+      </div>
+
       {/* ── Receipt list ─────────────────────────────────────────────────── */}
       {visible.length === 0 ? (
         <div style={{
@@ -261,11 +328,20 @@ export default function Bonnen({ onOpenDetail }) {
                       <div style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--s900)' }}>
                         {receipt.name || `${t('receipt_number')} #${receipt.id}`}
                       </div>
-                      <div style={{ fontSize: '0.73rem', color: 'var(--muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <div style={{ fontSize: '0.73rem', color: 'var(--muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
                         <Calendar size={11} />
                         {fmtDate(receipt.created_at)}
                         <span style={{ color: 'var(--s300)' }}>·</span>
                         {receipt.item_count} {t('items')}
+                        {!receipt.paid && (
+                          <>
+                            <span style={{ color: 'var(--s300)' }}>·</span>
+                            <span style={{ color: elapsedColor(receipt.created_at), fontWeight: 600, display: 'flex', alignItems: 'center', gap: 2 }}>
+                              <Clock size={10} />
+                              {elapsedLabel(receipt.created_at)}
+                            </span>
+                          </>
+                        )}
                       </div>
                       {receipt.note && (
                         <div style={{ fontSize: '0.72rem', color: 'var(--muted)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 4, fontStyle: 'italic' }}>
@@ -277,18 +353,31 @@ export default function Bonnen({ onOpenDetail }) {
                       )}
                     </div>
                   </div>
-                  <span style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 4,
-                    padding: '3px 9px', borderRadius: 20,
-                    fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px',
-                    background: receipt.paid ? '#DCFCE7' : '#FEF3C7',
-                    color: receipt.paid ? '#166534' : '#92400E',
-                    flexShrink: 0,
-                  }}>
-                    {receipt.paid
-                      ? <><CheckCircle2 size={10} /> {t('paid')}</>
-                      : <><Clock size={10} /> {t('unpaid')}</>}
-                  </span>
+                  <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexShrink: 0 }}>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      padding: '3px 9px', borderRadius: 20,
+                      fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px',
+                      background: receipt.paid ? '#DCFCE7' : '#FEF3C7',
+                      color: receipt.paid ? '#166534' : '#92400E',
+                    }}>
+                      {receipt.paid
+                        ? <><CheckCircle2 size={10} /> {t('paid')}</>
+                        : <><Clock size={10} /> {t('unpaid')}</>}
+                    </span>
+                    {receipt.paid && receipt.payment_method && (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 3,
+                        padding: '3px 7px', borderRadius: 20,
+                        fontSize: '0.66rem', fontWeight: 600,
+                        background: '#EFF6FF', color: '#1D4ED8',
+                      }}>
+                        {receipt.payment_method === 'contant' && <Banknote size={10} />}
+                        {receipt.payment_method === 'pin'     && <CreditCard size={10} />}
+                        {receipt.payment_method === 'qr'      && <Smartphone size={10} />}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Bottom row */}

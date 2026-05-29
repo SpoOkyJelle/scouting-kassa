@@ -5,11 +5,13 @@ import {
 import {
   TrendingUp, TrendingDown, CalendarDays, CheckCircle2, Clock,
   FileText, Divide, BarChart2, Trophy, Download, FileBarChart,
-  ShoppingCart, RefreshCw, ArrowUpRight, Heart,
+  ShoppingCart, RefreshCw, ArrowUpRight, Heart, Wallet,
+  Banknote, CreditCard, Smartphone,
 } from 'lucide-react'
 import { useLang } from '../LangContext'
 import { fetchStats, fetchReceipts } from '../api'
 import DagRapport from './DagRapport'
+import KasAfsluiting from './KasAfsluiting'
 
 const fmt   = n => `€ ${parseFloat(n ?? 0).toFixed(2)}`
 const GREEN  = '#16A34A'
@@ -79,8 +81,10 @@ function SectionHead({ Icon, label, color = 'var(--muted)' }) {
   )
 }
 
+const PAYMENT_LABELS = { contant: 'Contant', pin: 'Pin', qr: 'QR / Tikkie', onbekend: '' }
+
 // ── Hoofd component ───────────────────────────────────────────────────────────
-export default function Overzicht() {
+export default function Overzicht({ role }) {
   const { t } = useLang()
   const [stats, setStats]                   = useState(null)
   const [loading, setLoading]               = useState(true)
@@ -102,7 +106,7 @@ export default function Overzicht() {
   async function exportCsv() {
     const receipts = await fetchReceipts()
     const sep = ';'
-    const header = ['ID', 'Naam', 'Datum', 'Items', 'Totaal (EUR)', 'Betaald']
+    const header = ['ID', 'Naam', 'Datum', 'Items', 'Totaal (EUR)', 'Betaald', 'Betaalmethode', 'Korting (%)', 'Donatie (EUR)', 'Notitie']
     const rows = receipts.map(r => [
       r.id,
       r.name || `#${r.id}`,
@@ -110,6 +114,10 @@ export default function Overzicht() {
       r.item_count,
       r.total.toFixed(2).replace('.', ','),
       r.paid ? 'Ja' : 'Nee',
+      PAYMENT_LABELS[r.payment_method] || '',
+      r.discount_pct || 0,
+      (r.donation || 0).toFixed(2).replace('.', ','),
+      r.note || '',
     ])
     const csv = '﻿' + [header, ...rows]
       .map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(sep))
@@ -128,7 +136,12 @@ export default function Overzicht() {
     receiptCount = 0, paidCount = 0, unpaidCount = 0, avgReceiptValue = 0,
     topProducts = [], revenueByHour = [], revenueByDay = [], multiDay = false,
     totalCosts = 0, profit = 0, totalDonations = 0,
+    paymentBreakdown = {}, todayPaymentBreakdown = {},
+    estimatedCosts = 0, estimatedProfit = 0,
+    yesterdayRevenue = 0,
   } = stats ?? {}
+
+  const isAdmin = role === 'admin'
 
   const paidPct = totalRevenue > 0 ? Math.round((paidRevenue / totalRevenue) * 100) : 0
   const hasInkoop = totalCosts > 0
@@ -238,6 +251,20 @@ export default function Overzicht() {
                   Vandaag: <span style={{ color: '#86efac', fontWeight: 700 }}>{fmt(todayRevenue)}</span>
                 </div>
               )}
+              {period === 'today' && yesterdayRevenue > 0 && (() => {
+                const diff = totalRevenue - yesterdayRevenue
+                const pct  = Math.round(Math.abs(diff / yesterdayRevenue) * 100)
+                return (
+                  <div style={{ marginTop: 6, fontSize: '0.78rem', color: 'rgba(255,255,255,0.65)', position: 'relative' }}>
+                    {t('stats_yesterday')}: <span style={{ color: 'rgba(255,255,255,0.75)', fontWeight: 700 }}>{fmt(yesterdayRevenue)}</span>
+                    {diff !== 0 && (
+                      <span style={{ marginLeft: 6, fontWeight: 800, color: diff > 0 ? '#86efac' : '#fca5a5' }}>
+                        {diff > 0 ? '↑' : '↓'}{pct}%
+                      </span>
+                    )}
+                  </div>
+                )
+              })()}
 
               {/* Paid progress bar */}
               {receiptCount > 0 && (
@@ -367,9 +394,79 @@ export default function Overzicht() {
                     accent="#16A34A" accentBg="#F0FDF4"
                   />
                 )}
+                {estimatedCosts > 0 && (
+                  <KpiCard
+                    Icon={ShoppingCart} label={t('stats_est_costs')} value={fmt(estimatedCosts)}
+                    sub={`Marge ${totalRevenue > 0 ? Math.round((estimatedProfit / totalRevenue) * 100) : 0}%`}
+                    accent="#7C3AED" accentBg="#F5F3FF"
+                  />
+                )}
               </div>
             </div>
           )}
+
+          {/* ── Betaalmethode breakdown ──────────────────────────────────────── */}
+          {paidRevenue > 0 && (() => {
+            const methods = [
+              { key: 'contant', label: t('payment_method_contant'), Icon: Banknote,   color: '#16A34A', bg: '#F0FDF4' },
+              { key: 'pin',     label: t('payment_method_pin'),     Icon: CreditCard, color: '#2563EB', bg: '#EFF6FF' },
+              { key: 'qr',      label: t('payment_method_qr'),      Icon: Smartphone, color: '#7C3AED', bg: '#F5F3FF' },
+              { key: 'onbekend',label: t('payment_method_onbekend'),Icon: FileText,   color: '#64748B', bg: 'var(--s100)' },
+            ].map(m => ({ ...m, amount: paymentBreakdown[m.key] ?? 0 }))
+              .filter(m => m.amount > 0)
+
+            if (!methods.length) return null
+            const maxAmount = Math.max(...methods.map(m => m.amount))
+
+            return (
+              <div>
+                <SectionHead Icon={CreditCard} label={t('payment_method')} color="#2563EB" />
+                <div style={{
+                  background: 'var(--surface)', border: '1px solid var(--border)',
+                  borderRadius: 12, overflow: 'hidden',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                }}>
+                  {methods.map((m, i) => {
+                    const pct = paidRevenue > 0 ? Math.round((m.amount / paidRevenue) * 100) : 0
+                    const barW = maxAmount > 0 ? (m.amount / maxAmount) * 100 : 0
+                    return (
+                      <div
+                        key={m.key}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 10,
+                          padding: '0.7rem 1rem',
+                          borderBottom: i < methods.length - 1 ? '1px solid var(--s100)' : 'none',
+                          position: 'relative', overflow: 'hidden',
+                        }}
+                      >
+                        <div style={{
+                          position: 'absolute', left: 0, top: 0, bottom: 0,
+                          width: `${barW}%`, background: `${m.color}10`,
+                          transition: 'width 0.5s ease',
+                        }} />
+                        <div style={{
+                          width: 30, height: 30, borderRadius: 8,
+                          background: m.bg, display: 'flex', alignItems: 'center',
+                          justifyContent: 'center', flexShrink: 0, position: 'relative',
+                        }}>
+                          <m.Icon size={14} color={m.color} strokeWidth={2.2} />
+                        </div>
+                        <span style={{ flex: 1, fontSize: '0.84rem', fontWeight: 500, color: 'var(--s800)', position: 'relative' }}>
+                          {m.label}
+                        </span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--muted)', position: 'relative', flexShrink: 0 }}>
+                          {pct}%
+                        </span>
+                        <span style={{ fontWeight: 700, fontSize: '0.88rem', color: m.color, minWidth: 64, textAlign: 'right', position: 'relative', flexShrink: 0 }}>
+                          {fmt(m.amount)}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })()}
 
           {/* ── Omzet per uur ────────────────────────────────────────────────── */}
           {revenueByHour?.length > 0 && (
@@ -516,6 +613,14 @@ export default function Overzicht() {
               </div>
             )}
           </div>
+
+          {/* ── Kasafsluiting (admin only) ────────────────────────────────────── */}
+          {isAdmin && (
+            <div>
+              <SectionHead Icon={Wallet} label="Kasafsluiting" color="#2563EB" />
+              <KasAfsluiting todayContant={todayPaymentBreakdown.contant ?? 0} />
+            </div>
+          )}
 
           {/* ── Betaald / onbetaald breakdown ────────────────────────────────── */}
           {totalRevenue > 0 && (

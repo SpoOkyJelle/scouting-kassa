@@ -33,6 +33,8 @@ export async function login(pin) {
   return res.json()   // { token, role }
 }
 
+export const changePin = (data) => req('/auth/change-pin', { method: 'POST', body: JSON.stringify(data) })
+
 export async function logout() {
   const token = localStorage.getItem('kassa_token')
   await fetch(`${BASE}/auth/logout`, {
@@ -50,8 +52,9 @@ export async function logout() {
 
 export const fetchProducts        = ()                    => req('/products')
 export const fetchPopularProducts = ()                    => req('/products/popular')
-export const createProduct        = (name, price, cat)   => req('/products', { method: 'POST', body: JSON.stringify({ name, price, category: cat }) })
-export const updateProduct        = (id, name, price, cat) => req(`/products/${id}`, { method: 'PUT', body: JSON.stringify({ name, price, category: cat }) })
+export const createProduct        = (name, price, cat, costPrice) => req('/products', { method: 'POST', body: JSON.stringify({ name, price, category: cat, cost_price: costPrice ?? null }) })
+export const updateProduct        = (id, name, price, cat, costPrice) => req(`/products/${id}`, { method: 'PUT', body: JSON.stringify({ name, price, category: cat, cost_price: costPrice !== undefined ? costPrice : undefined }) })
+export const setProductAvailable  = (id, available)       => req(`/products/${id}`, { method: 'PUT', body: JSON.stringify({ available }) })
 export const deleteProduct        = (id)                  => req(`/products/${id}`, { method: 'DELETE' })
 export const reorderProducts      = (order)               => req('/products/reorder', { method: 'PUT', body: JSON.stringify({ order }) })
 
@@ -65,6 +68,9 @@ export const deleteReceipt  = (id)       => req(`/receipts/${id}`, { method: 'DE
 export const bulkMarkPaid   = (ids, paid) => req('/receipts/bulk', { method: 'POST', body: JSON.stringify({ ids, paid }) })
 
 // ─── Settings ─────────────────────────────────────────────────────────────
+
+export const fetchBackup    = ()     => req('/backup')
+export const restoreBackup  = (data) => req('/restore', { method: 'POST', body: JSON.stringify(data) })
 
 export const fetchSettings  = ()     => req('/settings')
 export const updateSettings = (data) => req('/settings', { method: 'PUT', body: JSON.stringify(data) })
@@ -93,3 +99,10 @@ export const deleteDonatie  = (id)         => req(`/donaties/${id}`, { method: '
 export const addReceiptItem    = (receiptId, item)          => req(`/receipts/${receiptId}/items`, { method: 'POST', body: JSON.stringify(item) })
 export const updateReceiptItem = (receiptId, itemId, qty)   => req(`/receipts/${receiptId}/items/${itemId}`, { method: 'PUT', body: JSON.stringify({ quantity: qty }) })
 export const deleteReceiptItem = (receiptId, itemId)        => req(`/receipts/${receiptId}/items/${itemId}`, { method: 'DELETE' })
+
+// ─── Kasregistraties ──────────────────────────────────────────────────────────
+
+export const fetchKas  = ()         => req('/kas')
+export const createKas = (data)     => req('/kas', { method: 'POST', body: JSON.stringify(data) })
+export const updateKas = (id, data) => req(`/kas/${id}`, { method: 'PUT', body: JSON.stringify(data) })
+export const deleteKas = (id)       => req(`/kas/${id}`, { method: 'DELETE' })

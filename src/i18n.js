@@ -23,7 +23,12 @@ export const translations = {
     product_name:  'Naam',
     product_price: 'Prijs (€)',
     add_product:   'Product toevoegen',
-    no_products:   'Nog geen producten. Voeg er een toe!',
+    no_products:       'Nog geen producten. Voeg er een toe!',
+    product_cost_price:'Inkoopprijs (€)',
+    product_unavailable:   'Uitverkocht',
+    product_available_back:'Weer beschikbaar',
+    product_margin:        'Marge',
+    stats_est_costs:       'Productkosten',
 
     // Receipts list
     all:            'Alle',
@@ -40,6 +45,8 @@ export const translations = {
     sort_date:      'Datum',
     sort_name:      'Naam',
     sort_amount:    'Bedrag',
+    filter_yesterday:  'Gisteren',
+    filter_date:       'Datum',
 
     // Bulk select
     select_mode:    'Selecteer',
@@ -176,6 +183,28 @@ export const translations = {
     your_role:                'Jouw rol',
     cashier_pin_hint:         'Stel een kassier-PIN in via .env: CASHIER_PIN=jouw_pin',
 
+    // PIN wijzigen
+    settings_pin_section:   'PIN wijzigen',
+    settings_pin_admin:     'Beheerder PIN',
+    settings_pin_cashier:   'Kassier PIN',
+    settings_pin_current:   'Huidige beheerder-PIN (ter verificatie)',
+    settings_pin_new:       'Nieuwe PIN',
+    settings_pin_confirm:   'Bevestig nieuwe PIN',
+    settings_pin_mismatch:  'PINs komen niet overeen',
+    settings_pin_min:       'PIN moet minimaal 4 tekens zijn',
+    settings_pin_success:   'PIN gewijzigd',
+
+    // Backup
+    settings_backup_section: 'Backup & Herstel',
+    settings_backup_hint:    'Download de volledige database als JSON-bestand.',
+    settings_backup_download:'Backup downloaden',
+    settings_backup_restore: 'Backup herstellen',
+    settings_backup_confirm: 'Dit overschrijft alle huidige data. Doorgaan?',
+    settings_backup_success: 'Backup hersteld — herlaad de pagina',
+
+    // Vergelijking
+    stats_yesterday:         'Gisteren',
+
     // Payment request
     payment_title:  'Betaalverzoek',
     payment_hint:   'Scan de QR-code of deel de link met de klant.',
@@ -183,6 +212,28 @@ export const translations = {
     payment_copy:   'Kopieer link',
     payment_copied: 'Gekopieerd!',
     payment_btn:    'Betaalverzoek',
+
+    // Betaalmethode
+    payment_method:         'Betaalmethode',
+    payment_method_contant: 'Contant',
+    payment_method_pin:     'Pin',
+    payment_method_qr:      'QR / Tikkie',
+    payment_method_onbekend:'Onbekend',
+
+    // Kasafsluiting
+    kas_title:       'Kasafsluiting',
+    kas_begin:       'Beginbedrag',
+    kas_eind:        'Eindbedrag geteld',
+    kas_contant:     'Contant ontvangen',
+    kas_verwacht:    'Verwacht saldo',
+    kas_verschil:    'Verschil',
+    kas_set_begin:   'Beginbedrag instellen',
+    kas_no_record:   'Nog geen kasregistratie voor vandaag.',
+    kas_klopt:       'Kas klopt!',
+    kas_saved:       'Kasregistratie opgeslagen',
+
+    // Korting presets
+    discount_free:   'Gratis',
   },
 
   en: {
@@ -209,7 +260,12 @@ export const translations = {
     product_name:  'Name',
     product_price: 'Price (€)',
     add_product:   'Add product',
-    no_products:   'No products yet. Add one!',
+    no_products:        'No products yet. Add one!',
+    product_cost_price: 'Cost price (€)',
+    product_unavailable:    'Sold out',
+    product_available_back: 'Available again',
+    product_margin:         'Margin',
+    stats_est_costs:        'Product costs',
 
     // Receipts list
     all:            'All',
@@ -226,6 +282,8 @@ export const translations = {
     sort_date:      'Date',
     sort_name:      'Name',
     sort_amount:    'Amount',
+    filter_yesterday:  'Yesterday',
+    filter_date:       'Date',
 
     // Bulk select
     select_mode:    'Select',
@@ -362,6 +420,28 @@ export const translations = {
     your_role:                'Your role',
     cashier_pin_hint:         'Set a cashier PIN via .env: CASHIER_PIN=your_pin',
 
+    // PIN change
+    settings_pin_section:   'Change PIN',
+    settings_pin_admin:     'Admin PIN',
+    settings_pin_cashier:   'Cashier PIN',
+    settings_pin_current:   'Current admin PIN (for verification)',
+    settings_pin_new:       'New PIN',
+    settings_pin_confirm:   'Confirm new PIN',
+    settings_pin_mismatch:  'PINs do not match',
+    settings_pin_min:       'PIN must be at least 4 characters',
+    settings_pin_success:   'PIN changed',
+
+    // Backup
+    settings_backup_section: 'Backup & Restore',
+    settings_backup_hint:    'Download the full database as a JSON file.',
+    settings_backup_download:'Download backup',
+    settings_backup_restore: 'Restore backup',
+    settings_backup_confirm: 'This will overwrite all current data. Continue?',
+    settings_backup_success: 'Backup restored — reload the page',
+
+    // Comparison
+    stats_yesterday:         'Yesterday',
+
     // Payment request
     payment_title:  'Payment request',
     payment_hint:   'Scan the QR code or share the link with the customer.',
@@ -369,5 +449,27 @@ export const translations = {
     payment_copy:   'Copy link',
     payment_copied: 'Copied!',
     payment_btn:    'Payment request',
+
+    // Payment method
+    payment_method:         'Payment method',
+    payment_method_contant: 'Cash',
+    payment_method_pin:     'Card',
+    payment_method_qr:      'QR / Mobile',
+    payment_method_onbekend:'Unknown',
+
+    // Cash register closing
+    kas_title:       'Cash register closing',
+    kas_begin:       'Opening balance',
+    kas_eind:        'Counted closing balance',
+    kas_contant:     'Cash received',
+    kas_verwacht:    'Expected balance',
+    kas_verschil:    'Difference',
+    kas_set_begin:   'Set opening balance',
+    kas_no_record:   'No cash record for today yet.',
+    kas_klopt:       'Cash register balanced!',
+    kas_saved:       'Cash record saved',
+
+    // Discount presets
+    discount_free:   'Free',
   },
 }

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   ArrowLeft, Check, X, Trash2, Pencil, Calendar, Plus, Package,
   ChevronDown, ChevronUp, Printer, QrCode, Monitor, Calculator, StickyNote, Search, Heart,
+  Banknote, CreditCard, Smartphone,
 } from 'lucide-react'
 import { useLang } from '../LangContext'
 import {
@@ -68,10 +69,22 @@ export default function BonDetail({ id, onBack }) {
     })
   }, [id])
 
-  async function togglePaid() {
-    const updated = await updateReceipt(id, { paid: !receipt.paid })
+  async function markPaid(method) {
+    const updated = await updateReceipt(id, { paid: true, payment_method: method })
     setReceipt(prev => ({ ...prev, ...updated }))
-    showToast(updated.paid ? t('toast_marked_paid') : t('toast_marked_unpaid'))
+    showToast(t('toast_marked_paid'))
+  }
+
+  async function markUnpaid() {
+    const updated = await updateReceipt(id, { paid: false, payment_method: null })
+    setReceipt(prev => ({ ...prev, ...updated }))
+    showToast(t('toast_marked_unpaid'))
+  }
+
+  async function setPaymentMethod(method) {
+    const updated = await updateReceipt(id, { payment_method: method })
+    setReceipt(prev => ({ ...prev, payment_method: updated.payment_method }))
+    showToast(t('toast_saved'))
   }
 
   async function handleDelete() {
@@ -98,6 +111,15 @@ export default function BonDetail({ id, onBack }) {
 
   async function saveDiscount() {
     const pct = Math.max(0, Math.min(100, parseFloat(discountInput) || 0))
+    setSavingDiscount(true)
+    const updated = await updateReceipt(id, { discount_pct: pct })
+    setReceipt(prev => ({ ...prev, ...updated }))
+    setSavingDiscount(false)
+    showToast(t('toast_saved'))
+  }
+
+  async function applyDiscount(pct) {
+    setDiscountInput(String(pct))
     setSavingDiscount(true)
     const updated = await updateReceipt(id, { discount_pct: pct })
     setReceipt(prev => ({ ...prev, ...updated }))
@@ -154,9 +176,10 @@ export default function BonDetail({ id, onBack }) {
   const change      = received.trim() !== '' ? receivedNum - totalDue : null
 
   const productCatMap = Object.fromEntries(products.map(p => [p.id, p.category || 'overig']))
+  const availableProducts = products.filter(p => p.available !== false)
   const groups = CATEGORIES.map(cat => ({
     cat,
-    items: products.filter(p => (p.category || 'overig') === cat.id),
+    items: availableProducts.filter(p => (p.category || 'overig') === cat.id),
   })).filter(g => g.items.length > 0)
 
   const receiptTitle = receipt.name || `${t('receipt_number')} #${receipt.id}`
@@ -224,7 +247,7 @@ export default function BonDetail({ id, onBack }) {
             </div>
 
             {/* Status badge */}
-            <div style={{ marginTop: 10 }}>
+            <div style={{ marginTop: 10, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
               <span style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5,
                 padding: '4px 10px', borderRadius: 20,
@@ -234,6 +257,19 @@ export default function BonDetail({ id, onBack }) {
               }}>
                 {isPaid ? <><Check size={11} /> {t('paid')}</> : <><X size={11} /> {t('unpaid')}</>}
               </span>
+              {isPaid && receipt.payment_method && (
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  padding: '4px 9px', borderRadius: 20,
+                  fontSize: '0.7rem', fontWeight: 600,
+                  background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.85)',
+                }}>
+                  {receipt.payment_method === 'contant' && <Banknote size={11} />}
+                  {receipt.payment_method === 'pin'     && <CreditCard size={11} />}
+                  {receipt.payment_method === 'qr'      && <Smartphone size={11} />}
+                  {t(`payment_method_${receipt.payment_method}`)}
+                </span>
+              )}
             </div>
           </div>
 
@@ -244,25 +280,39 @@ export default function BonDetail({ id, onBack }) {
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               {!isPaid && (
+                <>
+                  <button
+                    className="btn btn-sm no-print"
+                    onClick={() => setShowPayment(true)}
+                    style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', gap: 5 }}
+                  >
+                    <QrCode size={13} /> {t('payment_btn')}
+                  </button>
+                  {[
+                    { key: 'contant', Icon: Banknote,    label: t('payment_method_contant') },
+                    { key: 'pin',     Icon: CreditCard,  label: t('payment_method_pin') },
+                    { key: 'qr',      Icon: Smartphone,  label: t('payment_method_qr') },
+                  ].map(({ key, Icon, label }) => (
+                    <button
+                      key={key}
+                      className="btn btn-sm no-print"
+                      onClick={() => markPaid(key)}
+                      style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.28)', gap: 5 }}
+                    >
+                      <Icon size={12} /> {label}
+                    </button>
+                  ))}
+                </>
+              )}
+              {isPaid && (
                 <button
                   className="btn btn-sm no-print"
-                  onClick={() => setShowPayment(true)}
-                  style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', gap: 5 }}
+                  onClick={markUnpaid}
+                  style={{ background: 'rgba(217,119,6,0.25)', color: '#fff', border: '1px solid rgba(217,119,6,0.4)', gap: 5 }}
                 >
-                  <QrCode size={13} /> {t('payment_btn')}
+                  <X size={12} /> {t('mark_unpaid')}
                 </button>
               )}
-              <button
-                className="btn btn-sm no-print"
-                onClick={togglePaid}
-                style={{
-                  background: isPaid ? 'rgba(217,119,6,0.25)' : 'rgba(255,255,255,0.2)',
-                  color: '#fff', border: `1px solid ${isPaid ? 'rgba(217,119,6,0.4)' : 'rgba(255,255,255,0.25)'}`,
-                  gap: 5,
-                }}
-              >
-                {isPaid ? <><X size={12} /> {t('mark_unpaid')}</> : <><Check size={12} /> {t('mark_paid')}</>}
-              </button>
             </div>
             <div style={{ display: 'flex', gap: 5 }}>
               <button className="btn btn-ghost btn-sm no-print" onClick={() => setShowKiosk(true)} style={{ color: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.08)', fontSize: '0.72rem' }}>
@@ -398,6 +448,39 @@ export default function BonDetail({ id, onBack }) {
         )}
       </div>
 
+      {/* ── Betaalmethode (alleen als betaald) ──────────────────────────── */}
+      {isPaid && (
+        <div style={{
+          background: 'var(--surface)', border: '1px solid var(--border)',
+          borderRadius: 12, padding: '0.85rem 1rem',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+        }} className="no-print">
+          <SectionHead Icon={CreditCard} label={t('payment_method')} />
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {[
+              { key: 'contant', Icon: Banknote,   label: t('payment_method_contant') },
+              { key: 'pin',     Icon: CreditCard, label: t('payment_method_pin') },
+              { key: 'qr',      Icon: Smartphone, label: t('payment_method_qr') },
+            ].map(({ key, Icon, label }) => (
+              <button
+                key={key}
+                className="btn btn-sm"
+                style={{
+                  flex: '1 1 80px',
+                  background: receipt.payment_method === key ? 'var(--primary)' : 'var(--surface)',
+                  color:      receipt.payment_method === key ? '#fff' : 'var(--s600)',
+                  border:     `1px solid ${receipt.payment_method === key ? 'var(--primary)' : 'var(--border)'}`,
+                  gap: 5,
+                }}
+                onClick={() => setPaymentMethod(key)}
+              >
+                <Icon size={13} /> {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Korting + Wisselgeld side-by-side ───────────────────────────── */}
       <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
         {/* Korting */}
@@ -407,6 +490,29 @@ export default function BonDetail({ id, onBack }) {
           boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
         }} className="no-print">
           <SectionHead Icon={Pencil} label={t('discount_pct')} />
+          <div style={{ display: 'flex', gap: 4, marginBottom: 8, flexWrap: 'wrap' }}>
+            {[10, 25, 50, 100].map(pct => (
+              <button
+                key={pct}
+                className="btn btn-sm btn-outline"
+                style={{ flex: '1 1 auto', fontWeight: 700 }}
+                onClick={() => applyDiscount(pct)}
+                disabled={savingDiscount}
+              >
+                {pct === 100 ? t('discount_free') : `${pct}%`}
+              </button>
+            ))}
+            {receipt.discount_pct > 0 && (
+              <button
+                className="btn btn-sm"
+                style={{ flex: '1 1 auto', color: 'var(--danger)', border: '1px solid var(--danger)', background: 'transparent' }}
+                onClick={() => applyDiscount(0)}
+                disabled={savingDiscount}
+              >
+                <X size={12} /> {t('discount')} af
+              </button>
+            )}
+          </div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <input
               type="number"
@@ -550,7 +656,7 @@ export default function BonDetail({ id, onBack }) {
               {(() => {
                 const q = addSearch.trim().toLowerCase()
                 if (q) {
-                  const results = products.filter(p => p.name.toLowerCase().includes(q))
+                  const results = availableProducts.filter(p => p.name.toLowerCase().includes(q))
                   if (!results.length) return (
                     <p style={{ fontSize: '0.84rem', color: 'var(--muted)', textAlign: 'center', padding: '1rem 0' }}>
                       {t('no_receipts')}

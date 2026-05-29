@@ -23,7 +23,7 @@ if (!ADMIN_PIN) {
 // ─── Database ─────────────────────────────────────────────────────────────────
 const adapter = new JSONFile(join(__dirname, 'kassa.json'))
 const db = new Low(adapter, {
-  products: [], receipts: [], sessions: {}, settings: {}, inkoop: [], _pid: 0, _rid: 0, _iid: 0, _bid: 0,
+  products: [], receipts: [], sessions: {}, settings: {}, inkoop: [], kas: [], _pid: 0, _rid: 0, _iid: 0, _bid: 0, _kid: 0,
 })
 await db.read()
 
@@ -48,6 +48,12 @@ if (db.data.products.some(p => p.sort_order === undefined)) {
   await db.write()
 }
 
+// Migrate: ensure all products have available field
+if (db.data.products.some(p => p.available === undefined)) {
+  db.data.products.forEach(p => { if (p.available === undefined) p.available = true })
+  await db.write()
+}
+
 // Sessions: Map<token, role>
 const sessions = new Map(Object.entries(db.data.sessions))
 
@@ -62,6 +68,10 @@ async function deleteSession(token) {
   db.data.sessions = Object.fromEntries(sessions)
   await db.write()
 }
+
+// ─── PIN helpers (env = initial value, db.settings = runtime override) ────────
+function getAdminPin()   { return db.data.settings?.adminPin   || ADMIN_PIN }
+function getCashierPin() { return db.data.settings?.cashierPin || CASHIER_PIN }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function calcTotal(items, discount_pct) {
@@ -82,9 +92,11 @@ app.use(express.static(join(__dirname, 'dist')))
 
 app.post('/api/auth/login', async (req, res) => {
   const { pin } = req.body
+  const adminPin   = getAdminPin()
+  const cashierPin = getCashierPin()
   let role = null
-  if (pin && pin === ADMIN_PIN)                      role = 'admin'
-  if (pin && CASHIER_PIN && pin === CASHIER_PIN)     role = 'cashier'
+  if (pin && pin === adminPin)                       role = 'admin'
+  if (pin && cashierPin && pin === cashierPin)       role = 'cashier'
   if (!role) return res.status(401).json({ error: 'Verkeerde PIN' })
   const token = randomUUID()
   await saveSession(token, role)
@@ -110,6 +122,36 @@ function requireAdmin(req, res, next) {
   if (req.role !== 'admin') return res.status(403).json({ error: 'Geen toegang' })
   next()
 }
+
+// ─── PIN wijzigen ─────────────────────────────────────────────────────────────
+
+app.post('/api/auth/change-pin', requireAdmin, async (req, res) => {
+  const { currentPin, newPin, target } = req.body
+  if (currentPin !== getAdminPin()) return res.status(403).json({ error: 'Huidige PIN is onjuist' })
+  if (!newPin || String(newPin).length < 4) return res.status(400).json({ error: 'PIN moet minimaal 4 tekens zijn' })
+  if (!db.data.settings) db.data.settings = {}
+  if (target === 'cashier') db.data.settings.cashierPin = String(newPin)
+  else                      db.data.settings.adminPin   = String(newPin)
+  await db.write()
+  res.json({ ok: true })
+})
+
+// ─── Backup & Restore ─────────────────────────────────────────────────────────
+
+app.get('/api/backup', requireAdmin, (_req, res) => {
+  const { sessions: _, ...data } = db.data
+  res.json(data)
+})
+
+app.post('/api/restore', requireAdmin, async (req, res) => {
+  const data = req.body
+  if (!Array.isArray(data.products) || !Array.isArray(data.receipts)) {
+    return res.status(400).json({ error: 'Ongeldig backup bestand' })
+  }
+  db.data = { ...data, sessions: db.data.sessions }
+  await db.write()
+  res.json({ ok: true })
+})
 
 // ─── Products ─────────────────────────────────────────────────────────────────
 
@@ -138,8 +180,10 @@ app.post('/api/products', requireAdmin, async (req, res) => {
   const maxOrder = db.data.products.reduce((m, p) => Math.max(m, p.sort_order ?? -1), -1)
   const product = {
     id: nextId('_pid'), name,
-    price: parseFloat(price),
-    category: category || 'overig',
+    price:      parseFloat(price),
+    cost_price: req.body.cost_price != null ? parseFloat(req.body.cost_price) : null,
+    category:   category || 'overig',
+    available:  true,
     sort_order: maxOrder + 1,
     created_at: new Date().toISOString(),
   }
@@ -163,9 +207,11 @@ app.put('/api/products/:id', requireAdmin, async (req, res) => {
   const id = parseInt(req.params.id)
   const p = db.data.products.find(p => p.id === id)
   if (!p) return res.status(404).json({ error: 'Not found' })
-  p.name     = req.body.name
-  p.price    = parseFloat(req.body.price)
-  p.category = req.body.category || 'overig'
+  if (req.body.name      !== undefined) p.name      = req.body.name
+  if (req.body.price     !== undefined) p.price     = parseFloat(req.body.price)
+  if (req.body.category  !== undefined) p.category  = req.body.category || 'overig'
+  if (req.body.available !== undefined) p.available = req.body.available !== false
+  if (req.body.cost_price !== undefined) p.cost_price = req.body.cost_price != null ? parseFloat(req.body.cost_price) : null
   await db.write()
   res.json(p)
 })
@@ -229,9 +275,10 @@ app.put('/api/receipts/:id', async (req, res) => {
   if (!receipt) return res.status(404).json({ error: 'Not found' })
   if (req.body.name         !== undefined) receipt.name         = req.body.name
   if (req.body.note         !== undefined) receipt.note         = req.body.note || null
-  if (req.body.paid         !== undefined) receipt.paid         = req.body.paid ? 1 : 0
-  if (req.body.discount_pct !== undefined) receipt.discount_pct = parseFloat(req.body.discount_pct) || 0
-  if (req.body.donation     !== undefined) receipt.donation     = parseFloat(req.body.donation) || 0
+  if (req.body.paid           !== undefined) receipt.paid           = req.body.paid ? 1 : 0
+  if (req.body.discount_pct  !== undefined) receipt.discount_pct  = parseFloat(req.body.discount_pct) || 0
+  if (req.body.donation      !== undefined) receipt.donation      = parseFloat(req.body.donation) || 0
+  if (req.body.payment_method !== undefined) receipt.payment_method = req.body.payment_method || null
   await db.write()
   const { items, ...rest } = receipt
   res.json(rest)
@@ -389,6 +436,54 @@ app.delete('/api/donaties/:id', async (req, res) => {
   res.json({ ok: true })
 })
 
+// ─── Kasregistraties ──────────────────────────────────────────────────────────
+
+app.get('/api/kas', requireAdmin, (_req, res) => {
+  res.json((db.data.kas || []).sort((a, b) => b.datum.localeCompare(a.datum)))
+})
+
+app.post('/api/kas', requireAdmin, async (req, res) => {
+  if (!db.data.kas) db.data.kas = []
+  const datum = req.body.datum || new Date().toISOString().slice(0, 10)
+  const existing = db.data.kas.find(k => k.datum === datum)
+  if (existing) {
+    if (req.body.begin_bedrag !== undefined) existing.begin_bedrag = parseFloat(req.body.begin_bedrag) || 0
+    if (req.body.eind_bedrag  !== undefined) existing.eind_bedrag  = req.body.eind_bedrag !== null ? parseFloat(req.body.eind_bedrag) : null
+    if (req.body.note         !== undefined) existing.note         = req.body.note || null
+    await db.write()
+    return res.json(existing)
+  }
+  const record = {
+    id:           nextId('_kid'),
+    datum,
+    begin_bedrag: parseFloat(req.body.begin_bedrag) || 0,
+    eind_bedrag:  null,
+    note:         req.body.note || null,
+    created_at:   new Date().toISOString(),
+  }
+  db.data.kas.push(record)
+  await db.write()
+  res.json(record)
+})
+
+app.put('/api/kas/:id', requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id)
+  const record = (db.data.kas || []).find(k => k.id === id)
+  if (!record) return res.status(404).json({ error: 'Not found' })
+  if (req.body.begin_bedrag !== undefined) record.begin_bedrag = parseFloat(req.body.begin_bedrag) || 0
+  if (req.body.eind_bedrag  !== undefined) record.eind_bedrag  = req.body.eind_bedrag !== null ? parseFloat(req.body.eind_bedrag) : null
+  if (req.body.note         !== undefined) record.note         = req.body.note || null
+  await db.write()
+  res.json(record)
+})
+
+app.delete('/api/kas/:id', requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id)
+  db.data.kas = (db.data.kas || []).filter(k => k.id !== id)
+  await db.write()
+  res.json({ ok: true })
+})
+
 // ─── Settings ─────────────────────────────────────────────────────────────────
 
 app.get('/api/settings', (_req, res) => {
@@ -413,20 +508,30 @@ app.get('/api/stats', (req, res) => {
 
   let totalRevenue = 0, paidRevenue = 0, todayRevenue = 0, todayPaidRevenue = 0, totalDonations = 0, todayDonations = 0
   const productMap = {}, hourMap = {}, dayMap = {}
+  const paymentBreakdown = { contant: 0, pin: 0, qr: 0, onbekend: 0 }
+  const todayPaymentBreakdown = { contant: 0, pin: 0, qr: 0, onbekend: 0 }
 
   receipts.forEach(r => {
     const rTotal    = calcTotal(r.items, r.discount_pct)
     const rDonation = r.donation || 0
     totalRevenue   += rTotal + rDonation
     totalDonations += rDonation
-    if (r.paid) paidRevenue += rTotal + rDonation
+    if (r.paid) {
+      paidRevenue += rTotal + rDonation
+      const method = r.payment_method || 'onbekend'
+      paymentBreakdown[method] = (paymentBreakdown[method] || 0) + rTotal + rDonation
+    }
 
     const date    = new Date(r.created_at)
     const isToday = date.toDateString() === todayStr
 
     if (isToday) {
       todayRevenue     += rTotal + rDonation
-      if (r.paid) todayPaidRevenue += rTotal + rDonation
+      if (r.paid) {
+        todayPaidRevenue += rTotal + rDonation
+        const method = r.payment_method || 'onbekend'
+        todayPaymentBreakdown[method] = (todayPaymentBreakdown[method] || 0) + rTotal + rDonation
+      }
       todayDonations  += rDonation
       const h = date.getHours()
       hourMap[h] = (hourMap[h] || 0) + rTotal + rDonation
@@ -464,6 +569,19 @@ app.get('/api/stats', (req, res) => {
     .slice(0, 8)
     .map(p => ({ ...p, revenue: Math.round(p.revenue * 100) / 100 }))
 
+  // Estimated costs based on product cost prices × sold quantities
+  const soldQtyMap = {}
+  receipts.forEach(r => {
+    ;(r.items || []).forEach(i => {
+      soldQtyMap[i.product_id] = (soldQtyMap[i.product_id] || 0) + i.quantity
+    })
+  })
+  let estimatedCosts = 0
+  Object.entries(soldQtyMap).forEach(([pid, qty]) => {
+    const prod = db.data.products.find(p => p.id === parseInt(pid))
+    if (prod?.cost_price) estimatedCosts += prod.cost_price * qty
+  })
+
   const categoryMap = {}
   receipts.forEach(r => {
     ;(r.items || []).forEach(i => {
@@ -477,6 +595,18 @@ app.get('/api/stats', (req, res) => {
   const categoryStats = Object.values(categoryMap)
     .map(c => ({ ...c, revenue: Math.round(c.revenue * 100) / 100 }))
     .sort((a, b) => b.revenue - a.revenue)
+
+  // ── Gisteren (altijd berekend, ongeacht period filter) ───────────────────
+  const yesterdayStr = new Date(Date.now() - 86400000).toDateString()
+  let yesterdayRevenue = 0
+  db.data.receipts.forEach(r => {
+    if (new Date(r.created_at).toDateString() === yesterdayStr)
+      yesterdayRevenue += calcTotal(r.items, r.discount_pct) + (r.donation || 0)
+  })
+  ;(db.data.donaties || []).forEach(d => {
+    if (new Date(d.created_at).toDateString() === yesterdayStr)
+      yesterdayRevenue += d.amount || 0
+  })
 
   // ── Losse donaties ────────────────────────────────────────────────────────
   const allDonaties = db.data.donaties || []
@@ -530,6 +660,11 @@ app.get('/api/stats', (req, res) => {
     todayProfit:     Math.round((todayPaidRevenue - todayCosts) * 100) / 100,
     totalDonations:  Math.round(totalDonations  * 100) / 100,
     todayDonations:  Math.round(todayDonations  * 100) / 100,
+    paymentBreakdown:      Object.fromEntries(Object.entries(paymentBreakdown).map(([k,v]) => [k, Math.round(v * 100) / 100])),
+    todayPaymentBreakdown: Object.fromEntries(Object.entries(todayPaymentBreakdown).map(([k,v]) => [k, Math.round(v * 100) / 100])),
+    estimatedCosts:        Math.round(estimatedCosts   * 100) / 100,
+    estimatedProfit:       Math.round((paidRevenue - estimatedCosts) * 100) / 100,
+    yesterdayRevenue:      Math.round(yesterdayRevenue * 100) / 100,
   })
 })
 

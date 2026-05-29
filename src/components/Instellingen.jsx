@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
-import { Globe, QrCode, ExternalLink, Moon, Shield, Save } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Globe, QrCode, ExternalLink, Moon, Shield, Save, KeyRound, HardDrive, Upload, Download } from 'lucide-react'
 import { useLang } from '../LangContext'
-import { updateSettings } from '../api'
+import { updateSettings, changePin, fetchBackup, restoreBackup } from '../api'
 import { useToast } from './Toast'
+import { useConfirm } from './ConfirmModal'
 
 function SettingsCard({ Icon, label, color = 'var(--primary)', children }) {
   return (
@@ -36,13 +37,22 @@ function SettingsCard({ Icon, label, color = 'var(--primary)', children }) {
 }
 
 export default function Instellingen({ settings, onSave, lang, setLang, darkMode, setDarkMode, role }) {
-  const { t } = useLang()
+  const { t }     = useLang()
   const showToast = useToast()
+  const confirm   = useConfirm()
+  const fileRef   = useRef()
 
   const [paymentUrl,  setPaymentUrl]  = useState(settings.paymentUrl  ?? '')
   const [paymentName, setPaymentName] = useState(settings.paymentName ?? '')
   const [saving, setSaving] = useState(false)
   const [fontSize, setFontSizeState] = useState(() => localStorage.getItem('kassa_fontsize') || 'normal')
+
+  // PIN state
+  const [pinTarget,  setPinTarget]  = useState('admin')
+  const [currentPin, setCurrentPin] = useState('')
+  const [newPin,     setNewPin]     = useState('')
+  const [confirmPin, setConfirmPin] = useState('')
+  const [pinSaving,  setPinSaving]  = useState(false)
 
   function applyFontSize(key) {
     const map = { small: '90%', normal: '100%', large: '115%' }
@@ -67,6 +77,48 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
       showToast(t('toast_no_access'), 'error')
     }
     setSaving(false)
+  }
+
+  async function handleChangePin(e) {
+    e.preventDefault()
+    if (newPin.length < 4) return showToast(t('settings_pin_min'), 'error')
+    if (newPin !== confirmPin) return showToast(t('settings_pin_mismatch'), 'error')
+    setPinSaving(true)
+    try {
+      await changePin({ currentPin, newPin, target: pinTarget })
+      showToast(t('settings_pin_success'))
+      setCurrentPin(''); setNewPin(''); setConfirmPin('')
+    } catch (err) {
+      showToast(err.message.includes('403') ? t('settings_pin_wrong') : err.message, 'error')
+    }
+    setPinSaving(false)
+  }
+
+  async function handleBackupDownload() {
+    const data = await fetchBackup()
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href = url
+    a.download = `kassa-backup-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function handleRestoreFile(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const ok = await confirm(t('settings_backup_confirm'))
+    if (!ok) { e.target.value = ''; return }
+    try {
+      const text = await file.text()
+      const data = JSON.parse(text)
+      await restoreBackup(data)
+      showToast(t('settings_backup_success'))
+    } catch {
+      showToast('Ongeldig bestand', 'error')
+    }
+    e.target.value = ''
   }
 
   return (
@@ -143,6 +195,86 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
           </div>
         )}
       </SettingsCard>
+
+      {/* ── PIN wijzigen ────────────────────────────────────────────────── */}
+      {role === 'admin' && (
+        <SettingsCard Icon={KeyRound} label={t('settings_pin_section')} color="#DC2626">
+          {/* Kies PIN type */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: '0.85rem' }}>
+            {[
+              { key: 'admin',   label: t('settings_pin_admin') },
+              { key: 'cashier', label: t('settings_pin_cashier') },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                className={`btn btn-sm ${pinTarget === key ? 'btn-primary' : 'btn-outline'}`}
+                onClick={() => setPinTarget(key)}
+                style={{ flex: 1 }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <form onSubmit={handleChangePin} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <input
+              className="form-input"
+              type="password"
+              inputMode="numeric"
+              placeholder={t('settings_pin_current')}
+              value={currentPin}
+              onChange={e => setCurrentPin(e.target.value)}
+              required
+            />
+            <input
+              className="form-input"
+              type="password"
+              inputMode="numeric"
+              placeholder={t('settings_pin_new')}
+              value={newPin}
+              onChange={e => setNewPin(e.target.value)}
+              minLength={4}
+              required
+            />
+            <input
+              className="form-input"
+              type="password"
+              inputMode="numeric"
+              placeholder={t('settings_pin_confirm')}
+              value={confirmPin}
+              onChange={e => setConfirmPin(e.target.value)}
+              required
+            />
+            <button type="submit" className="btn btn-primary" disabled={pinSaving} style={{ gap: 6 }}>
+              <KeyRound size={14} />
+              {pinSaving ? t('loading') : t('save')}
+            </button>
+          </form>
+        </SettingsCard>
+      )}
+
+      {/* ── Backup & Herstel ────────────────────────────────────────────── */}
+      {role === 'admin' && (
+        <SettingsCard Icon={HardDrive} label={t('settings_backup_section')} color="#7C3AED">
+          <p style={{ fontSize: '0.78rem', color: 'var(--muted)', marginBottom: '0.85rem', lineHeight: 1.5 }}>
+            {t('settings_backup_hint')}
+          </p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button className="btn btn-outline" onClick={handleBackupDownload} style={{ gap: 6, flex: '1 1 auto' }}>
+              <Download size={14} /> {t('settings_backup_download')}
+            </button>
+            <button className="btn btn-outline" onClick={() => fileRef.current?.click()} style={{ gap: 6, flex: '1 1 auto' }}>
+              <Upload size={14} /> {t('settings_backup_restore')}
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".json"
+              style={{ display: 'none' }}
+              onChange={handleRestoreFile}
+            />
+          </div>
+        </SettingsCard>
+      )}
 
       {/* ── Betaalverzoek ───────────────────────────────────────────────── */}
       {role === 'admin' && (

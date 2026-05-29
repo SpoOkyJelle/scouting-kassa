@@ -231,7 +231,7 @@ export default function App() {
                 <main className="main-content">
                   {tab === 'receipts'  && <Bonnen    onOpenDetail={openDetail} />}
                   {tab === 'new'       && <NieuweBon onCreated={id => openDetail(id)} />}
-                  {tab === 'overview'  && <Overzicht />}
+                  {tab === 'overview'  && <Overzicht role={role} />}
                   {tab === 'inkoop'    && <InkoopBonnen />}
                   {tab === 'donaties'  && <Donaties />}
                   {tab === 'products'  && <Producten />}

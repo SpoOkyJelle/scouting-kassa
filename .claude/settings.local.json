@@ -4,7 +4,8 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\nlkootwj\\\\Documents\\\\GitHub\\\\scouting-kassa\" -Recurse -Force)",
       "Bash(Select-Object FullName, Attributes)",
       "Bash(Format-Table -AutoSize)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(npx vite *)"
     ]
   }
 }

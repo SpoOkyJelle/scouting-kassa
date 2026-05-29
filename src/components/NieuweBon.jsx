@@ -73,9 +73,11 @@ export default function NieuweBon({ onCreated }) {
 
   if (loading) return <div className="spinner" />
 
+  const available = products.filter(p => p.available !== false)
+
   const groups = CATEGORIES.map(cat => ({
     cat,
-    items: products.filter(p => (p.category || 'overig') === cat.id),
+    items: available.filter(p => (p.category || 'overig') === cat.id),
   })).filter(g => g.items.length > 0)
 
   return (
@@ -148,7 +150,7 @@ export default function NieuweBon({ onCreated }) {
           ) : productSearch.trim() ? (
             (() => {
               const q = productSearch.trim().toLowerCase()
-              const results = products.filter(p => p.name.toLowerCase().includes(q))
+              const results = available.filter(p => p.name.toLowerCase().includes(q))
               if (!results.length) return (
                 <div style={{ padding: '2rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', color: 'var(--muted)' }}>
                   <Search size={30} strokeWidth={1.2} style={{ color: 'var(--s300)' }} />
