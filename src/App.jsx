@@ -92,6 +92,18 @@ export default function App() {
     }
   }, [token])
 
+  // Update favicon when logo changes
+  useEffect(() => {
+    const faviconUrl = appSettings.faviconDataUrl
+    let link = document.querySelector("link[rel~='icon']")
+    if (!link) {
+      link = document.createElement('link')
+      link.rel = 'icon'
+      document.head.appendChild(link)
+    }
+    link.href = faviconUrl || '/favicon.ico'
+  }, [appSettings.faviconDataUrl])
+
   // Session timeout: auto-logout after 30 min inactivity
   useEffect(() => {
     if (!token) return
@@ -176,13 +188,23 @@ export default function App() {
                 {/* ── Header ──────────────────────────────────────────────── */}
                 <header className="header">
                   <div className="header-brand">
-                    <div className="header-logomark">
-                      <Tent size={16} strokeWidth={2.5} />
-                    </div>
-                    <div>
-                      <div className="header-name">Kassa</div>
-                      <div className="header-tagline">Scouting</div>
-                    </div>
+                    {appSettings.logoDataUrl ? (
+                      <img
+                        src={appSettings.logoDataUrl}
+                        alt="Logo"
+                        style={{ height: 36, maxWidth: 160, objectFit: 'contain', borderRadius: 4 }}
+                      />
+                    ) : (
+                      <>
+                        <div className="header-logomark">
+                          <Tent size={16} strokeWidth={2.5} />
+                        </div>
+                        <div>
+                          <div className="header-name">Kassa</div>
+                          <div className="header-tagline">Scouting</div>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
