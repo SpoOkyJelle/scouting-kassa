@@ -114,6 +114,16 @@ export const translations = {
     kiosk_mode: 'Klantenscherm',
     kiosk_back: 'Terug naar kassa',
 
+    // Netwerk klantenscherm
+    display_btn:      'Klantenscherm',
+    display_title:    'Klantenscherm URL',
+    display_hint:     'Open deze link op een tweede apparaat (tablet of laptop) om het klantenscherm te tonen.',
+    display_open:     'Open in nieuw tabblad',
+    display_copy:     'Kopieer link',
+    display_welcome:  'Welkom!',
+    display_paid_msg: 'Bedankt voor uw bezoek!',
+    display_idle_msg: 'Wij helpen u zo snel mogelijk.',
+
     // Login
     login_heading:    'Welkom terug',
     login_sub:        'Voer de PIN in om door te gaan',
@@ -362,6 +372,16 @@ export const translations = {
     // Kiosk
     kiosk_mode: 'Customer display',
     kiosk_back: 'Back to cashier',
+
+    // Network customer display
+    display_btn:      'Customer display',
+    display_title:    'Customer display URL',
+    display_hint:     'Open this link on a second device (tablet or laptop) to show the customer display.',
+    display_open:     'Open in new tab',
+    display_copy:     'Copy link',
+    display_welcome:  'Welcome!',
+    display_paid_msg: 'Thank you for your visit!',
+    display_idle_msg: 'We will help you shortly.',
 
     // Login
     login_heading:    'Welcome back',

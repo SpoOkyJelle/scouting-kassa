@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Tent, FileText, PlusCircle, Package, BarChart2, LogOut, WifiOff, QrCode, Settings, ShoppingCart, Heart } from 'lucide-react'
+import { Tent, FileText, PlusCircle, Package, BarChart2, LogOut, WifiOff, QrCode, Settings, ShoppingCart, Heart, Monitor, Copy, Check, ExternalLink, X } from 'lucide-react'
 import { translations } from './i18n'
 import { logout as apiLogout, fetchSettings } from './api'
 import { LangContext } from './LangContext'
@@ -58,7 +58,9 @@ export default function App() {
   const [darkMode, setDarkModeRaw]    = useState(() => localStorage.getItem('kassa_theme') === 'dark')
   const [tab, setTab]                 = useState('receipts')
   const [detailId, setDetailId]       = useState(null)
-  const [showPayment, setShowPayment] = useState(false)
+  const [showPayment, setShowPayment]   = useState(false)
+  const [showDisplay, setShowDisplay]   = useState(false)
+  const [displayCopied, setDisplayCopied] = useState(false)
   const [appSettings, setAppSettings] = useState({ paymentUrl: '', paymentName: '' })
 
   const t = key => translations[lang]?.[key] ?? key
@@ -180,6 +182,44 @@ export default function App() {
             <OfflineBanner t={t} />
             {showPayment && <PaymentModal onClose={() => setShowPayment(false)} />}
 
+            {/* ── Display URL modal ───────────────────────────────────── */}
+            {showDisplay && (() => {
+              const url = `${window.location.origin}/display`
+              const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=12&data=${encodeURIComponent(url)}`
+              async function copyUrl() {
+                try { await navigator.clipboard.writeText(url) } catch {
+                  const el = document.createElement('textarea'); el.value = url
+                  document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el)
+                }
+                setDisplayCopied(true); setTimeout(() => setDisplayCopied(false), 2200)
+              }
+              return (
+                <div className="modal-overlay" onClick={() => setShowDisplay(false)}>
+                  <div className="modal-box payment-modal" onClick={e => e.stopPropagation()}>
+                    <div className="payment-modal-header">
+                      <span className="payment-modal-title">{t('display_title')}</span>
+                      <button className="btn btn-ghost btn-sm" onClick={() => setShowDisplay(false)} style={{ padding: '4px 6px' }}><X size={15} /></button>
+                    </div>
+                    <p className="payment-modal-hint">{t('display_hint')}</p>
+                    <div className="payment-qr-wrap">
+                      <img src={qrSrc} alt="Display QR" width={200} height={200} className="payment-qr" />
+                    </div>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--muted)', textAlign: 'center', wordBreak: 'break-all', marginBottom: '0.75rem' }}>{url}</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <a href={url} target="_blank" rel="noopener noreferrer"
+                        className="btn btn-primary btn-full btn-lg"
+                        style={{ textDecoration: 'none', justifyContent: 'center', gap: 6 }}>
+                        <ExternalLink size={15} /> {t('display_open')}
+                      </a>
+                      <button className="btn btn-outline btn-full" onClick={copyUrl}>
+                        {displayCopied ? <><Check size={14} /> {t('payment_copied')}</> : <><Copy size={14} /> {t('display_copy')}</>}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
+
             {/* ── Login gate ────────────────────────────────────────────── */}
             {!token ? (
               <LoginScreen onLogin={handleLogin} lang={lang} setLang={setLang} />
@@ -208,6 +248,15 @@ export default function App() {
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <button
+                      className="btn btn-sm"
+                      onClick={() => setShowDisplay(true)}
+                      title={t('display_btn')}
+                      style={{ background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)', gap: 6 }}
+                    >
+                      <Monitor size={14} />
+                      <span className="tab-label">{t('display_btn')}</span>
+                    </button>
                     <button
                       className="btn btn-sm"
                       onClick={() => setShowPayment(true)}

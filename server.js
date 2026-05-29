@@ -69,6 +69,24 @@ async function deleteSession(token) {
   await db.write()
 }
 
+// ─── Klantenscherm display state (in-memory, resets on restart) ──────────────
+let displayState = { active: false, updatedAt: null }
+
+app.get('/display-data', (_req, res) => {
+  const data = { ...displayState }
+  if (data.updatedAt && Date.now() - new Date(data.updatedAt).getTime() > 30 * 1000) {
+    data.active = false
+  }
+  res.json({
+    ...data,
+    settings: {
+      logoDataUrl:  db.data.settings?.logoDataUrl  || null,
+      paymentUrl:   db.data.settings?.paymentUrl   || SETTING_DEFAULTS.paymentUrl,
+      paymentName:  db.data.settings?.paymentName  || SETTING_DEFAULTS.paymentName,
+    },
+  })
+})
+
 // ─── PIN helpers (env = initial value, db.settings = runtime override) ────────
 function getAdminPin()   { return db.data.settings?.adminPin   || ADMIN_PIN }
 function getCashierPin() { return db.data.settings?.cashierPin || CASHIER_PIN }
@@ -122,6 +140,18 @@ function requireAdmin(req, res, next) {
   if (req.role !== 'admin') return res.status(403).json({ error: 'Geen toegang' })
   next()
 }
+
+// ─── Display endpoints (require auth via middleware) ─────────────────────────
+
+app.put('/api/display', async (req, res) => {
+  displayState = { ...req.body, updatedAt: new Date().toISOString() }
+  res.json(displayState)
+})
+
+app.delete('/api/display', async (req, res) => {
+  displayState = { active: false, updatedAt: null }
+  res.json({ ok: true })
+})
 
 // ─── PIN wijzigen ─────────────────────────────────────────────────────────────
 

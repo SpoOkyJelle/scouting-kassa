@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   ArrowLeft, Check, X, Trash2, Pencil, Calendar, Plus, Package,
   ChevronDown, ChevronUp, Printer, QrCode, Monitor, Calculator, StickyNote, Search, Heart,
@@ -8,7 +8,9 @@ import { useLang } from '../LangContext'
 import {
   fetchReceipt, fetchProducts, updateReceipt, deleteReceipt,
   addReceiptItem, updateReceiptItem, deleteReceiptItem,
+  updateDisplay, clearDisplay,
 } from '../api'
+import { useSettings } from '../SettingsContext'
 import { CATEGORIES, getCat } from '../categories'
 import { useToast } from './Toast'
 import { useConfirm } from './ConfirmModal'
@@ -36,7 +38,8 @@ function SectionHead({ Icon, label, color = 'var(--muted)' }) {
 }
 
 export default function BonDetail({ id, onBack }) {
-  const { t } = useLang()
+  const { t }      = useLang()
+  const settings   = useSettings()
   const showToast  = useToast()
   const confirm    = useConfirm()
 
@@ -60,10 +63,16 @@ export default function BonDetail({ id, onBack }) {
   const [noteInput, setNoteInput]           = useState('')
   const [addSearch, setAddSearch]           = useState('')
 
+  // Ref zodat de heartbeat altijd de meest recente receipt heeft
+  const receiptRef          = useRef(null)
+  const paymentRequestedRef = useRef(false)
+  const [showPayOnDisplay, setShowPayOnDisplay] = useState(false)
+
   useEffect(() => {
     setLoading(true)
     Promise.all([fetchReceipt(id), fetchProducts()]).then(([rec, prods]) => {
       setReceipt(rec)
+      receiptRef.current = rec
       setProducts(prods)
       setDiscountInput(String(rec.discount_pct || 0))
       setDonationInput(String(rec.donation || 0))
@@ -72,15 +81,57 @@ export default function BonDetail({ id, onBack }) {
     })
   }, [id])
 
+  // Heartbeat: push elke 1,5s naar klantenscherm, gebruikt altijd de meest recente receipt via ref
+  useEffect(() => {
+    const iv = setInterval(() => {
+      if (receiptRef.current) pushToDisplay(receiptRef.current)
+    }, 1500)
+    return () => clearInterval(iv)
+  }, [])
+
+  // Zet receipt state én ref tegelijk
+  function setReceiptAndRef(rec) {
+    receiptRef.current = rec
+    setReceipt(rec)
+  }
+
+  // Helper: stuur huidige bon naar klantenscherm
+  function pushToDisplay(rec) {
+    if (!rec) return
+    const sub  = (rec.items || []).reduce((s, i) => s + i.product_price * i.quantity, 0)
+    const disc = sub * (rec.discount_pct || 0) / 100
+    const tot  = sub - disc
+    const don  = rec.donation || 0
+    updateDisplay({
+      active: true, id: rec.id, name: rec.name,
+      items: (rec.items || []).map(i => ({
+        name: i.product_name, qty: i.quantity,
+        price: i.product_price, subtotal: i.product_price * i.quantity,
+      })),
+      subtotal: sub, discount_pct: rec.discount_pct || 0, discount_amt: disc,
+      total: tot, donation: don, total_due: tot + don, paid: !!rec.paid,
+      payment_requested: paymentRequestedRef.current,
+    }).catch(() => {})
+  }
+
+  function togglePayOnDisplay() {
+    const next = !paymentRequestedRef.current
+    paymentRequestedRef.current = next
+    setShowPayOnDisplay(next)
+    if (receiptRef.current) pushToDisplay(receiptRef.current)
+  }
+
   async function markPaid(method) {
     const updated = await updateReceipt(id, { paid: true, payment_method: method })
-    setReceipt(prev => ({ ...prev, ...updated }))
+    const rec = { ...receipt, ...updated }
+    setReceiptAndRef(rec); pushToDisplay(rec)
     showToast(t('toast_marked_paid'))
   }
 
   async function markUnpaid() {
     const updated = await updateReceipt(id, { paid: false, payment_method: null, payments: [] })
-    setReceipt(prev => ({ ...prev, ...updated }))
+    const rec = { ...receipt, ...updated }
+    setReceiptAndRef(rec); pushToDisplay(rec)
     setShowSplitPay(false)
     setSplitAmounts({ contant: '', pin: '', qr: '' })
     showToast(t('toast_marked_unpaid'))
@@ -92,12 +143,9 @@ export default function BonDetail({ id, onBack }) {
       .filter(p => p.amount > 0)
     if (!payments.length) return
     setSavingPayment(true)
-    const updated = await updateReceipt(id, {
-      paid: true,
-      payment_method: payments[0].method,
-      payments,
-    })
-    setReceipt(prev => ({ ...prev, ...updated }))
+    const updated = await updateReceipt(id, { paid: true, payment_method: payments[0].method, payments })
+    const rec = { ...receipt, ...updated }
+    setReceiptAndRef(rec); pushToDisplay(rec)
     setShowSplitPay(false)
     setSplitAmounts({ contant: '', pin: '', qr: '' })
     setSavingPayment(false)
@@ -106,7 +154,8 @@ export default function BonDetail({ id, onBack }) {
 
   async function setPaymentMethod(method) {
     const updated = await updateReceipt(id, { payment_method: method })
-    setReceipt(prev => ({ ...prev, payment_method: updated.payment_method }))
+    const rec = { ...receipt, payment_method: updated.payment_method }
+    setReceiptAndRef(rec); pushToDisplay(rec)
     showToast(t('toast_saved'))
   }
 
@@ -120,14 +169,16 @@ export default function BonDetail({ id, onBack }) {
 
   async function saveName() {
     const updated = await updateReceipt(id, { name: nameInput || null })
-    setReceipt(prev => ({ ...prev, ...updated }))
+    const rec = { ...receipt, ...updated }
+    setReceiptAndRef(rec); pushToDisplay(rec)
     setEditingName(false)
     showToast(t('toast_saved'))
   }
 
   async function saveNote() {
     const updated = await updateReceipt(id, { note: noteInput.trim() || null })
-    setReceipt(prev => ({ ...prev, ...updated }))
+    const rec = { ...receipt, ...updated }
+    setReceiptAndRef(rec); pushToDisplay(rec)
     setEditingNote(false)
     showToast(t('toast_saved'))
   }
@@ -136,7 +187,8 @@ export default function BonDetail({ id, onBack }) {
     const pct = Math.max(0, Math.min(100, parseFloat(discountInput) || 0))
     setSavingDiscount(true)
     const updated = await updateReceipt(id, { discount_pct: pct })
-    setReceipt(prev => ({ ...prev, ...updated }))
+    const rec = { ...receipt, ...updated }
+    setReceiptAndRef(rec); pushToDisplay(rec)
     setSavingDiscount(false)
     showToast(t('toast_saved'))
   }
@@ -145,7 +197,8 @@ export default function BonDetail({ id, onBack }) {
     setDiscountInput(String(pct))
     setSavingDiscount(true)
     const updated = await updateReceipt(id, { discount_pct: pct })
-    setReceipt(prev => ({ ...prev, ...updated }))
+    const rec = { ...receipt, ...updated }
+    setReceiptAndRef(rec); pushToDisplay(rec)
     setSavingDiscount(false)
     showToast(t('toast_saved'))
   }
@@ -154,23 +207,24 @@ export default function BonDetail({ id, onBack }) {
     const amt = Math.max(0, parseFloat(donationInput) || 0)
     setSavingDonation(true)
     const updated = await updateReceipt(id, { donation: amt })
-    setReceipt(prev => ({ ...prev, ...updated }))
+    const rec = { ...receipt, ...updated }
+    setReceiptAndRef(rec); pushToDisplay(rec)
     setSavingDonation(false)
     showToast(t('toast_saved'))
   }
 
   async function changeQty(item, delta) {
     const newQty = item.quantity + delta
+    let newItems
     if (newQty <= 0) {
       await deleteReceiptItem(id, item.id)
-      setReceipt(prev => ({ ...prev, items: prev.items.filter(i => i.id !== item.id) }))
+      newItems = receipt.items.filter(i => i.id !== item.id)
     } else {
       await updateReceiptItem(id, item.id, newQty)
-      setReceipt(prev => ({
-        ...prev,
-        items: prev.items.map(i => i.id === item.id ? { ...i, quantity: newQty } : i),
-      }))
+      newItems = receipt.items.map(i => i.id === item.id ? { ...i, quantity: newQty } : i)
     }
+    const rec = { ...receipt, items: newItems }
+    setReceiptAndRef(rec); pushToDisplay(rec)
   }
 
   async function addProduct(product) {
@@ -182,7 +236,8 @@ export default function BonDetail({ id, onBack }) {
         product_id: product.id, product_name: product.name,
         product_price: product.price, quantity: 1,
       })
-      setReceipt(prev => ({ ...prev, items: [...prev.items, newItem] }))
+      const rec = { ...receipt, items: [...receipt.items, newItem] }
+      setReceiptAndRef(rec); pushToDisplay(rec)
     }
   }
 
@@ -328,6 +383,18 @@ export default function BonDetail({ id, onBack }) {
                   </button>
                   <button
                     className="btn btn-sm no-print"
+                    onClick={togglePayOnDisplay}
+                    style={{
+                      background: showPayOnDisplay ? '#16A34A' : 'rgba(255,255,255,0.2)',
+                      color: '#fff',
+                      border: `1px solid ${showPayOnDisplay ? '#16A34A' : 'rgba(255,255,255,0.35)'}`,
+                      gap: 5,
+                    }}
+                  >
+                    <QrCode size={13} /> Betalen
+                  </button>
+                  <button
+                    className="btn btn-sm no-print"
                     onClick={() => setShowSplitPay(v => !v)}
                     style={{
                       background: showSplitPay ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.2)',
@@ -393,6 +460,7 @@ export default function BonDetail({ id, onBack }) {
                 {t('total_due')}: {fmt(totalDue)}
               </span>
             </div>
+
 
             {METHODS.map(({ key, Icon, label }) => {
               const others = METHODS.filter(m => m.key !== key)

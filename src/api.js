@@ -33,7 +33,9 @@ export async function login(pin) {
   return res.json()   // { token, role }
 }
 
-export const changePin = (data) => req('/auth/change-pin', { method: 'POST', body: JSON.stringify(data) })
+export const changePin     = (data) => req('/auth/change-pin', { method: 'POST', body: JSON.stringify(data) })
+export const updateDisplay = (data) => req('/display', { method: 'PUT',  body: JSON.stringify(data) })
+export const clearDisplay  = ()     => req('/display', { method: 'DELETE' })
 
 export async function logout() {
   const token = localStorage.getItem('kassa_token')
