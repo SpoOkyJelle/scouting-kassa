@@ -112,9 +112,10 @@ function PaymentScreen({ order, settings }) {
     : null
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: 640, width: '100%', margin: '0 auto', padding: '1.5rem' }}>
+    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', maxWidth: 640, width: '100%', margin: '0 auto', padding: '0 1.5rem' }}>
 
-      <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+      {/* Vaste sectie: bedrag + QR */}
+      <div style={{ flexShrink: 0, textAlign: 'center', padding: '1.5rem 0 1rem' }}>
         <div style={{ fontSize: 'clamp(0.85rem, 2vw, 1rem)', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 6 }}>
           Te betalen
         </div>
@@ -126,39 +127,42 @@ function PaymentScreen({ order, settings }) {
             {order.name}
           </div>
         )}
-      </div>
 
-      {qrSrc ? (
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
-          <div style={{ background: '#fff', borderRadius: 20, padding: 14, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
-            <img src={qrSrc} alt="Betaal QR" width={260} height={260} style={{ display: 'block' }} />
+        {qrSrc ? (
+          <div style={{ display: 'flex', justifyContent: 'center', margin: '1.25rem 0 0.75rem' }}>
+            <div style={{ background: '#fff', borderRadius: 20, padding: 14, boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+              <img src={qrSrc} alt="Betaal QR" width={260} height={260} style={{ display: 'block' }} />
+            </div>
           </div>
-        </div>
-      ) : (
-        <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-          Geen betaallink ingesteld
-        </div>
-      )}
+        ) : (
+          <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.9rem', margin: '1rem 0' }}>
+            Geen betaallink ingesteld
+          </div>
+        )}
 
-      <div style={{ textAlign: 'center', fontSize: 'clamp(0.85rem, 2vw, 1rem)', color: 'rgba(255,255,255,0.4)', marginBottom: '1rem' }}>
-        Scan de QR-code om te betalen
+        <div style={{ fontSize: 'clamp(0.85rem, 2vw, 1rem)', color: 'rgba(255,255,255,0.4)' }}>
+          Scan de QR-code om te betalen
+        </div>
       </div>
 
+      {/* Scrollbare itemslijst */}
       {order.items?.length > 0 && (
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {order.items.map((item, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'clamp(0.78rem, 1.5vw, 0.95rem)', color: 'rgba(255,255,255,0.5)' }}>
-              <span>{item.qty}× {item.name}</span>
-              <span>{fmt(item.subtotal)}</span>
-            </div>
-          ))}
-          {order.discount_pct > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'clamp(0.78rem, 1.5vw, 0.95rem)', color: '#fca5a5' }}>
-              <span>Korting ({order.discount_pct}%)</span>
-              <span>−{fmt(order.discount_amt)}</span>
-            </div>
-          )}
-        </div>
+        <ScrollList style={{ flex: 1, minHeight: 0, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          <div style={{ paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {order.items.map((item, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'clamp(0.78rem, 1.5vw, 0.95rem)', color: 'rgba(255,255,255,0.5)' }}>
+                <span>{item.qty}× {item.name}</span>
+                <span>{fmt(item.subtotal)}</span>
+              </div>
+            ))}
+            {order.discount_pct > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'clamp(0.78rem, 1.5vw, 0.95rem)', color: '#fca5a5' }}>
+                <span>Korting ({order.discount_pct}%)</span>
+                <span>−{fmt(order.discount_amt)}</span>
+              </div>
+            )}
+          </div>
+        </ScrollList>
       )}
     </div>
   )
@@ -206,12 +210,45 @@ function PaidScreen({ settings }) {
   )
 }
 
+// ── Scroll-hint wrapper ───────────────────────────────────────────────────────
+function ScrollList({ children, style }) {
+  const ref = useRef(null)
+  const [hasMore, setHasMore] = useState(false)
+
+  function check() {
+    if (!ref.current) return
+    const { scrollTop, scrollHeight, clientHeight } = ref.current
+    setHasMore(scrollHeight - scrollTop - clientHeight > 8)
+  }
+
+  useEffect(() => {
+    check()
+    // re-check whenever content changes
+    const ro = new ResizeObserver(check)
+    if (ref.current) ro.observe(ref.current)
+    return () => ro.disconnect()
+  })
+
+  return (
+    <div style={{ position: 'relative', ...style }}>
+      <div ref={ref} className="no-scroll" onScroll={check}
+           style={{ position: 'absolute', inset: 0, overflowY: 'auto' }}>
+        {children}
+      </div>
+      {hasMore && (
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: 72,
+          background: 'linear-gradient(to bottom, transparent, rgba(10,28,22,0.96))',
+          pointerEvents: 'none',
+        }} />
+      )}
+    </div>
+  )
+}
+
 // ── Bon-overzicht scherm ──────────────────────────────────────────────────────
 function OrderScreen({ order, settings }) {
-  const { name, items = [], subtotal = 0, discount_pct = 0, discount_amt = 0, total = 0, donation = 0, total_due = 0 } = order
-  const qrSrc = settings?.paymentUrl
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=8&data=${encodeURIComponent(settings.paymentUrl)}`
-    : null
+  const { name, items = [], discount_pct = 0, discount_amt = 0, total = 0, donation = 0, total_due = 0 } = order
 
   return (
     <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', maxWidth: 700, width: '100%', margin: '0 auto', padding: '0 1.5rem' }}>
@@ -225,26 +262,28 @@ function OrderScreen({ order, settings }) {
         )}
       </div>
 
-      <div className="no-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0.75rem 0' }}>
-        {items.map((item, i) => (
-          <div key={i} style={{
-            display: 'grid', gridTemplateColumns: '1fr auto auto',
-            gap: '1rem', alignItems: 'center',
-            padding: '0.65rem 0',
-            borderBottom: '1px solid rgba(255,255,255,0.07)',
-          }}>
-            <span style={{ fontSize: 'clamp(1rem, 2vw, 1.25rem)', color: '#fff', fontWeight: 500 }}>{item.name}</span>
-            <span style={{ fontSize: 'clamp(0.9rem, 1.8vw, 1.1rem)', color: 'rgba(255,255,255,0.45)', textAlign: 'center', minWidth: 40 }}>{item.qty}×</span>
-            <span style={{ fontSize: 'clamp(1rem, 2vw, 1.2rem)', fontWeight: 700, color: '#fff', textAlign: 'right', minWidth: 90 }}>{fmt(item.subtotal)}</span>
-          </div>
-        ))}
-        {discount_pct > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem', padding: '0.65rem 0', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-            <span style={{ fontSize: 'clamp(0.9rem, 1.8vw, 1.1rem)', color: '#fca5a5' }}>Korting ({discount_pct}%)</span>
-            <span style={{ fontSize: 'clamp(0.9rem, 1.8vw, 1.1rem)', fontWeight: 700, color: '#fca5a5', textAlign: 'right' }}>−{fmt(discount_amt)}</span>
-          </div>
-        )}
-      </div>
+      <ScrollList style={{ flex: 1, minHeight: 0 }}>
+        <div style={{ padding: '0.75rem 0' }}>
+          {items.map((item, i) => (
+            <div key={i} style={{
+              display: 'grid', gridTemplateColumns: '1fr auto auto',
+              gap: '1rem', alignItems: 'center',
+              padding: '0.65rem 0',
+              borderBottom: '1px solid rgba(255,255,255,0.07)',
+            }}>
+              <span style={{ fontSize: 'clamp(1rem, 2vw, 1.25rem)', color: '#fff', fontWeight: 500 }}>{item.name}</span>
+              <span style={{ fontSize: 'clamp(0.9rem, 1.8vw, 1.1rem)', color: 'rgba(255,255,255,0.45)', textAlign: 'center', minWidth: 40 }}>{item.qty}×</span>
+              <span style={{ fontSize: 'clamp(1rem, 2vw, 1.2rem)', fontWeight: 700, color: '#fff', textAlign: 'right', minWidth: 90 }}>{fmt(item.subtotal)}</span>
+            </div>
+          ))}
+          {discount_pct > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem', padding: '0.65rem 0', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+              <span style={{ fontSize: 'clamp(0.9rem, 1.8vw, 1.1rem)', color: '#fca5a5' }}>Korting ({discount_pct}%)</span>
+              <span style={{ fontSize: 'clamp(0.9rem, 1.8vw, 1.1rem)', fontWeight: 700, color: '#fca5a5', textAlign: 'right' }}>−{fmt(discount_amt)}</span>
+            </div>
+          )}
+        </div>
+      </ScrollList>
 
       <div style={{ flexShrink: 0, borderTop: '2px solid rgba(255,255,255,0.2)', paddingTop: '1rem', paddingBottom: '1.5rem' }}>
         {donation > 0 && (
@@ -261,13 +300,6 @@ function OrderScreen({ order, settings }) {
             {fmt(donation > 0 ? total_due : total)}
           </span>
         </div>
-        {qrSrc && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.75rem' }}>
-            <div style={{ background: '#fff', borderRadius: 10, padding: 6, display: 'inline-flex' }}>
-              <img src={qrSrc} alt="Betaal QR" width={90} height={90} />
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )
