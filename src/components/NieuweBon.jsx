@@ -63,12 +63,12 @@ export default function NieuweBon({ onCreated }) {
   async function handleCreate() {
     if (!orderItems.length) return
     setSaving(true)
-    const receipt = await createReceipt(name || null, orderItems.map(({ product, quantity }) => ({
+    await createReceipt(name || null, orderItems.map(({ product, quantity }) => ({
       product_id: product.id, product_name: product.name,
       product_price: product.price, quantity,
     })), note.trim() || null)
     setOrder({}); setName(''); setNote(''); setSaving(false)
-    onCreated(receipt.id)
+    onCreated()
   }
 
   if (loading) return <div className="spinner" />
