@@ -57,8 +57,9 @@ function LoginScreen({ onLogin }) {
       }}>
         <ChefHat size={36} color="var(--primary)" strokeWidth={1.8} />
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text)' }}>Keukenscherm</div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--muted)', marginTop: 3 }}>PIN invoeren</div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.5px' }}>Tickd</div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--primary)', fontWeight: 700, marginTop: 2 }}>Keuken</div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--muted)', marginTop: 4 }}>PIN invoeren</div>
         </div>
         <input
           type="password" inputMode="numeric"
@@ -301,7 +302,9 @@ export default function KitchenScreen() {
         position: 'sticky', top: 0, zIndex: 20,
       }}>
         <ChefHat size={18} color="var(--primary)" />
-        <span style={{ fontWeight: 800, fontSize: '1rem', flex: 1, color: 'var(--text)' }}>Keukenscherm</span>
+        <span style={{ fontWeight: 900, fontSize: '1rem', flex: 1, color: 'var(--text)', letterSpacing: '-0.3px' }}>
+          Tickd <span style={{ fontWeight: 500, fontSize: '0.75rem', color: 'var(--muted)', letterSpacing: 0 }}>· Keuken</span>
+        </span>
         <span style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>
           {open.length} open · {ready.length} klaar
         </span>

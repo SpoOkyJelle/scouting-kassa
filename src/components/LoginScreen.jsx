@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Tent, Lock, ArrowRight } from 'lucide-react'
+import { Check, Lock, ArrowRight } from 'lucide-react'
 import { useLang } from '../LangContext'
 import { login } from '../api'
 
@@ -74,10 +74,10 @@ export default function LoginScreen({ onLogin, lang, setLang }) {
             margin: '0 auto 1rem',
             boxShadow: '0 8px 20px rgba(22,163,74,0.3)',
           }}>
-            <Tent size={26} color="#fff" strokeWidth={2} />
+            <Check size={28} color="#fff" strokeWidth={3} />
           </div>
-          <h1 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--s900)', letterSpacing: '-0.3px' }}>
-            Kassa
+          <h1 style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--s900)', letterSpacing: '-0.5px' }}>
+            Tickd
           </h1>
           <p style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: 4 }}>
             {t('login_sub')}

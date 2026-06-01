@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Tent, FileText, PlusCircle, Package, BarChart2, LogOut, WifiOff, QrCode, Settings, ShoppingCart, Heart, Monitor, Copy, Check, ExternalLink, X, LayoutGrid } from 'lucide-react'
+import { Check, FileText, PlusCircle, Package, BarChart2, LogOut, WifiOff, QrCode, Settings, ShoppingCart, Heart, Monitor, Copy, ExternalLink, X, LayoutGrid } from 'lucide-react'
 import { translations } from './i18n'
 import { logout as apiLogout, fetchSettings } from './api'
 import { LangContext } from './LangContext'
@@ -247,11 +247,11 @@ export default function App() {
                     ) : (
                       <>
                         <div className="header-logomark">
-                          <Tent size={16} strokeWidth={2.5} />
+                          <Check size={16} strokeWidth={3} />
                         </div>
                         <div>
-                          <div className="header-name">Kassa</div>
-                          <div className="header-tagline">Scouting</div>
+                          <div className="header-name">Tickd</div>
+                          <div className="header-tagline">POS</div>
                         </div>
                       </>
                     )}

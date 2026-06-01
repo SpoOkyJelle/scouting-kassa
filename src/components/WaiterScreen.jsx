@@ -65,8 +65,9 @@ function LoginScreen({ onLogin }) {
         boxShadow: 'var(--shadow-md)',
       }}>
         <div style={{ textAlign: 'center', marginBottom: '0.25rem' }}>
-          <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text)' }}>Bedieningsscherm</div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: 4 }}>Voer je PIN in om door te gaan</div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.5px' }}>Tickd</div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--primary)', fontWeight: 700, marginTop: 2 }}>Bediening</div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--muted)', marginTop: 4 }}>Voer je PIN in om door te gaan</div>
         </div>
         <input
           type="password" inputMode="numeric" pattern="[0-9]*"
@@ -278,7 +279,9 @@ export default function WaiterScreen() {
         background: 'var(--surface)', borderBottom: '1px solid var(--border)',
         padding: '0.65rem 1rem', display: 'flex', alignItems: 'center', gap: 8,
       }}>
-        <span style={{ fontWeight: 800, fontSize: '0.95rem', flex: 1, color: 'var(--text)' }}>Bedieningsscherm</span>
+        <span style={{ fontWeight: 900, fontSize: '1rem', flex: 1, color: 'var(--text)', letterSpacing: '-0.3px' }}>
+          Tickd <span style={{ fontWeight: 500, fontSize: '0.75rem', color: 'var(--muted)', letterSpacing: 0 }}>· Bediening</span>
+        </span>
         <button onClick={() => loadBase(true)} disabled={refreshing}
           style={{ background: 'transparent', border: 'none', color: 'var(--muted)', cursor: 'pointer', padding: 6 }}>
           <RefreshCw size={15} style={{ transition: 'transform 0.5s', transform: refreshing ? 'rotate(360deg)' : 'none' }} />
@@ -299,7 +302,7 @@ export default function WaiterScreen() {
         <div style={{ padding: '1rem', overflowX: 'auto', flexShrink: 0 }}>
           {layout.tables.length === 0 ? (
             <div style={{ textAlign: 'center', color: 'var(--muted)', padding: '3rem 0', fontSize: '0.9rem' }}>
-              Geen tafels ingesteld. Stel de tafelindeling in via de kassa.
+              Geen tafels ingesteld. Stel de tafelindeling in via Tickd.
             </div>
           ) : (
             <div style={{
