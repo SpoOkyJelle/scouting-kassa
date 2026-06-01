@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
-import { PlusCircle, Trash2, Pencil, Check, X, ShoppingCart, TrendingDown } from 'lucide-react'
+import { PlusCircle, Trash2, Pencil, Check, X, ShoppingCart, TrendingDown, TrendingUp, User, Trophy } from 'lucide-react'
 import { useLang } from '../LangContext'
-import { fetchInkoop, createInkoop, updateInkoop, deleteInkoop } from '../api'
+import { fetchInkoop, createInkoop, updateInkoop, deleteInkoop, fetchStats } from '../api'
 import { useToast } from './Toast'
 import { useConfirm } from './ConfirmModal'
 
 const fmt = n => `€ ${parseFloat(n ?? 0).toFixed(2)}`
+
+const PALETTE = ['#16A34A','#22C55E','#0EA5E9','#F59E0B','#8B5CF6','#EC4899','#10B981','#F97316']
 
 function today() {
   return new Date().toISOString().slice(0, 10)
@@ -22,24 +24,34 @@ function SectionHead({ Icon, label, color = 'var(--muted)' }) {
   )
 }
 
-const EMPTY_FORM = { description: '', amount: '', date: today(), note: '' }
+const EMPTY_FORM = { description: '', amount: '', date: today(), note: '', submitted_by: '' }
 
 export default function InkoopBonnen() {
   const { t } = useLang()
   const { showToast } = useToast()
   const confirm       = useConfirm()
 
-  const [bonnen, setBonnen]     = useState([])
-  const [loading, setLoading]   = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [form, setForm]         = useState(EMPTY_FORM)
-  const [saving, setSaving]     = useState(false)
-  const [editId, setEditId]     = useState(null)
+  const [bonnen, setBonnen]         = useState([])
+  const [loading, setLoading]       = useState(true)
+  const [showForm, setShowForm]     = useState(false)
+  const [form, setForm]             = useState(EMPTY_FORM)
+  const [saving, setSaving]         = useState(false)
+  const [editId, setEditId]         = useState(null)
+  const [topProducts, setTopProducts] = useState([])
+  const [showTrends, setShowTrends]   = useState(false)
 
   async function load() {
     setLoading(true)
-    try { setBonnen(await fetchInkoop()) }
-    finally { setLoading(false) }
+    try {
+      const [list, stats] = await Promise.all([
+        fetchInkoop(),
+        fetchStats().catch(() => null),
+      ])
+      setBonnen(list)
+      setTopProducts(stats?.topProducts ?? [])
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { load() }, [])
@@ -49,10 +61,11 @@ export default function InkoopBonnen() {
   function openEdit(bon) {
     setEditId(bon.id)
     setForm({
-      description: bon.description,
-      amount:      String(bon.amount),
-      date:        bon.date || bon.created_at?.slice(0, 10) || today(),
-      note:        bon.note || '',
+      description:  bon.description,
+      amount:       String(bon.amount),
+      date:         bon.date || bon.created_at?.slice(0, 10) || today(),
+      note:         bon.note || '',
+      submitted_by: bon.submitted_by || '',
     })
     setShowForm(true)
   }
@@ -65,10 +78,11 @@ export default function InkoopBonnen() {
     setSaving(true)
     try {
       const payload = {
-        description: form.description.trim(),
-        amount:      parseFloat(form.amount),
-        date:        form.date || today(),
-        note:        form.note.trim() || null,
+        description:  form.description.trim(),
+        amount:       parseFloat(form.amount),
+        date:         form.date || today(),
+        note:         form.note.trim() || null,
+        submitted_by: form.submitted_by.trim() || null,
       }
       if (editId) {
         const updated = await updateInkoop(editId, payload)
@@ -122,15 +136,94 @@ export default function InkoopBonnen() {
           <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 9, padding: '8px 9px' }}>
             <TrendingDown size={18} color="rgba(255,255,255,0.8)" />
           </div>
-          <button
-            className="btn btn-sm"
-            onClick={openNew}
-            style={{ background: 'rgba(255,255,255,0.18)', color: '#fff', border: '1px solid rgba(255,255,255,0.25)', gap: 5 }}
-          >
-            <PlusCircle size={13} /> {t('inkoop_add')}
-          </button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button
+              className="btn btn-sm"
+              onClick={() => setShowTrends(v => !v)}
+              style={{ background: showTrends ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.25)', gap: 5 }}
+            >
+              <TrendingUp size={13} /> {t('inkoop_trends')}
+            </button>
+            <button
+              className="btn btn-sm"
+              onClick={openNew}
+              style={{ background: 'rgba(255,255,255,0.18)', color: '#fff', border: '1px solid rgba(255,255,255,0.25)', gap: 5 }}
+            >
+              <PlusCircle size={13} /> {t('inkoop_add')}
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* ── Verkooptrends ───────────────────────────────────────────────── */}
+      {showTrends && (
+        <div style={{
+          background: 'var(--surface)', border: '1px solid var(--border)',
+          borderRadius: 12, overflow: 'hidden',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+        }}>
+          <div style={{
+            background: 'var(--s50)', borderBottom: '1px solid var(--border)',
+            padding: '0.65rem 1rem', display: 'flex', alignItems: 'center', gap: 7,
+          }}>
+            <Trophy size={13} color="#F59E0B" strokeWidth={2.3} />
+            <span style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--s800)', flex: 1 }}>
+              {t('inkoop_trends')}
+            </span>
+            <span style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>{t('inkoop_trends_hint')}</span>
+          </div>
+          {topProducts.length === 0 ? (
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)', fontSize: '0.84rem' }}>
+              {t('stats_empty')}
+            </div>
+          ) : (
+            topProducts.map((p, i) => {
+              const maxQty = topProducts[0].quantity
+              const barW   = maxQty > 0 ? (p.quantity / maxQty) * 100 : 0
+              return (
+                <div
+                  key={p.name}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '0.6rem 1rem',
+                    borderTop: i > 0 ? '1px solid var(--s100)' : 'none',
+                    position: 'relative', overflow: 'hidden',
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute', left: 0, top: 0, bottom: 0,
+                    width: `${barW}%`, background: `${PALETTE[i % PALETTE.length]}12`,
+                    transition: 'width 0.5s ease',
+                  }} />
+                  <span style={{
+                    width: 20, height: 20, borderRadius: 6,
+                    background: PALETTE[i % PALETTE.length],
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '0.65rem', fontWeight: 800, color: '#fff', flexShrink: 0, position: 'relative',
+                  }}>
+                    {i + 1}
+                  </span>
+                  <span style={{
+                    flex: 1, fontSize: '0.84rem', fontWeight: 500, color: 'var(--s800)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', position: 'relative',
+                  }}>
+                    {p.name}
+                  </span>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--muted)', position: 'relative', flexShrink: 0 }}>
+                    {p.quantity}×
+                  </span>
+                  <span style={{
+                    fontWeight: 700, fontSize: '0.85rem', color: PALETTE[i % PALETTE.length],
+                    minWidth: 56, textAlign: 'right', position: 'relative', flexShrink: 0,
+                  }}>
+                    {fmt(p.revenue)}
+                  </span>
+                </div>
+              )
+            })
+          )}
+        </div>
+      )}
 
       {/* ── Formulier ───────────────────────────────────────────────────── */}
       {showForm && (
@@ -139,7 +232,6 @@ export default function InkoopBonnen() {
           borderRadius: 12, overflow: 'hidden',
           boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
         }}>
-          {/* Form header */}
           <div style={{
             background: 'var(--s50)', borderBottom: '1px solid var(--border)',
             padding: '0.7rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -181,6 +273,15 @@ export default function InkoopBonnen() {
                   type="date"
                   value={form.date}
                   onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+                />
+              </div>
+              <div className="form-group" style={{ flex: '1 1 140px', marginBottom: 0 }}>
+                <label className="form-label">{t('inkoop_submitted_by')}</label>
+                <input
+                  className="form-input"
+                  placeholder={t('inkoop_submitted_by_ph')}
+                  value={form.submitted_by}
+                  onChange={e => setForm(f => ({ ...f, submitted_by: e.target.value }))}
                 />
               </div>
               <div className="form-group" style={{ flex: '2 1 180px', marginBottom: 0 }}>
@@ -238,7 +339,6 @@ export default function InkoopBonnen() {
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--s50)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
-                {/* Color dot */}
                 <div style={{
                   width: 3, alignSelf: 'stretch',
                   background: '#DC2626', borderRadius: 2, flexShrink: 0,
@@ -248,9 +348,18 @@ export default function InkoopBonnen() {
                   <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--s800)', marginBottom: 1 }}>
                     {bon.description}
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>
-                    {bon.date}
-                    {bon.note && <> · <em>{bon.note}</em></>}
+                  <div style={{ fontSize: '0.72rem', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                    <span>{bon.date}</span>
+                    {bon.submitted_by && (
+                      <>
+                        <span>·</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                          <User size={10} />
+                          {bon.submitted_by}
+                        </span>
+                      </>
+                    )}
+                    {bon.note && <><span>·</span><em>{bon.note}</em></>}
                   </div>
                 </div>
 

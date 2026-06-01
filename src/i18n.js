@@ -174,6 +174,10 @@ export const translations = {
     inkoop_optional:      'optioneel',
     inkoop_empty:         'Nog geen inkoop bonnetjes. Voeg er een toe!',
     inkoop_total_label:   'Totale kosten',
+    inkoop_submitted_by:  'Ingediend door',
+    inkoop_submitted_by_ph: 'Naam (optioneel)',
+    inkoop_trends:        'Verkooptrends',
+    inkoop_trends_hint:   'Alle tijd',
     stats_costs:          'Inkoopkosten',
     stats_profit:         'Winst',
 
@@ -434,6 +438,10 @@ export const translations = {
     inkoop_optional:      'optional',
     inkoop_empty:         'No purchase receipts yet. Add one!',
     inkoop_total_label:   'Total costs',
+    inkoop_submitted_by:  'Submitted by',
+    inkoop_submitted_by_ph: 'Name (optional)',
+    inkoop_trends:        'Sales trends',
+    inkoop_trends_hint:   'All time',
     stats_costs:          'Purchase costs',
     stats_profit:         'Profit',
 

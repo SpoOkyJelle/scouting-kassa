@@ -450,16 +450,17 @@ app.get('/api/inkoop', requireAdmin, (_req, res) => {
 })
 
 app.post('/api/inkoop', requireAdmin, async (req, res) => {
-  const { description, amount, date, note } = req.body
+  const { description, amount, date, note, submitted_by } = req.body
   if (!description || amount === undefined) return res.status(400).json({ error: 'description and amount required' })
   if (!db.data.inkoop) db.data.inkoop = []
   const bon = {
-    id:          nextId('_bid'),
+    id:           nextId('_bid'),
     description,
-    amount:      parseFloat(amount),
-    date:        date || new Date().toISOString().slice(0, 10),
-    note:        note || null,
-    created_at:  new Date().toISOString(),
+    amount:       parseFloat(amount),
+    date:         date || new Date().toISOString().slice(0, 10),
+    note:         note || null,
+    submitted_by: submitted_by || null,
+    created_at:   new Date().toISOString(),
   }
   db.data.inkoop.push(bon)
   await db.write()
@@ -470,10 +471,11 @@ app.put('/api/inkoop/:id', requireAdmin, async (req, res) => {
   const id = parseInt(req.params.id)
   const bon = (db.data.inkoop || []).find(b => b.id === id)
   if (!bon) return res.status(404).json({ error: 'Not found' })
-  if (req.body.description !== undefined) bon.description = req.body.description
-  if (req.body.amount      !== undefined) bon.amount      = parseFloat(req.body.amount)
-  if (req.body.date        !== undefined) bon.date        = req.body.date
-  if (req.body.note        !== undefined) bon.note        = req.body.note || null
+  if (req.body.description  !== undefined) bon.description  = req.body.description
+  if (req.body.amount       !== undefined) bon.amount       = parseFloat(req.body.amount)
+  if (req.body.date         !== undefined) bon.date         = req.body.date
+  if (req.body.note         !== undefined) bon.note         = req.body.note || null
+  if (req.body.submitted_by !== undefined) bon.submitted_by = req.body.submitted_by || null
   await db.write()
   res.json(bon)
 })
@@ -683,7 +685,6 @@ app.get('/api/stats', (req, res) => {
 
   const topProducts = Object.values(productMap)
     .sort((a, b) => b.revenue - a.revenue)
-    .slice(0, 8)
     .map(p => ({ ...p, revenue: Math.round(p.revenue * 100) / 100 }))
 
   // Estimated costs based on product cost prices × sold quantities

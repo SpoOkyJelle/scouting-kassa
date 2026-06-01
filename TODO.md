@@ -14,8 +14,8 @@
 
 ## Inkopen
 
-- [ ] **Naam bij inkoopbon** — Bij het opgeven van een inkoopbon een naam-veld toevoegen (wie heeft de bon ingediend)
-- [ ] **Verkooptrends voor inkopen** — Overzicht van best verkochte producten om inkoopbeslissingen te ondersteunen *(evt. met AI-suggesties)*
+- [x] **Naam bij inkoopbon** — Bij het opgeven van een inkoopbon een naam-veld toevoegen (wie heeft de bon ingediend)
+- [x] **Verkooptrends voor inkopen** — Overzicht van best verkochte producten om inkoopbeslissingen te ondersteunen *(evt. met AI-suggesties)*
 
 ## Kas & Financiën
 
