@@ -7,12 +7,15 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import KlantenschermDisplay from './components/KlantenschermDisplay'
+import WaiterScreen from './components/WaiterScreen'
 import './styles.css'
 
-const isDisplay = window.location.pathname === '/display'
+const path = window.location.pathname
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    {isDisplay ? <KlantenschermDisplay /> : <App />}
+    {path === '/display' ? <KlantenschermDisplay />
+     : path === '/waiter' ? <WaiterScreen />
+     : <App />}
   </React.StrictMode>
 )

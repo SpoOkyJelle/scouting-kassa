@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { ShoppingCart, Package, Zap, Search, X, PlusCircle, ChevronDown, ChevronUp } from 'lucide-react'
 import { useLang } from '../LangContext'
 import { fetchProducts, fetchPopularProducts, createReceipt } from '../api'
@@ -17,13 +17,21 @@ function SectionHead({ Icon, label, color = 'var(--muted)' }) {
   )
 }
 
-export default function NieuweBon({ onCreated }) {
+export default function NieuweBon({ onCreated, prefilledName = '' }) {
   const { t } = useLang()
   const [products, setProducts]           = useState([])
   const [popular, setPopular]             = useState([])
   const [loading, setLoading]             = useState(true)
   const [productSearch, setProductSearch] = useState('')
-  const [name, setName]                   = useState('')
+  const [name, setName]                   = useState(prefilledName)
+  const prevPrefilled                     = useRef(prefilledName)
+
+  useEffect(() => {
+    if (prefilledName && prefilledName !== prevPrefilled.current) {
+      setName(prefilledName)
+      prevPrefilled.current = prefilledName
+    }
+  }, [prefilledName])
   const [note, setNote]                   = useState('')
   const [order, setOrder]                 = useState({})
   const [saving, setSaving]               = useState(false)

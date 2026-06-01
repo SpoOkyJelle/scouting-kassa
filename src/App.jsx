@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Tent, FileText, PlusCircle, Package, BarChart2, LogOut, WifiOff, QrCode, Settings, ShoppingCart, Heart, Monitor, Copy, Check, ExternalLink, X } from 'lucide-react'
+import { Tent, FileText, PlusCircle, Package, BarChart2, LogOut, WifiOff, QrCode, Settings, ShoppingCart, Heart, Monitor, Copy, Check, ExternalLink, X, LayoutGrid } from 'lucide-react'
 import { translations } from './i18n'
 import { logout as apiLogout, fetchSettings } from './api'
 import { LangContext } from './LangContext'
@@ -14,8 +14,9 @@ import Producten   from './components/Producten'
 import BonDetail   from './components/BonDetail'
 import Overzicht   from './components/Overzicht'
 import Instellingen  from './components/Instellingen'
-import InkoopBonnen from './components/InkoopBonnen'
-import Donaties      from './components/Donaties'
+import InkoopBonnen   from './components/InkoopBonnen'
+import Donaties        from './components/Donaties'
+import TafelIndeling   from './components/TafelIndeling'
 
 export { LangContext }
 export { useLang } from './LangContext'
@@ -26,6 +27,7 @@ const TABS = [
   { id: 'overview',  Icon: BarChart2,     labelKey: 'overview',    roles: ['admin','cashier'] },
   { id: 'inkoop',    Icon: ShoppingCart,  labelKey: 'inkoop_tab',    roles: ['admin'] },
   { id: 'donaties',  Icon: Heart,         labelKey: 'donaties_tab',  roles: ['admin', 'cashier'] },
+  { id: 'tables',   Icon: LayoutGrid,    labelKey: 'tafels_tab',    roles: ['admin', 'cashier'] },
   { id: 'products',  Icon: Package,       labelKey: 'products',    roles: ['admin'] },
   { id: 'settings',  Icon: Settings,      labelKey: 'settings',    roles: ['admin'] },
 ]
@@ -58,10 +60,11 @@ export default function App() {
   const [darkMode, setDarkModeRaw]    = useState(() => localStorage.getItem('kassa_theme') === 'dark')
   const [tab, setTab]                 = useState('receipts')
   const [detailId, setDetailId]       = useState(null)
-  const [showPayment, setShowPayment]   = useState(false)
-  const [showDisplay, setShowDisplay]   = useState(false)
-  const [displayCopied, setDisplayCopied] = useState(false)
-  const [appSettings, setAppSettings] = useState({ paymentUrl: '', paymentName: '' })
+  const [showPayment, setShowPayment]       = useState(false)
+  const [showDisplay, setShowDisplay]       = useState(false)
+  const [displayCopied, setDisplayCopied]   = useState(false)
+  const [prefilledBonNaam, setPrefilledBonNaam] = useState('')
+  const [appSettings, setAppSettings]       = useState({ paymentUrl: '', paymentName: '' })
 
   const t = key => translations[lang]?.[key] ?? key
 
@@ -156,6 +159,7 @@ export default function App() {
 
   function openDetail(id) { navigateTo('detail', id) }
   function closeDetail()  { navigateTo('receipts') }
+  function openNewBon(name = '') { setPrefilledBonNaam(name); navigateTo('new') }
 
   function handleTabChange(id) { navigateTo(id) }
 
@@ -250,6 +254,15 @@ export default function App() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <button
                       className="btn btn-sm"
+                      onClick={() => window.open('/waiter', '_blank')}
+                      title="Bedieningsscherm"
+                      style={{ background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)', gap: 6 }}
+                    >
+                      <LayoutGrid size={14} />
+                      <span className="tab-label">Bediening</span>
+                    </button>
+                    <button
+                      className="btn btn-sm"
                       onClick={() => setShowDisplay(true)}
                       title={t('display_btn')}
                       style={{ background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)', gap: 6 }}
@@ -299,10 +312,11 @@ export default function App() {
                 {/* ── Content ───────────────────────────────────────────── */}
                 <main className="main-content">
                   {tab === 'receipts'  && <Bonnen    onOpenDetail={openDetail} />}
-                  {tab === 'new'       && <NieuweBon onCreated={() => {}} />}
+                  {tab === 'new'       && <NieuweBon prefilledName={prefilledBonNaam} onCreated={() => setPrefilledBonNaam('')} />}
                   {tab === 'overview'  && <Overzicht role={role} />}
                   {tab === 'inkoop'    && <InkoopBonnen />}
                   {tab === 'donaties'  && <Donaties />}
+                  {tab === 'tables'    && <TafelIndeling role={role} onOpenDetail={openDetail} onNewBon={openNewBon} />}
                   {tab === 'products'  && <Producten />}
                   {tab === 'settings'  && (
                     <Instellingen

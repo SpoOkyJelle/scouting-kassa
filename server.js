@@ -609,6 +609,19 @@ app.delete('/api/kas/:id/correcties/:cid', requireAdmin, async (req, res) => {
   res.json({ ok: true })
 })
 
+// ─── Tafelindeling ────────────────────────────────────────────────────────────
+
+app.get('/api/tafelindeling', (_req, res) => {
+  res.json(db.data.settings?.tafelindeling || { cols: 6, rows: 4, tables: [] })
+})
+
+app.put('/api/tafelindeling', requireAdmin, async (req, res) => {
+  if (!db.data.settings) db.data.settings = {}
+  db.data.settings.tafelindeling = req.body
+  await db.write()
+  res.json(db.data.settings.tafelindeling)
+})
+
 // ─── Settings ─────────────────────────────────────────────────────────────────
 
 app.get('/api/settings', (_req, res) => {

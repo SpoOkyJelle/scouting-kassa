@@ -23,7 +23,7 @@
 
 ## Tafelindeling
 
-- [ ] **Tafelnummers met plattegrond** — Overzicht toevoegen met een visuele indeling van waar tafels staan
+- [x] **Tafelnummers met plattegrond** — Overzicht toevoegen met een visuele indeling van waar tafels staan
 
 ## Keukenscherm
 

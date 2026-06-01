@@ -267,6 +267,25 @@ export const translations = {
     split_fill:      'Vul aan tot maximum',
     split_confirm:   'Bevestig betaling',
 
+    // Tafelindeling
+    tafels_tab:         'Tafels',
+    tafels_title:       'Tafelindeling',
+    tafels_open:        'open',
+    tafels_free:        'Vrij',
+    tafels_open_legend: 'Open bon',
+    tafels_paid_today:  'Betaald vandaag',
+    tafels_edit:        'Indeling bewerken',
+    tafels_view:        'Weergave',
+    tafels_grid_size:   'Roostergrootte',
+    tafels_cols:        'Kolommen',
+    tafels_rows:        'Rijen',
+    tafels_add_label:   'Nieuw tafel-label:',
+    tafels_edit_label:  'Label wijzigen:',
+    tafels_label_ph:    'Bijv. Tafel 3 of T-VIP',
+    tafels_empty:       'Nog geen tafels ingesteld. Klik op "Indeling bewerken" om te beginnen.',
+    tafels_size:        'Grootte',
+    tafels_edit_hint:   'Klik op een leeg vak om een tafel toe te voegen. Hover over een tafel voor bewerk/verwijder opties.',
+
     // Korting presets
     discount_free:   'Gratis',
   },
@@ -530,6 +549,25 @@ export const translations = {
     kas_correctie_no_desc:  'No description',
     kas_correctie_contant:  'Cash correction',
     kas_correctie_qr:       'QR correction',
+
+    // Table layout
+    tafels_tab:         'Tables',
+    tafels_title:       'Table layout',
+    tafels_open:        'open',
+    tafels_free:        'Free',
+    tafels_open_legend: 'Open receipt',
+    tafels_paid_today:  'Paid today',
+    tafels_edit:        'Edit layout',
+    tafels_view:        'View',
+    tafels_grid_size:   'Grid size',
+    tafels_cols:        'Columns',
+    tafels_rows:        'Rows',
+    tafels_add_label:   'New table label:',
+    tafels_edit_label:  'Edit label:',
+    tafels_label_ph:    'E.g. Table 3 or T-VIP',
+    tafels_empty:       'No tables configured yet. Click "Edit layout" to get started.',
+    tafels_size:        'Size',
+    tafels_edit_hint:   'Click an empty cell to add a table. Hover over a table for edit/delete options.',
 
     // Discount presets
     // Split payment
