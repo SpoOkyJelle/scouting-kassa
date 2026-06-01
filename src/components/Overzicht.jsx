@@ -657,7 +657,7 @@ export default function Overzicht({ role }) {
           {isAdmin && (
             <div>
               <SectionHead Icon={Wallet} label="Kasafsluiting" color="#2563EB" />
-              <KasAfsluiting todayContant={todayPaymentBreakdown.contant ?? 0} />
+              <KasAfsluiting todayContant={todayPaymentBreakdown.contant ?? 0} todayQr={todayPaymentBreakdown.qr ?? 0} />
             </div>
           )}
 

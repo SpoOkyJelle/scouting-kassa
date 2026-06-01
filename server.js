@@ -581,6 +581,34 @@ app.delete('/api/kas/:id', requireAdmin, async (req, res) => {
   res.json({ ok: true })
 })
 
+app.post('/api/kas/:id/correcties', requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id)
+  const record = (db.data.kas || []).find(k => k.id === id)
+  if (!record) return res.status(404).json({ error: 'Not found' })
+  if (!record.correcties) record.correcties = []
+  const cid = Math.max(0, ...record.correcties.map(c => c.id)) + 1
+  const corr = {
+    id:          cid,
+    type:        req.body.type || 'contant',
+    amount:      parseFloat(req.body.amount) || 0,
+    description: req.body.description || '',
+    created_at:  new Date().toISOString(),
+  }
+  record.correcties.push(corr)
+  await db.write()
+  res.json(corr)
+})
+
+app.delete('/api/kas/:id/correcties/:cid', requireAdmin, async (req, res) => {
+  const id  = parseInt(req.params.id)
+  const cid = parseInt(req.params.cid)
+  const record = (db.data.kas || []).find(k => k.id === id)
+  if (!record) return res.status(404).json({ error: 'Not found' })
+  record.correcties = (record.correcties || []).filter(c => c.id !== cid)
+  await db.write()
+  res.json({ ok: true })
+})
+
 // ─── Settings ─────────────────────────────────────────────────────────────────
 
 app.get('/api/settings', (_req, res) => {

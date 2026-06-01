@@ -108,7 +108,9 @@ export const deleteReceiptItem = (receiptId, itemId)        => req(`/receipts/${
 
 // ─── Kasregistraties ──────────────────────────────────────────────────────────
 
-export const fetchKas  = ()         => req('/kas')
-export const createKas = (data)     => req('/kas', { method: 'POST', body: JSON.stringify(data) })
-export const updateKas = (id, data) => req(`/kas/${id}`, { method: 'PUT', body: JSON.stringify(data) })
-export const deleteKas = (id)       => req(`/kas/${id}`, { method: 'DELETE' })
+export const fetchKas           = ()             => req('/kas')
+export const createKas          = (data)         => req('/kas', { method: 'POST', body: JSON.stringify(data) })
+export const updateKas          = (id, data)     => req(`/kas/${id}`, { method: 'PUT', body: JSON.stringify(data) })
+export const deleteKas          = (id)           => req(`/kas/${id}`, { method: 'DELETE' })
+export const addKasCorrectie    = (id, data)     => req(`/kas/${id}/correcties`, { method: 'POST', body: JSON.stringify(data) })
+export const deleteKasCorrectie = (id, cid)      => req(`/kas/${id}/correcties/${cid}`, { method: 'DELETE' })

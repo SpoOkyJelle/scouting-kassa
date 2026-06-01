@@ -19,7 +19,7 @@
 
 ## Kas & Financiën
 
-- [ ] **Kas correctie** — Mogelijkheid toevoegen om de kas handmatig recht te trekken/corrigeren, zowel contant als QR-betalingen
+- [x] **Kas correctie** — Mogelijkheid toevoegen om de kas handmatig recht te trekken/corrigeren, zowel contant als QR-betalingen
 
 ## Tafelindeling
 
