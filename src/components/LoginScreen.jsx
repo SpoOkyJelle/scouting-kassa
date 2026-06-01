@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Check, Lock, ArrowRight } from 'lucide-react'
+import { Lock, ArrowRight } from 'lucide-react'
 import { useLang } from '../LangContext'
 import { login } from '../api'
 
@@ -64,21 +64,11 @@ export default function LoginScreen({ onLogin, lang, setLang }) {
       }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
-          <div style={{
-            width: 52, height: 52,
-            background: 'var(--g600)',
-            borderRadius: 14,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 1rem',
-            boxShadow: '0 8px 20px rgba(22,163,74,0.3)',
-          }}>
-            <Check size={28} color="#fff" strokeWidth={3} />
-          </div>
-          <h1 style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--s900)', letterSpacing: '-0.5px' }}>
-            Tickd
-          </h1>
+          <img
+            src="/tickd-logo.png"
+            alt="Tickd"
+            style={{ height: 80, width: 'auto', margin: '0 auto 0.75rem', display: 'block' }}
+          />
           <p style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: 4 }}>
             {t('login_sub')}
           </p>

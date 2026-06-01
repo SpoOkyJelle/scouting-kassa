@@ -6,7 +6,10 @@
       "Bash(Format-Table -AutoSize)",
       "Bash(npm run *)",
       "Bash(npx vite *)",
-      "Bash(node -e \"const l = require\\('lucide-react'\\); console.log\\('LayoutGrid' in l, 'Map' in l, 'Grid' in l, 'Table2' in l\\)\")"
+      "Bash(node -e \"const l = require\\('lucide-react'\\); console.log\\('LayoutGrid' in l, 'Map' in l, 'Grid' in l, 'Table2' in l\\)\")",
+      "Bash(mkdir \"C:\\\\Users\\\\nlkootwj\\\\Documents\\\\GitHub\\\\scouting-kassa\\\\public\")",
+      "Bash(copy \"C:\\\\Users\\\\nlkootwj\\\\Documents\\\\GitHub\\\\scouting-kassa\\\\logo\\\\tickd-favicon.png\" \"C:\\\\Users\\\\nlkootwj\\\\Documents\\\\GitHub\\\\scouting-kassa\\\\public\\\\tickd-favicon.png\")",
+      "Bash(copy \"C:\\\\Users\\\\nlkootwj\\\\Documents\\\\GitHub\\\\scouting-kassa\\\\logo\\\\tickd-logo.png\" \"C:\\\\Users\\\\nlkootwj\\\\Documents\\\\GitHub\\\\scouting-kassa\\\\public\\\\tickd-logo.png\")"
     ]
   }
 }
