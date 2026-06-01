@@ -8,6 +8,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import KlantenschermDisplay from './components/KlantenschermDisplay'
 import WaiterScreen from './components/WaiterScreen'
+import KitchenScreen from './components/KitchenScreen'
 import './styles.css'
 
 const path = window.location.pathname
@@ -15,7 +16,8 @@ const path = window.location.pathname
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     {path === '/display' ? <KlantenschermDisplay />
-     : path === '/waiter' ? <WaiterScreen />
+     : path === '/waiter'  ? <WaiterScreen />
+     : path === '/kitchen' ? <KitchenScreen />
      : <App />}
   </React.StrictMode>
 )

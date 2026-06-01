@@ -609,6 +609,49 @@ app.delete('/api/kas/:id/correcties/:cid', requireAdmin, async (req, res) => {
   res.json({ ok: true })
 })
 
+// ─── Keukenscherm ─────────────────────────────────────────────────────────────
+
+app.get('/api/kitchen', (_req, res) => {
+  const today = new Date().toDateString()
+  const orders = db.data.receipts
+    .filter(r => !r.paid && new Date(r.created_at).toDateString() === today)
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+  res.json(orders)
+})
+
+app.patch('/api/kitchen/:id/items/:itemId', async (req, res) => {
+  const id     = parseInt(req.params.id)
+  const itemId = parseInt(req.params.itemId)
+  const receipt = db.data.receipts.find(r => r.id === id)
+  if (!receipt) return res.status(404).json({ error: 'Not found' })
+  if (!receipt.kitchen) receipt.kitchen = { items_done: [], ready: false, ready_at: null }
+
+  const done = receipt.kitchen.items_done.includes(itemId)
+  if (done) {
+    receipt.kitchen.items_done = receipt.kitchen.items_done.filter(i => i !== itemId)
+    receipt.kitchen.ready     = false
+    receipt.kitchen.ready_at  = null
+  } else {
+    receipt.kitchen.items_done.push(itemId)
+    const allDone = (receipt.items || []).every(i => receipt.kitchen.items_done.includes(i.id))
+    if (allDone) {
+      receipt.kitchen.ready    = true
+      receipt.kitchen.ready_at = new Date().toISOString()
+    }
+  }
+  await db.write()
+  res.json(receipt.kitchen)
+})
+
+app.patch('/api/kitchen/:id/reset', async (req, res) => {
+  const id = parseInt(req.params.id)
+  const receipt = db.data.receipts.find(r => r.id === id)
+  if (!receipt) return res.status(404).json({ error: 'Not found' })
+  receipt.kitchen = { items_done: [], ready: false, ready_at: null }
+  await db.write()
+  res.json(receipt.kitchen)
+})
+
 // ─── Tafelindeling ────────────────────────────────────────────────────────────
 
 app.get('/api/tafelindeling', (_req, res) => {

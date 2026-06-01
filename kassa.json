@@ -3763,8 +3763,33 @@
           "product_name": "Pannekoek naturel",
           "product_price": 3,
           "quantity": 1
+        },
+        {
+          "id": 387,
+          "receipt_id": 111,
+          "product_id": 13,
+          "product_name": "Sprite",
+          "product_price": 2.5,
+          "quantity": 2
+        },
+        {
+          "id": 388,
+          "receipt_id": 111,
+          "product_id": 21,
+          "product_name": "Pannenkoek spinazie",
+          "product_price": 6,
+          "quantity": 1
         }
-      ]
+      ],
+      "kitchen": {
+        "items_done": [
+          385,
+          387,
+          388
+        ],
+        "ready": true,
+        "ready_at": "2026-06-01T08:38:44.639Z"
+      }
     },
     {
       "id": 112,
@@ -3783,12 +3808,19 @@
           "product_price": 4,
           "quantity": 1
         }
-      ]
+      ],
+      "kitchen": {
+        "items_done": [
+          386
+        ],
+        "ready": true,
+        "ready_at": "2026-06-01T08:38:46.398Z"
+      }
     }
   ],
   "_pid": 24,
   "_rid": 112,
-  "_iid": 386,
+  "_iid": 388,
   "inkoop": [
     {
       "id": 2,

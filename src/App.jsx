@@ -254,6 +254,14 @@ export default function App() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <button
                       className="btn btn-sm"
+                      onClick={() => window.open('/kitchen', '_blank')}
+                      title="Keukenscherm"
+                      style={{ background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)', gap: 6 }}
+                    >
+                      <span className="tab-label">Keuken</span>
+                    </button>
+                    <button
+                      className="btn btn-sm"
                       onClick={() => window.open('/waiter', '_blank')}
                       title="Bedieningsscherm"
                       style={{ background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)', gap: 6 }}

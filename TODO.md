@@ -27,11 +27,7 @@
 
 ## Keukenscherm
 
-- [ ] **Keuken scherm** — Keuken krijgt een scherm waarop de bestelling staat, deze kunnen ze dan afvinken als deze gemaakt zijn tot de bestelling compleet is. Hierbij zou er bijgehouden moeten worden of de bestelling compleet is (voor bediening), hoe lang de bestelling al open staat etc.
-
-## Nieuwe functionaliteiten (groter)
-
-- [ ] **QR code scannen om te bestellen** — Klanten kunnen via QR code zelf een bestelling plaatsen (kiosk-/selfservice-modus)
+- [x] **Keuken scherm** — Keuken krijgt een scherm waarop de bestelling staat, deze kunnen ze dan afvinken als deze gemaakt zijn tot de bestelling compleet is. Hierbij zou er bijgehouden moeten worden of de bestelling compleet is (voor bediening), hoe lang de bestelling al open staat etc.
 
 ## Cassier login
 
