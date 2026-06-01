@@ -12,6 +12,7 @@ import { useLang } from '../LangContext'
 import { fetchStats, fetchReceipts } from '../api'
 import DagRapport from './DagRapport'
 import KasAfsluiting from './KasAfsluiting'
+import Donaties from './Donaties'
 
 const fmt   = n => `€ ${parseFloat(n ?? 0).toFixed(2)}`
 const GREEN  = '#16A34A'
@@ -84,8 +85,9 @@ function SectionHead({ Icon, label, color = 'var(--muted)' }) {
 const PAYMENT_LABELS = { contant: 'Contant', pin: 'Pin', qr: 'QR / Tikkie', onbekend: '' }
 
 // ── Hoofd component ───────────────────────────────────────────────────────────
-export default function Overzicht({ role }) {
+export default function Overzicht({ role, initialView = 'stats' }) {
   const { t } = useLang()
+  const [view, setView]                     = useState(initialView)
   const [stats, setStats]                   = useState(null)
   const [loading, setLoading]               = useState(true)
   const [period, setPeriod]                 = useState('today')
@@ -151,6 +153,35 @@ export default function Overzicht({ role }) {
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+      {/* ── View toggle: Statistieken / Donaties ────────────────────────────── */}
+      <div style={{ display: 'flex', background: 'var(--s100)', borderRadius: 8, padding: 3, gap: 2 }}>
+        {[
+          { key: 'stats',    label: t('overview') },
+          { key: 'donaties', label: t('donaties_tab') },
+        ].map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setView(key)}
+            style={{
+              flex: 1, border: 'none', borderRadius: 6, padding: '6px 14px',
+              fontSize: '0.78rem', fontWeight: 600, fontFamily: 'inherit',
+              cursor: 'pointer', transition: 'all 0.15s',
+              background: view === key ? 'var(--surface)' : 'transparent',
+              color: view === key ? 'var(--s800)' : 'var(--muted)',
+              boxShadow: view === key ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Donaties view ───────────────────────────────────────────────────── */}
+      {view === 'donaties' && <Donaties />}
+
+      {/* ── Stats view ──────────────────────────────────────────────────────── */}
+      {view === 'stats' && <>
 
       {/* ── Toolbar ─────────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -706,6 +737,7 @@ export default function Overzicht({ role }) {
           )}
         </>
       )}
+      </>}
     </div>
   )
 }

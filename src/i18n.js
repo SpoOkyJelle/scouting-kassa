@@ -4,6 +4,7 @@ export const translations = {
     receipts:    'Bonnen',
     new_receipt: 'Nieuwe Bon',
     products:    'Producten',
+    beheer_tab:  'Beheer',
 
     // General
     save:           'Opslaan',
@@ -308,6 +309,7 @@ export const translations = {
     receipts:    'Receipts',
     new_receipt: 'New Receipt',
     products:    'Products',
+    beheer_tab:  'Manage',
 
     // General
     save:           'Save',

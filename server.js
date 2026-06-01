@@ -712,31 +712,36 @@ app.delete('/api/employees/:id', requireAdmin, async (req, res) => {
 app.get('/api/kitchen', (_req, res) => {
   const today = new Date().toDateString()
   const orders = db.data.receipts
-    .filter(r => !r.paid && new Date(r.created_at).toDateString() === today)
+    .filter(r => !r.paid && !r.kitchen?.bumped && new Date(r.created_at).toDateString() === today)
     .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
   res.json(orders)
 })
 
+// Increment portie: 0 → 1 → … → qty → 0
 app.patch('/api/kitchen/:id/items/:itemId', async (req, res) => {
   const id     = parseInt(req.params.id)
   const itemId = parseInt(req.params.itemId)
   const receipt = db.data.receipts.find(r => r.id === id)
   if (!receipt) return res.status(404).json({ error: 'Not found' })
-  if (!receipt.kitchen) receipt.kitchen = { items_done: [], ready: false, ready_at: null }
+  if (!receipt.kitchen) receipt.kitchen = { items_qty_done: {}, items_done: [], ready: false, ready_at: null }
+  if (!receipt.kitchen.items_qty_done) receipt.kitchen.items_qty_done = {}
 
-  const done = receipt.kitchen.items_done.includes(itemId)
-  if (done) {
-    receipt.kitchen.items_done = receipt.kitchen.items_done.filter(i => i !== itemId)
-    receipt.kitchen.ready     = false
-    receipt.kitchen.ready_at  = null
-  } else {
-    receipt.kitchen.items_done.push(itemId)
-    const allDone = (receipt.items || []).every(i => receipt.kitchen.items_done.includes(i.id))
-    if (allDone) {
-      receipt.kitchen.ready    = true
-      receipt.kitchen.ready_at = new Date().toISOString()
-    }
-  }
+  const item    = (receipt.items || []).find(i => i.id === itemId)
+  const maxQty  = item?.quantity || 1
+  const current = receipt.kitchen.items_qty_done[itemId] || 0
+  receipt.kitchen.items_qty_done[itemId] = current >= maxQty ? 0 : current + 1
+
+  // Sync items_done voor backwards-compat
+  receipt.kitchen.items_done = (receipt.items || [])
+    .filter(i => (receipt.kitchen.items_qty_done[i.id] || 0) >= i.quantity)
+    .map(i => i.id)
+
+  const allDone = (receipt.items || []).every(i =>
+    (receipt.kitchen.items_qty_done[i.id] || 0) >= i.quantity
+  )
+  receipt.kitchen.ready    = allDone
+  receipt.kitchen.ready_at = allDone ? (receipt.kitchen.ready_at || new Date().toISOString()) : null
+
   await db.write()
   res.json(receipt.kitchen)
 })
@@ -745,7 +750,19 @@ app.patch('/api/kitchen/:id/reset', async (req, res) => {
   const id = parseInt(req.params.id)
   const receipt = db.data.receipts.find(r => r.id === id)
   if (!receipt) return res.status(404).json({ error: 'Not found' })
-  receipt.kitchen = { items_done: [], ready: false, ready_at: null }
+  receipt.kitchen = { items_qty_done: {}, items_done: [], ready: false, ready_at: null }
+  await db.write()
+  res.json(receipt.kitchen)
+})
+
+// Bump: klaar-order van het keukenscherm verwijderen
+app.patch('/api/kitchen/:id/bump', async (req, res) => {
+  const id = parseInt(req.params.id)
+  const receipt = db.data.receipts.find(r => r.id === id)
+  if (!receipt) return res.status(404).json({ error: 'Not found' })
+  if (!receipt.kitchen) receipt.kitchen = { items_qty_done: {}, items_done: [], ready: false, ready_at: null }
+  receipt.kitchen.bumped    = true
+  receipt.kitchen.bumped_at = new Date().toISOString()
   await db.write()
   res.json(receipt.kitchen)
 })

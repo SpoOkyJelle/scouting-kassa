@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Check, FileText, PlusCircle, Package, BarChart2, LogOut, WifiOff, QrCode, Settings, ShoppingCart, Heart, Monitor, Copy, ExternalLink, X, LayoutGrid } from 'lucide-react'
+import { Check, FileText, BarChart2, LogOut, WifiOff, QrCode, Settings, Layers, Monitor, Copy, ExternalLink, X, LayoutGrid } from 'lucide-react'
 import { translations } from './i18n'
 import { logout as apiLogout, fetchSettings } from './api'
 import { LangContext } from './LangContext'
@@ -10,27 +10,30 @@ import PaymentModal from './components/PaymentModal'
 import LoginScreen from './components/LoginScreen'
 import Bonnen      from './components/Bonnen'
 import NieuweBon   from './components/NieuweBon'
-import Producten   from './components/Producten'
 import BonDetail   from './components/BonDetail'
 import Overzicht   from './components/Overzicht'
 import Instellingen  from './components/Instellingen'
-import InkoopBonnen   from './components/InkoopBonnen'
-import Donaties        from './components/Donaties'
 import TafelIndeling   from './components/TafelIndeling'
+import Beheer          from './components/Beheer'
 
 export { LangContext }
 export { useLang } from './LangContext'
 
 const TABS = [
-  { id: 'receipts',  Icon: FileText,      labelKey: 'receipts',    roles: ['admin','cashier'] },
-  { id: 'new',       Icon: PlusCircle,    labelKey: 'new_receipt', roles: ['admin','cashier'] },
-  { id: 'overview',  Icon: BarChart2,     labelKey: 'overview',    roles: ['admin','cashier'] },
-  { id: 'inkoop',    Icon: ShoppingCart,  labelKey: 'inkoop_tab',    roles: ['admin'] },
-  { id: 'donaties',  Icon: Heart,         labelKey: 'donaties_tab',  roles: ['admin', 'cashier'] },
-  { id: 'tables',   Icon: LayoutGrid,    labelKey: 'tafels_tab',    roles: ['admin', 'cashier'] },
-  { id: 'products',  Icon: Package,       labelKey: 'products',    roles: ['admin'] },
-  { id: 'settings',  Icon: Settings,      labelKey: 'settings',    roles: ['admin'] },
+  { id: 'receipts', Icon: FileText,   labelKey: 'receipts',   roles: ['admin','cashier'] },
+  { id: 'tables',   Icon: LayoutGrid, labelKey: 'tafels_tab', roles: ['admin','cashier'] },
+  { id: 'overview', Icon: BarChart2,  labelKey: 'overview',   roles: ['admin','cashier'] },
+  { id: 'beheer',   Icon: Layers,     labelKey: 'beheer_tab', roles: ['admin'] },
+  { id: 'settings', Icon: Settings,   labelKey: 'settings',   roles: ['admin'] },
 ]
+
+function activeTab(tab, id) {
+  if (tab === id) return true
+  if (id === 'receipts' && (tab === 'new' || tab === 'detail')) return true
+  if (id === 'overview' && tab === 'donaties') return true
+  if (id === 'beheer'   && (tab === 'inkoop' || tab === 'products')) return true
+  return false
+}
 
 function OfflineBanner({ t }) {
   const [offline, setOffline] = useState(!navigator.onLine)
@@ -323,7 +326,7 @@ export default function App() {
                   {visibleTabs.map(({ id, Icon, labelKey }) => (
                     <button
                       key={id}
-                      className={`tab-btn ${tab === id || (tab === 'detail' && id === 'receipts') ? 'active' : ''}`}
+                      className={`tab-btn ${activeTab(tab, id) ? 'active' : ''}`}
                       onClick={() => handleTabChange(id)}
                     >
                       <Icon size={15} strokeWidth={2} />
@@ -334,13 +337,13 @@ export default function App() {
 
                 {/* ── Content ───────────────────────────────────────────── */}
                 <main className="main-content">
-                  {tab === 'receipts'  && <Bonnen    onOpenDetail={openDetail} />}
-                  {tab === 'new'       && <NieuweBon prefilledName={prefilledBonNaam} onCreated={() => setPrefilledBonNaam('')} />}
-                  {tab === 'overview'  && <Overzicht role={role} />}
-                  {tab === 'inkoop'    && <InkoopBonnen />}
-                  {tab === 'donaties'  && <Donaties />}
+                  {tab === 'receipts'  && <Bonnen onOpenDetail={openDetail} onNew={() => openNewBon()} />}
+                  {tab === 'new'       && <NieuweBon prefilledName={prefilledBonNaam} onCreated={() => { setPrefilledBonNaam(''); navigateTo('receipts') }} />}
+                  {(tab === 'overview' || tab === 'donaties') && <Overzicht role={role} initialView={tab === 'donaties' ? 'donaties' : 'stats'} />}
+                  {(tab === 'beheer' || tab === 'inkoop' || tab === 'products') && (
+                    <Beheer initialView={tab === 'inkoop' ? 'inkoop' : 'producten'} />
+                  )}
                   {tab === 'tables'    && <TafelIndeling role={role} onOpenDetail={openDetail} onNewBon={openNewBon} />}
-                  {tab === 'products'  && <Producten />}
                   {tab === 'settings'  && (
                     <Instellingen
                       settings={appSettings}
