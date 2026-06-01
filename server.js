@@ -594,12 +594,20 @@ app.put('/api/settings', requireAdmin, async (req, res) => {
 // ─── Stats ────────────────────────────────────────────────────────────────────
 
 app.get('/api/stats', (req, res) => {
-  const todayStr    = new Date().toDateString()
-  const filterToday = req.query.period === 'today'
+  const todayStr     = new Date().toDateString()
+  const yesterdayStr = new Date(Date.now() - 86400000).toDateString()
+  const filterToday     = req.query.period === 'today'
+  const filterYesterday = req.query.period === 'yesterday'
+  const filterDate      = req.query.period === 'date' && req.query.date ? req.query.date : null
+  const filterDateStr   = filterDate ? new Date(filterDate + 'T12:00:00').toDateString() : null
 
   const receipts = filterToday
     ? db.data.receipts.filter(r => new Date(r.created_at).toDateString() === todayStr)
-    : db.data.receipts
+    : filterYesterday
+      ? db.data.receipts.filter(r => new Date(r.created_at).toDateString() === yesterdayStr)
+      : filterDate
+        ? db.data.receipts.filter(r => new Date(r.created_at).toDateString() === filterDateStr)
+        : db.data.receipts
 
   let totalRevenue = 0, paidRevenue = 0, todayRevenue = 0, todayPaidRevenue = 0, totalDonations = 0, todayDonations = 0
   const productMap = {}, hourMap = {}, dayMap = {}
@@ -706,7 +714,6 @@ app.get('/api/stats', (req, res) => {
     .sort((a, b) => b.revenue - a.revenue)
 
   // ── Gisteren (altijd berekend, ongeacht period filter) ───────────────────
-  const yesterdayStr = new Date(Date.now() - 86400000).toDateString()
   let yesterdayRevenue = 0
   db.data.receipts.forEach(r => {
     if (new Date(r.created_at).toDateString() === yesterdayStr)
@@ -721,7 +728,11 @@ app.get('/api/stats', (req, res) => {
   const allDonaties = db.data.donaties || []
   const donatiesFiltered = filterToday
     ? allDonaties.filter(d => new Date(d.created_at).toDateString() === todayStr)
-    : allDonaties
+    : filterYesterday
+      ? allDonaties.filter(d => new Date(d.created_at).toDateString() === yesterdayStr)
+      : filterDate
+        ? allDonaties.filter(d => new Date(d.created_at).toDateString() === filterDateStr)
+        : allDonaties
   donatiesFiltered.forEach(d => {
     const amt = d.amount || 0
     totalRevenue   += amt
@@ -743,7 +754,11 @@ app.get('/api/stats', (req, res) => {
   const allInkoop = db.data.inkoop || []
   const inkoopFiltered = filterToday
     ? allInkoop.filter(b => new Date(b.created_at).toDateString() === todayStr)
-    : allInkoop
+    : filterYesterday
+      ? allInkoop.filter(b => new Date(b.created_at).toDateString() === yesterdayStr)
+      : filterDate
+        ? allInkoop.filter(b => new Date(b.created_at).toDateString() === filterDateStr)
+        : allInkoop
   const totalCosts    = inkoopFiltered.reduce((s, b) => s + (b.amount || 0), 0)
   const todayCosts    = allInkoop
     .filter(b => new Date(b.created_at).toDateString() === todayStr)
@@ -761,8 +776,8 @@ app.get('/api/stats', (req, res) => {
     topProducts,
     categoryStats,
     revenueByHour,
-    revenueByDay: filterToday ? [] : revenueByDay,
-    multiDay: !filterToday && Object.keys(dayMap).length > 1,
+    revenueByDay: (filterToday || filterYesterday || filterDate) ? [] : revenueByDay,
+    multiDay: !filterToday && !filterYesterday && !filterDate && Object.keys(dayMap).length > 1,
     totalCosts:      Math.round(totalCosts      * 100) / 100,
     profit:          Math.round((paidRevenue - totalCosts) * 100) / 100,
     todayCosts:      Math.round(todayCosts      * 100) / 100,

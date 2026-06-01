@@ -88,20 +88,22 @@ export default function Overzicht({ role }) {
   const { t } = useLang()
   const [stats, setStats]                   = useState(null)
   const [loading, setLoading]               = useState(true)
-  const [period, setPeriod]                 = useState('all')
+  const [period, setPeriod]                 = useState('today')
+  const [customDate, setCustomDate]         = useState('')
   const [showDagRapport, setShowDagRapport] = useState(false)
   const [refreshing, setRefreshing]         = useState(false)
 
-  async function load(p = period, animate = false) {
+  async function load(p = period, d = customDate, animate = false) {
+    if (p === 'date' && !d) return
     if (animate) setRefreshing(true)
     else setLoading(true)
-    const d = await fetchStats(p === 'today' ? 'today' : undefined)
-    setStats(d)
+    const data = await fetchStats(p !== 'all' ? p : undefined, p === 'date' ? d : undefined)
+    setStats(data)
     setLoading(false)
     setRefreshing(false)
   }
 
-  useEffect(() => { load() }, [period]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load() }, [period, customDate]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function exportCsv() {
     const receipts = await fetchReceipts()
@@ -157,28 +159,55 @@ export default function Overzicht({ role }) {
           display: 'flex', background: 'var(--s100)', borderRadius: 8,
           padding: 3, gap: 2, flex: '1 1 auto',
         }}>
-          {['all', 'today'].map(p => (
+          {[
+            { key: 'today',     label: t('stats_period_today') },
+            { key: 'yesterday', label: t('filter_yesterday') },
+            { key: 'all',       label: t('stats_period_all') },
+          ].map(({ key, label }) => (
             <button
-              key={p}
-              onClick={() => setPeriod(p)}
+              key={key}
+              onClick={() => { setCustomDate(''); setPeriod(key) }}
               style={{
                 flex: 1, border: 'none', borderRadius: 6, padding: '6px 14px',
                 fontSize: '0.78rem', fontWeight: 600, fontFamily: 'inherit',
                 cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
-                background: period === p ? 'var(--surface)' : 'transparent',
-                color: period === p ? 'var(--s800)' : 'var(--muted)',
-                boxShadow: period === p ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                background: period === key ? 'var(--surface)' : 'transparent',
+                color: period === key ? 'var(--s800)' : 'var(--muted)',
+                boxShadow: period === key ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
               }}
             >
-              {p === 'all' ? t('stats_period_all') : t('stats_period_today')}
+              {label}
             </button>
           ))}
+        </div>
+
+        {/* Datum picker */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <CalendarDays size={14} color={period === 'date' ? 'var(--primary)' : 'var(--s400)'} />
+          <input
+            type="date"
+            value={customDate}
+            max={new Date().toISOString().slice(0, 10)}
+            onChange={e => {
+              const d = e.target.value
+              setCustomDate(d)
+              setPeriod(d ? 'date' : 'today')
+            }}
+            style={{
+              padding: '5px 8px', fontSize: '0.78rem', fontFamily: 'inherit',
+              border: `1px solid ${period === 'date' ? 'var(--primary)' : 'var(--border)'}`,
+              borderRadius: 8, background: 'var(--surface)',
+              color: period === 'date' ? 'var(--primary)' : 'var(--s600)',
+              fontWeight: period === 'date' ? 700 : 400,
+              outline: 'none', cursor: 'pointer',
+            }}
+          />
         </div>
 
         {/* Action buttons */}
         <button
           className="btn btn-ghost btn-sm"
-          onClick={() => load(period, true)}
+          onClick={() => load(period, customDate, true)}
           disabled={refreshing}
           style={{ padding: '6px 8px', color: 'var(--s400)' }}
           title="Vernieuwen"
@@ -235,7 +264,11 @@ export default function Overzicht({ role }) {
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4, position: 'relative' }}>
                 <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'rgba(255,255,255,0.6)' }}>
-                  {period === 'today' ? t('stats_today') : t('stats_total')}
+                  {period === 'today' ? t('stats_today')
+                    : period === 'yesterday' ? t('filter_yesterday')
+                    : period === 'date' && customDate
+                      ? new Date(customDate + 'T12:00:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })
+                      : t('stats_total')}
                 </span>
                 <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 7, padding: '4px 6px' }}>
                   <TrendingUp size={14} color="rgba(255,255,255,0.8)" />
@@ -246,7 +279,7 @@ export default function Overzicht({ role }) {
                 {fmt(totalRevenue)}
               </div>
 
-              {period === 'all' && (
+              {period === 'all' && todayRevenue > 0 && (
                 <div style={{ marginTop: 6, fontSize: '0.78rem', color: 'rgba(255,255,255,0.65)', position: 'relative' }}>
                   Vandaag: <span style={{ color: '#86efac', fontWeight: 700 }}>{fmt(todayRevenue)}</span>
                 </div>
@@ -321,6 +354,11 @@ export default function Overzicht({ role }) {
                 <div style={{ marginTop: 6, fontSize: '0.78rem', color: 'rgba(255,255,255,0.65)', position: 'relative' }}>
                   {t('stats_costs')}: <span style={{ color: profit >= 0 ? '#6ee7b7' : '#fca5a5', fontWeight: 700 }}>{fmt(totalCosts)}</span>
                 </div>
+                {unpaidRevenue > 0 && (
+                  <div style={{ marginTop: 3, fontSize: '0.78rem', color: 'rgba(255,255,255,0.65)', position: 'relative' }}>
+                    {t('stats_exp_profit')}: <span style={{ color: '#86efac', fontWeight: 700 }}>{fmt(totalRevenue - totalCosts)}</span>
+                  </div>
+                )}
 
                 {/* Cost ratio bar */}
                 {totalRevenue > 0 && (

@@ -8,9 +8,9 @@
 
 ## Overzicht & Statistieken
 
-- [ ] **Overzicht: standaard filter op vandaag** — Bij openen van het overzicht standaard filteren op de huidige dag
-- [ ] **Overzicht: extra filters** — Toevoegen van filters: `Vandaag`, `Gisteren`, `Alle tijd`
-- [ ] **Uitgebreidere statistieken** — Naast totale omzet en huidige winst ook `verwachte winst` tonen op basis van nog openstaande bonnen
+- [x] **Overzicht: standaard filter op vandaag** — Bij openen van het overzicht standaard filteren op de huidige dag
+- [x] **Overzicht: extra filters** — Toevoegen van filters: `Vandaag`, `Gisteren`, `Alle tijd`
+- [x] **Uitgebreidere statistieken** — Naast totale omzet en huidige winst ook `verwachte winst` tonen op basis van nog openstaande bonnen
 
 ## Inkopen
 
@@ -24,6 +24,10 @@
 ## Tafelindeling
 
 - [ ] **Tafelnummers met plattegrond** — Overzicht toevoegen met een visuele indeling van waar tafels staan
+
+## Keukenscherm
+
+- [ ] **Keuken scherm** — Keuken krijgt een scherm waarop de bestelling staat, deze kunnen ze dan afvinken als deze gemaakt zijn tot de bestelling compleet is. Hierbij zou er bijgehouden moeten worden of de bestelling compleet is (voor bediening), hoe lang de bestelling al open staat etc.
 
 ## Nieuwe functionaliteiten (groter)
 

@@ -79,8 +79,12 @@ export const updateSettings = (data) => req('/settings', { method: 'PUT', body: 
 
 // ─── Stats ────────────────────────────────────────────────────────────────
 
-export const fetchStats = (period) =>
-  req(`/stats${period ? `?period=${period}` : ''}`)
+export const fetchStats = (period, date) => {
+  const params = []
+  if (period) params.push(`period=${period}`)
+  if (date)   params.push(`date=${date}`)
+  return req(`/stats${params.length ? `?${params.join('&')}` : ''}`)
+}
 
 // ─── Inkoop bonnetjes ─────────────────────────────────────────────────────
 
