@@ -23,7 +23,7 @@ if (!ADMIN_PIN) {
 // ─── Database ─────────────────────────────────────────────────────────────────
 const adapter = new JSONFile(join(__dirname, 'kassa.json'))
 const db = new Low(adapter, {
-  products: [], receipts: [], sessions: {}, settings: {}, inkoop: [], kas: [], _pid: 0, _rid: 0, _iid: 0, _bid: 0, _kid: 0,
+  products: [], receipts: [], sessions: {}, settings: {}, inkoop: [], kas: [], employees: [], _pid: 0, _rid: 0, _iid: 0, _bid: 0, _kid: 0, _eid: 0,
 })
 await db.read()
 
@@ -54,11 +54,16 @@ if (db.data.products.some(p => p.available === undefined)) {
   await db.write()
 }
 
-// Sessions: Map<token, role>
-const sessions = new Map(Object.entries(db.data.sessions))
+// Sessions: Map<token, { role, employeeId?, employeeName? }>
+// Backwards compat: old sessions stored as plain string role
+const sessions = new Map(
+  Object.entries(db.data.sessions).map(([tok, data]) => [
+    tok, typeof data === 'string' ? { role: data } : data,
+  ])
+)
 
-async function saveSession(token, role) {
-  sessions.set(token, role)
+async function saveSession(token, data) {
+  sessions.set(token, data)
   db.data.sessions = Object.fromEntries(sessions)
   await db.write()
 }
@@ -170,13 +175,20 @@ app.post('/api/auth/login', async (req, res) => {
   const { pin } = req.body
   const adminPin   = getAdminPin()
   const cashierPin = getCashierPin()
-  let role = null
-  if (pin && pin === adminPin)                       role = 'admin'
-  if (pin && cashierPin && pin === cashierPin)       role = 'cashier'
+
+  let role = null, employeeId = null, employeeName = null
+
+  if (pin && pin === adminPin)                 { role = 'admin' }
+  else if (pin && cashierPin && pin === cashierPin) { role = 'cashier' }
+  else {
+    const emp = (db.data.employees || []).find(e => e.active !== false && e.pin === pin)
+    if (emp) { role = 'cashier'; employeeId = emp.id; employeeName = emp.name }
+  }
+
   if (!role) return res.status(401).json({ error: 'Verkeerde PIN' })
   const token = randomUUID()
-  await saveSession(token, role)
-  res.json({ token, role })
+  await saveSession(token, { role, employeeId, employeeName })
+  res.json({ token, role, employeeName })
 })
 
 app.post('/api/auth/logout', async (req, res) => {
@@ -187,10 +199,12 @@ app.post('/api/auth/logout', async (req, res) => {
 
 // ─── Auth middleware ──────────────────────────────────────────────────────────
 app.use('/api', (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1]
-  const role  = token ? sessions.get(token) : null
-  if (!role) return res.status(401).json({ error: 'Niet ingelogd' })
-  req.role = role
+  const token   = req.headers.authorization?.split(' ')[1]
+  const session = token ? sessions.get(token) : null
+  if (!session) return res.status(401).json({ error: 'Niet ingelogd' })
+  req.role         = session.role
+  req.employeeId   = session.employeeId   || null
+  req.employeeName = session.employeeName || null
   next()
 })
 
@@ -333,6 +347,7 @@ app.post('/api/receipts', async (req, res) => {
     id:           rid,
     name:         name || null,
     note:         note || null,
+    created_by:   req.employeeName || null,
     paid:         0,
     discount_pct: 0,
     donation:     0,
@@ -605,6 +620,52 @@ app.delete('/api/kas/:id/correcties/:cid', requireAdmin, async (req, res) => {
   const record = (db.data.kas || []).find(k => k.id === id)
   if (!record) return res.status(404).json({ error: 'Not found' })
   record.correcties = (record.correcties || []).filter(c => c.id !== cid)
+  await db.write()
+  res.json({ ok: true })
+})
+
+// ─── Medewerkers ──────────────────────────────────────────────────────────────
+
+app.get('/api/employees', requireAdmin, (_req, res) => {
+  res.json(db.data.employees || [])
+})
+
+app.post('/api/employees', requireAdmin, async (req, res) => {
+  const { name, pin } = req.body
+  if (!name?.trim() || !pin) return res.status(400).json({ error: 'name en pin zijn verplicht' })
+  if (!db.data.employees) db.data.employees = []
+  const conflict =
+    pin === getAdminPin() ||
+    (getCashierPin() && pin === getCashierPin()) ||
+    (db.data.employees).some(e => e.active !== false && e.pin === pin)
+  if (conflict) return res.status(400).json({ error: 'PIN is al in gebruik' })
+  const emp = { id: nextId('_eid'), name: name.trim(), pin, active: true, created_at: new Date().toISOString() }
+  db.data.employees.push(emp)
+  await db.write()
+  res.json(emp)
+})
+
+app.put('/api/employees/:id', requireAdmin, async (req, res) => {
+  const id  = parseInt(req.params.id)
+  const emp = (db.data.employees || []).find(e => e.id === id)
+  if (!emp) return res.status(404).json({ error: 'Not found' })
+  if (req.body.name   !== undefined) emp.name   = req.body.name.trim()
+  if (req.body.active !== undefined) emp.active = req.body.active
+  if (req.body.pin    !== undefined) {
+    const conflict =
+      req.body.pin === getAdminPin() ||
+      (getCashierPin() && req.body.pin === getCashierPin()) ||
+      (db.data.employees).some(e => e.id !== id && e.active !== false && e.pin === req.body.pin)
+    if (conflict) return res.status(400).json({ error: 'PIN is al in gebruik' })
+    emp.pin = req.body.pin
+  }
+  await db.write()
+  res.json(emp)
+})
+
+app.delete('/api/employees/:id', requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id)
+  db.data.employees = (db.data.employees || []).filter(e => e.id !== id)
   await db.write()
   res.json({ ok: true })
 })

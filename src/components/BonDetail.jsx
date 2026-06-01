@@ -354,9 +354,12 @@ export default function BonDetail({ id, onBack }) {
                 </button>
               </div>
             )}
-            <div style={{ fontSize: '0.73rem', color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{ fontSize: '0.73rem', color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
               <Calendar size={11} />
               {fmtDate(receipt.created_at)}
+              {receipt.created_by && (
+                <span style={{ opacity: 0.75 }}>· {receipt.created_by}</span>
+              )}
             </div>
 
             {/* Status badge */}

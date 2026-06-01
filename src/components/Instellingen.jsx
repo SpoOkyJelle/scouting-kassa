@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { Globe, QrCode, ExternalLink, Moon, Shield, Save, KeyRound, HardDrive, Upload, Download, ImageIcon, Trash2 } from 'lucide-react'
+import { Globe, QrCode, ExternalLink, Moon, Shield, Save, KeyRound, HardDrive, Upload, Download, ImageIcon, Trash2, Users, Plus, Pencil, Check, X, Eye, EyeOff } from 'lucide-react'
 import { useLang } from '../LangContext'
-import { updateSettings, changePin, fetchBackup, restoreBackup } from '../api'
+import { updateSettings, changePin, fetchBackup, restoreBackup, fetchEmployees, createEmployee, updateEmployee, deleteEmployee } from '../api'
 import { useToast } from './Toast'
 import { useConfirm } from './ConfirmModal'
 
@@ -47,6 +47,17 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
   const [paymentName, setPaymentName] = useState(settings.paymentName ?? '')
   const [saving, setSaving] = useState(false)
   const [fontSize, setFontSizeState] = useState(() => localStorage.getItem('kassa_fontsize') || 'normal')
+
+  // Medewerkers state
+  const [employees, setEmployees]       = useState([])
+  const [empForm, setEmpForm]           = useState(null) // null | { id?, name, pin }
+  const [empSaving, setEmpSaving]       = useState(false)
+  const [empPinVisible, setEmpPinVisible] = useState(false)
+  const [showPins, setShowPins]         = useState(false)
+
+  useEffect(() => {
+    if (role === 'admin') fetchEmployees().then(setEmployees).catch(() => {})
+  }, [role])
 
   // PIN state
   const [pinTarget,  setPinTarget]  = useState('admin')
@@ -416,6 +427,177 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
               {saving ? t('loading') : t('save')}
             </button>
           </form>
+        </SettingsCard>
+      )}
+
+      {/* ── Medewerkers ───────────────────────────────────────────────────── */}
+      {role === 'admin' && (
+        <SettingsCard Icon={Users} label={t('employees_title')} color="#7C3AED">
+          <p style={{ fontSize: '0.78rem', color: 'var(--muted)', marginBottom: '0.85rem' }}>
+            {t('employees_hint')}
+          </p>
+
+          {/* Lijst */}
+          {employees.length > 0 && (
+            <div style={{
+              border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden',
+              marginBottom: '0.75rem',
+            }}>
+              {employees.map((emp, idx) => (
+                <div key={emp.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '0.6rem 0.85rem',
+                  borderTop: idx > 0 ? '1px solid var(--s100)' : 'none',
+                  background: 'var(--surface)',
+                }}>
+                  <div style={{
+                    width: 30, height: 30, borderRadius: '50%',
+                    background: emp.active === false ? 'var(--s100)' : '#EDE9FE',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: emp.active === false ? 'var(--muted)' : '#7C3AED' }}>
+                      {emp.name.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.85rem', color: emp.active === false ? 'var(--muted)' : 'var(--s800)' }}>
+                      {emp.name}
+                      {emp.active === false && <span style={{ marginLeft: 6, fontSize: '0.68rem', color: 'var(--muted)' }}>(inactief)</span>}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--muted)', fontFamily: 'monospace' }}>
+                      PIN: {showPins ? emp.pin : '●'.repeat(emp.pin?.length || 4)}
+                    </div>
+                  </div>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    style={{ padding: '3px 6px' }}
+                    onClick={() => { setEmpForm({ id: emp.id, name: emp.name, pin: emp.pin, active: emp.active !== false }); setEmpPinVisible(false) }}
+                  >
+                    <Pencil size={12} />
+                  </button>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    style={{ padding: '3px 6px', color: 'var(--danger)' }}
+                    onClick={async () => {
+                      const ok = await confirm(t('confirm_delete'))
+                      if (!ok) return
+                      await deleteEmployee(emp.id)
+                      setEmployees(prev => prev.filter(e => e.id !== emp.id))
+                      showToast(t('toast_deleted'))
+                    }}
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* PIN tonen toggle */}
+          {employees.length > 0 && (
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{ gap: 5, marginBottom: '0.6rem', color: 'var(--muted)' }}
+              onClick={() => setShowPins(v => !v)}
+            >
+              {showPins ? <EyeOff size={12} /> : <Eye size={12} />}
+              {showPins ? t('employees_hide_pins') : t('employees_show_pins')}
+            </button>
+          )}
+
+          {/* Formulier toevoegen / bewerken */}
+          {empForm ? (
+            <div style={{
+              border: '1px solid var(--primary)', borderRadius: 10,
+              padding: '0.85rem', background: 'var(--s50)',
+            }}>
+              <div style={{ fontWeight: 600, fontSize: '0.82rem', color: 'var(--s700)', marginBottom: '0.6rem' }}>
+                {empForm.id ? t('employees_edit') : t('employees_add')}
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: '0.6rem' }}>
+                <div style={{ flex: '2 1 150px' }}>
+                  <label className="form-label">{t('employees_name')}</label>
+                  <input
+                    className="form-input"
+                    placeholder={t('employees_name_ph')}
+                    value={empForm.name}
+                    onChange={e => setEmpForm(f => ({ ...f, name: e.target.value }))}
+                    autoFocus
+                  />
+                </div>
+                <div style={{ flex: '1 1 110px' }}>
+                  <label className="form-label">PIN</label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      className="form-input"
+                      type={empPinVisible ? 'text' : 'password'}
+                      inputMode="numeric"
+                      placeholder="1234"
+                      value={empForm.pin}
+                      onChange={e => setEmpForm(f => ({ ...f, pin: e.target.value.replace(/\D/g, '').slice(0, 8) }))}
+                      style={{ paddingRight: 32 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setEmpPinVisible(v => !v)}
+                      style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', padding: 2 }}
+                    >
+                      {empPinVisible ? <EyeOff size={13} /> : <Eye size={13} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              {empForm.id && (
+                <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: '0.8rem', color: 'var(--s700)', marginBottom: '0.6rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={empForm.active !== false}
+                    onChange={e => setEmpForm(f => ({ ...f, active: e.target.checked }))}
+                  />
+                  {t('employees_active')}
+                </label>
+              )}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  className="btn btn-primary btn-sm"
+                  disabled={!empForm.name?.trim() || !empForm.pin || empSaving}
+                  style={{ gap: 4 }}
+                  onClick={async () => {
+                    if (!empForm.name?.trim() || !empForm.pin) return
+                    setEmpSaving(true)
+                    try {
+                      if (empForm.id) {
+                        const updated = await updateEmployee(empForm.id, { name: empForm.name.trim(), pin: empForm.pin, active: empForm.active !== false })
+                        setEmployees(prev => prev.map(e => e.id === empForm.id ? updated : e))
+                      } else {
+                        const created = await createEmployee({ name: empForm.name.trim(), pin: empForm.pin })
+                        setEmployees(prev => [...prev, created])
+                      }
+                      showToast(t('toast_saved'))
+                      setEmpForm(null)
+                    } catch (err) {
+                      const msg = err?.message || ''
+                      showToast(msg.includes('gebruik') ? t('employees_pin_conflict') : t('employees_error'), 'error')
+                    }
+                    setEmpSaving(false)
+                  }}
+                >
+                  <Check size={13} /> {empSaving ? t('loading') : t('save')}
+                </button>
+                <button className="btn btn-ghost btn-sm" onClick={() => setEmpForm(null)}>
+                  <X size={13} /> {t('cancel')}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              className="btn btn-outline btn-sm"
+              style={{ gap: 5 }}
+              onClick={() => { setEmpForm({ name: '', pin: '', active: true }); setEmpPinVisible(true) }}
+            >
+              <Plus size={13} /> {t('employees_add')}
+            </button>
+          )}
         </SettingsCard>
       )}
     </div>

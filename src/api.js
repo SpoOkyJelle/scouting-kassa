@@ -76,6 +76,10 @@ export const restoreBackup  = (data) => req('/restore', { method: 'POST', body: 
 
 export const fetchSettings       = ()     => req('/settings')
 export const updateSettings      = (data) => req('/settings', { method: 'PUT', body: JSON.stringify(data) })
+export const fetchEmployees   = ()         => req('/employees')
+export const createEmployee  = (data)     => req('/employees', { method: 'POST', body: JSON.stringify(data) })
+export const updateEmployee  = (id, data) => req(`/employees/${id}`, { method: 'PUT', body: JSON.stringify(data) })
+export const deleteEmployee  = (id)       => req(`/employees/${id}`, { method: 'DELETE' })
 export const fetchKitchenOrders  = ()                    => req('/kitchen')
 export const toggleKitchenItem   = (receiptId, itemId)   => req(`/kitchen/${receiptId}/items/${itemId}`, { method: 'PATCH' })
 export const resetKitchenOrder   = (receiptId)           => req(`/kitchen/${receiptId}/reset`, { method: 'PATCH' })

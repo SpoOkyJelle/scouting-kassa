@@ -19,10 +19,12 @@ export default function LoginScreen({ onLogin, lang, setLang }) {
     setLoading(true)
     setError(false)
     try {
-      const { token, role } = await login(pin)
+      const { token, role, employeeName } = await login(pin)
       localStorage.setItem('kassa_token', token)
       localStorage.setItem('kassa_role', role || 'admin')
-      onLogin(token, role || 'admin')
+      if (employeeName) localStorage.setItem('kassa_employee', employeeName)
+      else localStorage.removeItem('kassa_employee')
+      onLogin(token, role || 'admin', employeeName || '')
     } catch {
       setError(true)
       setShake(true)

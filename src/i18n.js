@@ -267,6 +267,19 @@ export const translations = {
     split_fill:      'Vul aan tot maximum',
     split_confirm:   'Bevestig betaling',
 
+    // Medewerkers
+    employees_title:       'Medewerkers',
+    employees_hint:        'Elke medewerker logt in met zijn eigen PIN. Ze krijgen kassier-toegang en hun naam wordt bijgehouden op nieuwe bonnen.',
+    employees_add:         'Medewerker toevoegen',
+    employees_edit:        'Medewerker bewerken',
+    employees_name:        'Naam',
+    employees_name_ph:     'Bijv. Jan de Vries',
+    employees_active:      'Actief (kan inloggen)',
+    employees_show_pins:   'PINs tonen',
+    employees_hide_pins:   'PINs verbergen',
+    employees_pin_conflict:'Deze PIN is al in gebruik',
+    employees_error:       'Fout bij opslaan',
+
     // Tafelindeling
     tafels_tab:         'Tafels',
     tafels_title:       'Tafelindeling',
@@ -549,6 +562,19 @@ export const translations = {
     kas_correctie_no_desc:  'No description',
     kas_correctie_contant:  'Cash correction',
     kas_correctie_qr:       'QR correction',
+
+    // Employees
+    employees_title:       'Employees',
+    employees_hint:        'Each employee logs in with their own PIN. They get cashier access and their name is tracked on new receipts.',
+    employees_add:         'Add employee',
+    employees_edit:        'Edit employee',
+    employees_name:        'Name',
+    employees_name_ph:     'E.g. John Smith',
+    employees_active:      'Active (can log in)',
+    employees_show_pins:   'Show PINs',
+    employees_hide_pins:   'Hide PINs',
+    employees_pin_conflict:'This PIN is already in use',
+    employees_error:       'Error saving',
 
     // Table layout
     tafels_tab:         'Tables',

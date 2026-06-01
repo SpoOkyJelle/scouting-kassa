@@ -60,6 +60,7 @@ export default function App() {
   const [darkMode, setDarkModeRaw]    = useState(() => localStorage.getItem('kassa_theme') === 'dark')
   const [tab, setTab]                 = useState('receipts')
   const [detailId, setDetailId]       = useState(null)
+  const [employeeName, setEmployeeName] = useState(() => localStorage.getItem('kassa_employee') || '')
   const [showPayment, setShowPayment]       = useState(false)
   const [showDisplay, setShowDisplay]       = useState(false)
   const [displayCopied, setDisplayCopied]   = useState(false)
@@ -163,9 +164,12 @@ export default function App() {
 
   function handleTabChange(id) { navigateTo(id) }
 
-  function handleLogin(tok, r) {
+  function handleLogin(tok, r, empName = '') {
     setToken(tok)
     setRole(r || 'admin')
+    setEmployeeName(empName)
+    if (empName) localStorage.setItem('kassa_employee', empName)
+    else localStorage.removeItem('kassa_employee')
     history.replaceState({ tab: 'receipts', detailId: null }, '')
   }
 
@@ -175,6 +179,8 @@ export default function App() {
     setRole('admin')
     setTab('receipts')
     setDetailId(null)
+    setEmployeeName('')
+    localStorage.removeItem('kassa_employee')
     history.replaceState({ tab: 'receipts', detailId: null }, '')
   }
 
@@ -252,6 +258,15 @@ export default function App() {
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {employeeName && (
+                      <span style={{
+                        fontSize: '0.72rem', fontWeight: 600, color: 'rgba(255,255,255,0.65)',
+                        padding: '3px 8px', background: 'rgba(255,255,255,0.1)',
+                        borderRadius: 20, whiteSpace: 'nowrap',
+                      }}>
+                        {employeeName}
+                      </span>
+                    )}
                     <button
                       className="btn btn-sm"
                       onClick={() => window.open('/kitchen', '_blank')}

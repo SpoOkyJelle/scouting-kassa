@@ -31,4 +31,4 @@
 
 ## Cassier login
 
-- [ ] **Losse logins** — Alle werknemers krijgen losse logins zodat zij op hun telefoon een POS krijgen om bestellingen op te nemen of op een centrale computer op hun naam kunnen registreren.
+- [x] **Losse logins** — Alle werknemers krijgen losse logins zodat zij op hun telefoon een POS krijgen om bestellingen op te nemen of op een centrale computer op hun naam kunnen registreren.
