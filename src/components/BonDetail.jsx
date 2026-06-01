@@ -53,7 +53,7 @@ export default function BonDetail({ id, onBack }) {
   const [loading, setLoading]               = useState(true)
   const [showAdd, setShowAdd]               = useState(false)
   const [showSplitPay, setShowSplitPay]     = useState(false)
-  const [splitAmounts, setSplitAmounts]     = useState({ contant: '', pin: '', qr: '' })
+  const [splitAmounts, setSplitAmounts]     = useState({ contant: '', qr: '' })
   const [savingPayment, setSavingPayment]   = useState(false)
   const [editingName, setEditingName]       = useState(false)
   const [nameInput, setNameInput]           = useState('')
@@ -72,6 +72,8 @@ export default function BonDetail({ id, onBack }) {
   const receiptRef          = useRef(null)
   const paymentRequestedRef = useRef(false)
   const [showPayOnDisplay, setShowPayOnDisplay] = useState(false)
+  const showOnDisplayRef = useRef(false)
+  const [showOnDisplay, setShowOnDisplay] = useState(false)
 
   useEffect(() => {
     setLoading(true)
@@ -83,7 +85,6 @@ export default function BonDetail({ id, onBack }) {
       setDonationInput(String(rec.donation || 0))
       setNoteInput(rec.note || '')
       setLoading(false)
-      pushToDisplay(rec)
     })
   }, [id])
 
@@ -94,8 +95,9 @@ export default function BonDetail({ id, onBack }) {
     return () => {
       setTimeout(() => {
         if (_displayMountGen === gen) {
-          clearDisplay().catch(() => {})
+          if (showOnDisplayRef.current) clearDisplay().catch(() => {})
           paymentRequestedRef.current = false
+          showOnDisplayRef.current = false
         }
       }, 150)
     }
@@ -130,36 +132,57 @@ export default function BonDetail({ id, onBack }) {
     const next = !paymentRequestedRef.current
     paymentRequestedRef.current = next
     setShowPayOnDisplay(next)
+    if (next && !showOnDisplayRef.current) {
+      showOnDisplayRef.current = true
+      setShowOnDisplay(true)
+    }
     if (receiptRef.current) pushToDisplay(receiptRef.current)
+  }
+
+  function maybePushToDisplay(rec) {
+    if (showOnDisplayRef.current) pushToDisplay(rec)
+  }
+
+  function toggleShowOnDisplay() {
+    const next = !showOnDisplayRef.current
+    showOnDisplayRef.current = next
+    setShowOnDisplay(next)
+    if (next) {
+      if (receiptRef.current) pushToDisplay(receiptRef.current)
+    } else {
+      paymentRequestedRef.current = false
+      setShowPayOnDisplay(false)
+      clearDisplay().catch(() => {})
+    }
   }
 
   async function markPaid(method) {
     const updated = await updateReceipt(id, { paid: true, payment_method: method })
     const rec = { ...receipt, ...updated }
-    setReceiptAndRef(rec); pushToDisplay(rec)
+    setReceiptAndRef(rec); maybePushToDisplay(rec)
     showToast(t('toast_marked_paid'))
   }
 
   async function markUnpaid() {
     const updated = await updateReceipt(id, { paid: false, payment_method: null, payments: [] })
     const rec = { ...receipt, ...updated }
-    setReceiptAndRef(rec); pushToDisplay(rec)
+    setReceiptAndRef(rec); maybePushToDisplay(rec)
     setShowSplitPay(false)
-    setSplitAmounts({ contant: '', pin: '', qr: '' })
+    setSplitAmounts({ contant: '', qr: '' })
     showToast(t('toast_marked_unpaid'))
   }
 
   async function confirmSplitPay() {
-    const payments = ['contant', 'pin', 'qr']
+    const payments = ['contant', 'qr']
       .map(method => ({ method, amount: Math.round((parseFloat(splitAmounts[method]) || 0) * 100) / 100 }))
       .filter(p => p.amount > 0)
     if (!payments.length) return
     setSavingPayment(true)
     const updated = await updateReceipt(id, { paid: true, payment_method: payments[0].method, payments })
     const rec = { ...receipt, ...updated }
-    setReceiptAndRef(rec); pushToDisplay(rec)
+    setReceiptAndRef(rec); maybePushToDisplay(rec)
     setShowSplitPay(false)
-    setSplitAmounts({ contant: '', pin: '', qr: '' })
+    setSplitAmounts({ contant: '', qr: '' })
     setSavingPayment(false)
     showToast(t('toast_marked_paid'))
   }
@@ -167,7 +190,7 @@ export default function BonDetail({ id, onBack }) {
   async function setPaymentMethod(method) {
     const updated = await updateReceipt(id, { payment_method: method })
     const rec = { ...receipt, payment_method: updated.payment_method }
-    setReceiptAndRef(rec); pushToDisplay(rec)
+    setReceiptAndRef(rec); maybePushToDisplay(rec)
     showToast(t('toast_saved'))
   }
 
@@ -182,7 +205,7 @@ export default function BonDetail({ id, onBack }) {
   async function saveName() {
     const updated = await updateReceipt(id, { name: nameInput || null })
     const rec = { ...receipt, ...updated }
-    setReceiptAndRef(rec); pushToDisplay(rec)
+    setReceiptAndRef(rec); maybePushToDisplay(rec)
     setEditingName(false)
     showToast(t('toast_saved'))
   }
@@ -190,7 +213,7 @@ export default function BonDetail({ id, onBack }) {
   async function saveNote() {
     const updated = await updateReceipt(id, { note: noteInput.trim() || null })
     const rec = { ...receipt, ...updated }
-    setReceiptAndRef(rec); pushToDisplay(rec)
+    setReceiptAndRef(rec); maybePushToDisplay(rec)
     setEditingNote(false)
     showToast(t('toast_saved'))
   }
@@ -200,7 +223,7 @@ export default function BonDetail({ id, onBack }) {
     setSavingDiscount(true)
     const updated = await updateReceipt(id, { discount_pct: pct })
     const rec = { ...receipt, ...updated }
-    setReceiptAndRef(rec); pushToDisplay(rec)
+    setReceiptAndRef(rec); maybePushToDisplay(rec)
     setSavingDiscount(false)
     showToast(t('toast_saved'))
   }
@@ -210,7 +233,7 @@ export default function BonDetail({ id, onBack }) {
     setSavingDiscount(true)
     const updated = await updateReceipt(id, { discount_pct: pct })
     const rec = { ...receipt, ...updated }
-    setReceiptAndRef(rec); pushToDisplay(rec)
+    setReceiptAndRef(rec); maybePushToDisplay(rec)
     setSavingDiscount(false)
     showToast(t('toast_saved'))
   }
@@ -220,7 +243,7 @@ export default function BonDetail({ id, onBack }) {
     setSavingDonation(true)
     const updated = await updateReceipt(id, { donation: amt })
     const rec = { ...receipt, ...updated }
-    setReceiptAndRef(rec); pushToDisplay(rec)
+    setReceiptAndRef(rec); maybePushToDisplay(rec)
     setSavingDonation(false)
     showToast(t('toast_saved'))
   }
@@ -236,7 +259,7 @@ export default function BonDetail({ id, onBack }) {
       newItems = receipt.items.map(i => i.id === item.id ? { ...i, quantity: newQty } : i)
     }
     const rec = { ...receipt, items: newItems }
-    setReceiptAndRef(rec); pushToDisplay(rec)
+    setReceiptAndRef(rec); maybePushToDisplay(rec)
   }
 
   async function addProduct(product) {
@@ -249,7 +272,7 @@ export default function BonDetail({ id, onBack }) {
         product_price: product.price, quantity: 1,
       })
       const rec = { ...receipt, items: [...receipt.items, newItem] }
-      setReceiptAndRef(rec); pushToDisplay(rec)
+      setReceiptAndRef(rec); maybePushToDisplay(rec)
     }
   }
 
@@ -403,7 +426,7 @@ export default function BonDetail({ id, onBack }) {
                       gap: 5,
                     }}
                   >
-                    <QrCode size={13} /> Betalen
+                    <QrCode size={13} /> Toon betaalverzoek
                   </button>
                   <button
                     className="btn btn-sm no-print"
@@ -428,6 +451,17 @@ export default function BonDetail({ id, onBack }) {
               )}
             </div>
             <div style={{ display: 'flex', gap: 5 }}>
+              <button
+                className="btn btn-ghost btn-sm no-print"
+                onClick={toggleShowOnDisplay}
+                style={{
+                  color: showOnDisplay ? '#86efac' : 'rgba(255,255,255,0.6)',
+                  background: showOnDisplay ? 'rgba(22,163,74,0.25)' : 'rgba(255,255,255,0.08)',
+                  fontSize: '0.72rem', gap: 4,
+                }}
+              >
+                <Monitor size={12} /> {showOnDisplay ? 'Op scherm' : 'Toon op scherm'}
+              </button>
               <button className="btn btn-ghost btn-sm no-print" onClick={() => setShowKiosk(true)} style={{ color: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.08)', fontSize: '0.72rem' }}>
                 <Monitor size={12} /> {t('kiosk_mode')}
               </button>
@@ -446,7 +480,6 @@ export default function BonDetail({ id, onBack }) {
       {!isPaid && showSplitPay && (() => {
         const METHODS = [
           { key: 'contant', Icon: Banknote,   label: t('payment_method_contant') },
-          { key: 'pin',     Icon: CreditCard, label: t('payment_method_pin') },
           { key: 'qr',      Icon: Smartphone, label: t('payment_method_qr') },
         ]
         const entered   = METHODS.reduce((s, m) => s + (parseFloat(splitAmounts[m.key]) || 0), 0)
@@ -542,7 +575,7 @@ export default function BonDetail({ id, onBack }) {
               </button>
               <button
                 className="btn btn-ghost"
-                onClick={() => { setShowSplitPay(false); setSplitAmounts({ contant: '', pin: '', qr: '' }) }}
+                onClick={() => { setShowSplitPay(false); setSplitAmounts({ contant: '', qr: '' }) }}
               >
                 {t('cancel')}
               </button>
@@ -699,7 +732,6 @@ export default function BonDetail({ id, onBack }) {
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {[
                 { key: 'contant', Icon: Banknote,   label: t('payment_method_contant') },
-                { key: 'pin',     Icon: CreditCard, label: t('payment_method_pin') },
                 { key: 'qr',      Icon: Smartphone, label: t('payment_method_qr') },
               ].map(({ key, Icon, label }) => (
                 <button
