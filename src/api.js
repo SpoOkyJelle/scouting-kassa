@@ -76,6 +76,11 @@ export const restoreBackup  = (data) => req('/restore', { method: 'POST', body: 
 
 export const fetchSettings       = ()     => req('/settings')
 export const updateSettings      = (data) => req('/settings', { method: 'PUT', body: JSON.stringify(data) })
+export const fetchIngredients      = ()         => req('/ingredients')
+export const createIngredient     = (data)     => req('/ingredients', { method: 'POST', body: JSON.stringify(data) })
+export const updateIngredient     = (id, data) => req(`/ingredients/${id}`, { method: 'PUT', body: JSON.stringify(data) })
+export const deleteIngredient     = (id)       => req(`/ingredients/${id}`, { method: 'DELETE' })
+export const updateProductRecipe  = (id, recipe) => req(`/products/${id}`, { method: 'PUT', body: JSON.stringify({ recipe }) })
 export const fetchEmployees   = ()         => req('/employees')
 export const createEmployee  = (data)     => req('/employees', { method: 'POST', body: JSON.stringify(data) })
 export const updateEmployee  = (id, data) => req(`/employees/${id}`, { method: 'PUT', body: JSON.stringify(data) })

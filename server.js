@@ -23,7 +23,7 @@ if (!ADMIN_PIN) {
 // ─── Database ─────────────────────────────────────────────────────────────────
 const adapter = new JSONFile(join(__dirname, 'kassa.json'))
 const db = new Low(adapter, {
-  products: [], receipts: [], sessions: {}, settings: {}, inkoop: [], kas: [], employees: [], _pid: 0, _rid: 0, _iid: 0, _bid: 0, _kid: 0, _eid: 0,
+  products: [], receipts: [], sessions: {}, settings: {}, inkoop: [], kas: [], employees: [], ingredients: [], _pid: 0, _rid: 0, _iid: 0, _bid: 0, _kid: 0, _eid: 0, _ingid: 0,
 })
 await db.read()
 
@@ -314,10 +314,47 @@ app.put('/api/products/:id', requireAdmin, async (req, res) => {
   if (req.body.name      !== undefined) p.name      = req.body.name
   if (req.body.price     !== undefined) p.price     = parseFloat(req.body.price)
   if (req.body.category  !== undefined) p.category  = req.body.category || 'overig'
-  if (req.body.available !== undefined) p.available = req.body.available !== false
+  if (req.body.available  !== undefined) p.available  = req.body.available !== false
   if (req.body.cost_price !== undefined) p.cost_price = req.body.cost_price != null ? parseFloat(req.body.cost_price) : null
+  if (req.body.recipe     !== undefined) p.recipe     = req.body.recipe || []
   await db.write()
   res.json(p)
+})
+
+// ─── Ingrediënten ─────────────────────────────────────────────────────────────
+
+app.get('/api/ingredients', requireAdmin, (_req, res) => {
+  res.json(db.data.ingredients || [])
+})
+
+app.post('/api/ingredients', requireAdmin, async (req, res) => {
+  const { name, unit } = req.body
+  if (!name?.trim()) return res.status(400).json({ error: 'name required' })
+  if (!db.data.ingredients) db.data.ingredients = []
+  const ing = { id: nextId('_ingid'), name: name.trim(), unit: (unit || 'stuks').trim() }
+  db.data.ingredients.push(ing)
+  await db.write()
+  res.json(ing)
+})
+
+app.put('/api/ingredients/:id', requireAdmin, async (req, res) => {
+  const ing = (db.data.ingredients || []).find(i => i.id === parseInt(req.params.id))
+  if (!ing) return res.status(404).json({ error: 'Not found' })
+  if (req.body.name !== undefined) ing.name = req.body.name.trim()
+  if (req.body.unit !== undefined) ing.unit = req.body.unit.trim()
+  await db.write()
+  res.json(ing)
+})
+
+app.delete('/api/ingredients/:id', requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id)
+  db.data.ingredients = (db.data.ingredients || []).filter(i => i.id !== id)
+  // Verwijder uit recepten
+  db.data.products.forEach(p => {
+    if (p.recipe) p.recipe = p.recipe.filter(r => r.ingredient_id !== id)
+  })
+  await db.write()
+  res.json({ ok: true })
 })
 
 app.delete('/api/products/:id', requireAdmin, async (req, res) => {

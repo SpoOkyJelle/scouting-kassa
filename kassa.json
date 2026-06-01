@@ -48,7 +48,13 @@
       "created_at": "2026-05-27T09:26:15.262Z",
       "sort_order": 4,
       "available": true,
-      "cost_price": null
+      "cost_price": null,
+      "recipe": [
+        {
+          "ingredient_id": 1,
+          "quantity": 2
+        }
+      ]
     },
     {
       "id": 6,
@@ -4044,5 +4050,13 @@
       "created_at": "2026-06-01T08:56:31.506Z"
     }
   ],
-  "_eid": 1
+  "_eid": 1,
+  "ingredients": [
+    {
+      "id": 1,
+      "name": "Spek",
+      "unit": "plakjes"
+    }
+  ],
+  "_ingid": 1
 }
