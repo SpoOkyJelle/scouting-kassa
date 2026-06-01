@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Check, FileText, BarChart2, LogOut, WifiOff, QrCode, Settings, Layers, Monitor, Copy, ExternalLink, X, LayoutGrid } from 'lucide-react'
 import { translations } from './i18n'
-import { logout as apiLogout, fetchSettings } from './api'
+import { logout as apiLogout, fetchSettings, fetchAccount } from './api'
 import { LangContext } from './LangContext'
 import { SettingsContext } from './SettingsContext'
 import { ToastProvider } from './components/Toast'
 import { ConfirmProvider } from './components/ConfirmModal'
 import PaymentModal from './components/PaymentModal'
+import SubscriptionBanner from './components/SubscriptionBanner'
 import LoginScreen from './components/LoginScreen'
 import Bonnen      from './components/Bonnen'
 import NieuweBon   from './components/NieuweBon'
@@ -69,6 +70,7 @@ export default function App() {
   const [displayCopied, setDisplayCopied]   = useState(false)
   const [prefilledBonNaam, setPrefilledBonNaam] = useState('')
   const [appSettings, setAppSettings]       = useState({ paymentUrl: '', paymentName: '' })
+  const [account, setAccount]               = useState(null)
 
   const t = key => translations[lang]?.[key] ?? key
 
@@ -94,12 +96,28 @@ export default function App() {
     document.documentElement.style.fontSize = fsMap[fs] || '100%'
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load settings when logged in
+  // Load settings + account when logged in
   useEffect(() => {
     if (token) {
       fetchSettings().then(setAppSettings).catch(() => {})
+      fetchAccount().then(setAccount).catch(() => {})
+    } else {
+      setAccount(null)
     }
   }, [token])
+
+  // Handle Stripe checkout return
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('checkout') === 'success') {
+      window.history.replaceState({}, '', '/')
+      // Toast wordt getoond via de checkout param — kleine timeout zodat ToastProvider klaar is
+      setTimeout(() => {
+        const ev = new CustomEvent('tickd:toast', { detail: { message: 'Abonnement geactiveerd! Welkom bij Tickd Pro.', type: 'success' } })
+        window.dispatchEvent(ev)
+      }, 300)
+    }
+  }, [])
 
   // Update favicon when logo changes
   useEffect(() => {
@@ -238,6 +256,7 @@ export default function App() {
               <LoginScreen onLogin={handleLogin} lang={lang} setLang={setLang} />
             ) : (
               <>
+                <SubscriptionBanner account={account} onRefresh={() => fetchAccount().then(setAccount).catch(() => {})} />
                 {/* ── Header ──────────────────────────────────────────────── */}
                 <header className="header">
                   <div className="header-brand">

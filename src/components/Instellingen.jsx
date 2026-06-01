@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { Globe, QrCode, ExternalLink, Moon, Shield, Save, KeyRound, HardDrive, Upload, Download, ImageIcon, Trash2, Users, Plus, Pencil, Check, X, Eye, EyeOff } from 'lucide-react'
+import { Globe, QrCode, ExternalLink, Moon, Shield, Save, HardDrive, Upload, Download, ImageIcon, Trash2, Users, Plus, Pencil, Check, X, Eye, EyeOff } from 'lucide-react'
 import { useLang } from '../LangContext'
-import { updateSettings, changePin, fetchBackup, restoreBackup, fetchEmployees, createEmployee, updateEmployee, deleteEmployee } from '../api'
+import { updateSettings, fetchBackup, restoreBackup, fetchEmployees, createEmployee, updateEmployee, deleteEmployee } from '../api'
 import { useToast } from './Toast'
 import { useConfirm } from './ConfirmModal'
+import AccountDashboard from './AccountDashboard'
 
 function SettingsCard({ Icon, label, color = 'var(--primary)', children }) {
   return (
@@ -59,13 +60,6 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
     if (role === 'admin') fetchEmployees().then(setEmployees).catch(() => {})
   }, [role])
 
-  // PIN state
-  const [pinTarget,  setPinTarget]  = useState('admin')
-  const [currentPin, setCurrentPin] = useState('')
-  const [newPin,     setNewPin]     = useState('')
-  const [confirmPin, setConfirmPin] = useState('')
-  const [pinSaving,  setPinSaving]  = useState(false)
-
   function applyFontSize(key) {
     const map = { small: '90%', normal: '100%', large: '115%' }
     document.documentElement.style.fontSize = map[key]
@@ -89,21 +83,6 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
       showToast(t('toast_no_access'), 'error')
     }
     setSaving(false)
-  }
-
-  async function handleChangePin(e) {
-    e.preventDefault()
-    if (newPin.length < 4) return showToast(t('settings_pin_min'), 'error')
-    if (newPin !== confirmPin) return showToast(t('settings_pin_mismatch'), 'error')
-    setPinSaving(true)
-    try {
-      await changePin({ currentPin, newPin, target: pinTarget })
-      showToast(t('settings_pin_success'))
-      setCurrentPin(''); setNewPin(''); setConfirmPin('')
-    } catch (err) {
-      showToast(err.message.includes('403') ? t('settings_pin_wrong') : err.message, 'error')
-    }
-    setPinSaving(false)
   }
 
   async function handleBackupDownload() {
@@ -180,6 +159,9 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
 
   return (
     <div style={{ maxWidth: 560 }}>
+
+      {/* ── Account & Abonnement ─────────────────────────────────────────── */}
+      {role === 'admin' && <AccountDashboard />}
 
       {/* ── Logo ────────────────────────────────────────────────────────── */}
       {role === 'admin' && (
@@ -290,62 +272,6 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
           </div>
         )}
       </SettingsCard>
-
-      {/* ── PIN wijzigen ────────────────────────────────────────────────── */}
-      {role === 'admin' && (
-        <SettingsCard Icon={KeyRound} label={t('settings_pin_section')} color="#DC2626">
-          {/* Kies PIN type */}
-          <div style={{ display: 'flex', gap: 6, marginBottom: '0.85rem' }}>
-            {[
-              { key: 'admin',   label: t('settings_pin_admin') },
-              { key: 'cashier', label: t('settings_pin_cashier') },
-            ].map(({ key, label }) => (
-              <button
-                key={key}
-                className={`btn btn-sm ${pinTarget === key ? 'btn-primary' : 'btn-outline'}`}
-                onClick={() => setPinTarget(key)}
-                style={{ flex: 1 }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <form onSubmit={handleChangePin} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <input
-              className="form-input"
-              type="password"
-              inputMode="numeric"
-              placeholder={t('settings_pin_current')}
-              value={currentPin}
-              onChange={e => setCurrentPin(e.target.value)}
-              required
-            />
-            <input
-              className="form-input"
-              type="password"
-              inputMode="numeric"
-              placeholder={t('settings_pin_new')}
-              value={newPin}
-              onChange={e => setNewPin(e.target.value)}
-              minLength={4}
-              required
-            />
-            <input
-              className="form-input"
-              type="password"
-              inputMode="numeric"
-              placeholder={t('settings_pin_confirm')}
-              value={confirmPin}
-              onChange={e => setConfirmPin(e.target.value)}
-              required
-            />
-            <button type="submit" className="btn btn-primary" disabled={pinSaving} style={{ gap: 6 }}>
-              <KeyRound size={14} />
-              {pinSaving ? t('loading') : t('save')}
-            </button>
-          </form>
-        </SettingsCard>
-      )}
 
       {/* ── Backup & Herstel ────────────────────────────────────────────── */}
       {role === 'admin' && (

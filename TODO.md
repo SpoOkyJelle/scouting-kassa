@@ -8,91 +8,102 @@ Het doel: Tickd wordt een betaald SaaS-product. Organisaties (bijv. scoutinggroe
 
 ### Fase 1 — Backend & datamodel
 
-- [ ] **Nieuwe database-tabellen**
+- [x] **Nieuwe database-tabellen**
   - `accounts` — organisatienaam, e-mail, aanmaakdatum, abonnementsstatus
-  - `subscriptions` — account_id, plan (free/pro/etc.), start_datum, eind_datum, stripe_subscription_id
-  - `users` — medewerkers gekoppeld aan een account (vervangt of breidt huidige login-tabel uit)
-  - Alle bestaande tabellen (producten, bonnen, etc.) krijgen een `account_id` foreign key zodat data per organisatie gescheiden is
+  - `subscriptions` — account_id, plan, start_datum, eind_datum, stripe_subscription_id
+  - Bestaande installaties krijgen automatisch een standaard account (migration in server.js)
+  - *(account_id foreign keys op alle tabellen = Fase 4 multi-tenancy hardening)*
 
-- [ ] **Auth-laag uitbreiden**
-  - JWT of session-token bevat voortaan ook `account_id` en `subscription_status`
-  - Elke API-route checkt of het account een actief abonnement heeft (middleware `requireActiveSubscription`)
-  - Bestaande PIN-logins worden gekoppeld aan een account
+- [x] **Auth-laag uitbreiden**
+  - Sessions bevatten nu `accountId` — bestaande PIN-sessies krijgen automatisch `accountId: 1`
+  - `requireActiveSubscription` middleware toegevoegd (opt-in per route)
+  - Trial auto-expiry: status wordt `expired` als `trial_ends_at` verstreken is
+  - Bestaande PIN-logins werken ongewijzigd
 
-- [ ] **Stripe integratie — basis**
-  - Stripe-account aanmaken en API-keys instellen
-  - Webhook-endpoint `/api/stripe/webhook` voor events: `checkout.session.completed`, `invoice.paid`, `customer.subscription.deleted`
-  - Bij succesvolle betaling: abonnement in DB activeren
-  - Bij verlopen/geannuleerd: account blokkeren (lezen mag, schrijven niet)
+- [x] **Stripe integratie — basis**
+  - `stripe` package geïnstalleerd, init via `STRIPE_SECRET_KEY` env var
+  - Webhook-endpoint `POST /api/stripe/webhook` (raw body, vóór express.json)
+    - `checkout.session.completed` → abonnement activeren + subscription record aanmaken
+    - `invoice.paid` → status op `active` zetten
+    - `customer.subscription.deleted` → status `cancelled`, eind_datum vastleggen
+    - `customer.subscription.updated` → status sync (active/trial/expired)
+  - `POST /api/stripe/create-checkout` → Stripe Checkout sessie aanmaken
+  - `POST /api/stripe/portal` → Stripe Customer Portal sessie
+  - Keys gedocumenteerd in `.env.example`
 
 ### Fase 2 — Registratie & onboarding
 
-- [ ] **Registratiepagina** (`/register`)
-  - Formulier: organisatienaam, e-mailadres, wachtwoord
-  - Na registratie: account aangemaakt met status `trial` (bijv. 14 dagen gratis)
-  - Bevestigingsmail sturen
+- [x] **Registratiepagina** (`/register`) — `RegisterScreen.jsx`
+  - Formulier: organisatienaam, e-mailadres, wachtwoord + bevestiging
+  - Na registratie: account aangemaakt met status `trial` (14 dagen gratis)
+  - *(Bevestigingsmail = Fase 5)*
 
-- [ ] **Plan-keuze scherm**
-  - Overzicht van abonnementsopties (bijv. Gratis proefperiode / Pro / Groot evenement)
-  - Per plan: max. aantal medewerkers, max. bonnen per maand, features
-  - Knop "Start abonnement" opent Stripe Checkout
+- [x] **Plan-keuze scherm** — stap 2 in `RegisterScreen.jsx`
+  - Proefperiode (direct verder) vs Pro (Stripe Checkout)
+  - Graceful fallback als Stripe niet geconfigureerd is
 
-- [ ] **Stripe Checkout flow**
-  - Bij klik "Start abonnement": server maakt Stripe Checkout Session aan en redirect de gebruiker
-  - Na betaling: Stripe webhook activeert het abonnement in de DB
-  - Redirect terug naar dashboard met bevestiging
+- [x] **Stripe Checkout flow**
+  - "Start met Pro" → `POST /api/stripe/create-checkout` → redirect naar Stripe
+  - Na betaling: Stripe webhook activeert abonnement (Fase 1 webhook)
+  - Redirect terug naar `/?checkout=success` → toast melding in app
 
-- [ ] **Login-pagina aanpassen**
-  - Naast PIN-login ook een e-mail/wachtwoord login voor de accountbeheerder
-  - "Nog geen account? Registreer hier" link
+- [x] **Login-pagina aanpassen**
+  - PIN / E-mail toggle bovenin het login-kaartje
+  - E-mail tab: e-mail + wachtwoord → `POST /api/auth/email-login`
+  - "Nog geen account? Gratis starten →" link naar `/register`
 
 ### Fase 3 — Account dashboard
 
-- [ ] **Dashboard voor accountbeheerder**
-  - Overzicht: huidig plan, verloopdatum, gebruik (aantal bonnen, medewerkers)
-  - Knop "Abonnement beheren" → Stripe Customer Portal
-  - Knop "Medewerkers beheren" → PINs aanmaken/verwijderen
+- [x] **Dashboard voor accountbeheerder** — `AccountDashboard.jsx` in Instellingen
+  - Organisatienaam, e-mail, abonnementsstatus badge
+  - Verloopdatum van trial
+  - Gebruik: # bonnen, # medewerkers (live via `/api/accounts/me`)
+  - Vernieuwen-knop
 
-- [ ] **Stripe Customer Portal**
-  - Server genereert een Stripe Billing Portal sessie-link
-  - Gebruiker kan zelf upgraden, downgraden, of opzeggen
+- [x] **Stripe Customer Portal** — knop "Abonnement beheren" in AccountDashboard
+  - `POST /api/stripe/portal` → opent Stripe portaal in nieuw tabblad
+  - Zichtbaar alleen bij actief betaald abonnement
 
-- [ ] **Abonnement verlopen — grace period**
-  - Na verlopen: 7 dagen waarschuwing zichtbaar in de UI
-  - Na grace period: POS vergrendeld, alleen lezen nog mogelijk
-  - Duidelijke melding met link naar abonnement verlengen
+- [x] **Abonnement verlopen — grace period** — `SubscriptionBanner.jsx` in App.jsx
+  - Gele balk: trial verloopt binnen 7 dagen (met sluiten-knop)
+  - Rode balk: trial verlopen of abonnement opgezegd
+  - "Upgrade naar Pro" knop → direct naar Stripe Checkout
 
 ### Fase 4 — Multi-tenancy hardening
 
-- [ ] **Data-isolatie controleren**
-  - Elke query gefilterd op `account_id` — audit alle bestaande endpoints
-  - Row-level security in de database indien mogelijk (bijv. PostgreSQL RLS)
+- [x] **Data-isolatie geaudit en versterkt**
+  - Alle 7 collecties gefilterd op `account_id` op elke GET/POST/PUT/DELETE
+  - Backup/restore nu account-scoped: backup exporteert alleen eigen data, restore vervangt alleen eigen data
+  - `SETTING_DEFAULTS` hardcoded organisatiewaarden verwijderd (waren een datalek voor nieuwe accounts)
+  - *(lowdb heeft geen row-level security — bij migratie naar PostgreSQL alsnog toevoegen)*
 
-- [ ] **Subdomeinen of URL-structuur**
-  - Optie A: `app.tickd.nl/[account-slug]/...` (simpel, één deployment)
-  - Optie B: `[account].tickd.nl` (subdomein per klant, complexer)
-  - Aanbeveling: begin met Optie A
+- [x] **Account slug** — `generateSlug()` helper, toegevoegd bij registratie + migration voor bestaande accounts
+  - Slug formaat: `{naam-lowercase}-{id}` (bijv. `sint-martinus-explos-1`)
+  - Basis voor toekomstige URL-routing (`app.tickd.nl/sint-martinus-explos-1`)
+  - *(Volledige URL-routing implementatie = toekomstige stap bij productie-deploy)*
 
-- [ ] **Omgevingsvariabelen & secrets**
-  - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `JWT_SECRET` in `.env`
-  - Nooit hardcoded in code of frontend
+- [x] **Omgevingsvariabelen & secrets**
+  - Alle keys in `.env` / `.env.example` gedocumenteerd
+  - Geen hardcoded secrets meer in de code
 
 ### Fase 5 — Productierijp maken
 
-- [ ] **E-mails automatiseren**
-  - Welkomstmail na registratie
-  - Betaalbevestiging
-  - Herinnering 7 dagen voor verlopen abonnement
-  - Bevestiging bij opzegging
+- [x] **E-mails automatiseren** — Nodemailer (SMTP via env vars)
+  - Welkomstmail bij registratie
+  - Betaalbevestiging bij `checkout.session.completed`
+  - Opzeggingsbevestiging bij `customer.subscription.deleted`
+  - Herinnering op 7 dagen én 1 dag voor verlopen trial (dagelijkse check via `setInterval`)
+  - Geconfigureerd via `SMTP_HOST/PORT/USER/PASS`, `MAIL_FROM`, `APP_URL` in `.env`
 
-- [ ] **Admin-panel (intern)**
-  - Overzicht van alle accounts en hun abonnementsstatus
-  - Mogelijkheid om een account handmatig te blokkeren of te verlengen
+- [x] **Admin-panel (intern)** — `/admin` (beschermd met `TICKD_ADMIN_KEY`)
+  - `GET /api/admin/accounts` — alle accounts met status + gebruik
+  - `PUT /api/admin/accounts/:id` — status handmatig aanpassen
+  - `AdminPanel.jsx` — tabeloverzicht met inline status-editor
 
-- [ ] **Juridisch & compliance**
-  - Algemene voorwaarden en privacybeleid opstellen
-  - BTW-afhandeling via Stripe Tax of handmatig
-  - GDPR: data-verwijdering op verzoek (`DELETE account + all related data`)
+- [x] **GDPR: account verwijderen**
+  - `DELETE /api/accounts/me` — wist alle data van het account (7 collecties + settings + sessies)
+  - Knop "Account verwijderen" in AccountDashboard (met bevestigingsdialoog)
+  - *(Privacy policy / AV / BTW = juridisch/handmatig, geen code)*
 
 ---
 

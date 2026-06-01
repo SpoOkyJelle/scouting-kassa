@@ -23,17 +23,32 @@ async function req(path, options = {}) {
 
 // ─── Auth ──────────────────────────────────────────────────────────────────
 
-export async function login(pin) {
-  const res = await fetch(`${BASE}/auth/login`, {
+export async function register(name, email, password) {
+  const res = await fetch(`${BASE}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ pin }),
+    body: JSON.stringify({ name, email, password }),
   })
-  if (!res.ok) throw new Error('Wrong PIN')
-  return res.json()   // { token, role }
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || 'Registratie mislukt')
+  return data
 }
 
-export const changePin     = (data) => req('/auth/change-pin', { method: 'POST', body: JSON.stringify(data) })
+export async function emailLogin(email, password) {
+  const res = await fetch(`${BASE}/auth/email-login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || 'Inloggen mislukt')
+  return data
+}
+
+export const fetchAccount    = ()       => req('/accounts/me')
+export const createCheckout  = (plan)   => req('/stripe/create-checkout', { method: 'POST', body: JSON.stringify({ plan }) })
+export const openPortal      = ()       => req('/stripe/portal', { method: 'POST', body: JSON.stringify({}) })
+
 export const updateDisplay = (data) => req('/display', { method: 'PUT',  body: JSON.stringify(data) })
 export const clearDisplay  = ()     => req('/display', { method: 'DELETE' })
 
