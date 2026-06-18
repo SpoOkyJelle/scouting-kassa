@@ -46,6 +46,57 @@
   --shadow-md: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.05);
 }
 
+/* ── Overzicht period-switch animation ───────────────────────────────────── */
+@keyframes stats-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.stats-enter {
+  animation: stats-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Skeleton tiles (NieuweBon loading) ─────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.skeleton-tile {
+  min-height: 64px;
+  background: linear-gradient(90deg, var(--s100) 25%, var(--s50) 50%, var(--s100) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border: none !important;
+  cursor: default !important;
+  pointer-events: none;
+}
+[data-theme="dark"] .skeleton-tile {
+  background: linear-gradient(90deg, var(--s800) 25%, #263347 50%, var(--s800) 75%);
+  background-size: 200% 100%;
+}
+.skeleton-row {
+  height: 76px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, var(--s100) 25%, var(--s50) 50%, var(--s100) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  pointer-events: none;
+}
+[data-theme="dark"] .skeleton-row {
+  background: linear-gradient(90deg, var(--s800) 25%, #263347 50%, var(--s800) 75%);
+  background-size: 200% 100%;
+}
+.skeleton-block {
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--s100) 25%, var(--s50) 50%, var(--s100) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  pointer-events: none;
+}
+[data-theme="dark"] .skeleton-block {
+  background: linear-gradient(90deg, var(--s800) 25%, #263347 50%, var(--s800) 75%);
+  background-size: 200% 100%;
+}
+
 /* ── Dark mode overrides ──────────────────────────────────────────────────── */
 [data-theme="dark"] {
   --bg:      #0F172A;

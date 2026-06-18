@@ -71,8 +71,6 @@ export default function NieuweBon({ onCreated }) {
     onCreated()
   }
 
-  if (loading) return <div className="spinner" />
-
   const available = products.filter(p => p.available !== false)
 
   const groups = CATEGORIES.map(cat => ({
@@ -138,7 +136,13 @@ export default function NieuweBon({ onCreated }) {
             </div>
           )}
 
-          {products.length === 0 ? (
+          {loading ? (
+            <div className="product-grid">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="product-tile skeleton-tile" style={{ animationDelay: `${i * 40}ms` }} />
+              ))}
+            </div>
+          ) : products.length === 0 ? (
             <div style={{
               background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12,
               padding: '3rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -179,7 +183,7 @@ export default function NieuweBon({ onCreated }) {
               )
             })()
           ) : (
-            <>
+            <div className="stats-enter">
               {popular.length > 0 && (
                 <div style={{ marginBottom: '1.1rem' }}>
                   <SectionHead Icon={Zap} label={t('quick_select')} color="#F59E0B" />
@@ -245,7 +249,7 @@ export default function NieuweBon({ onCreated }) {
                   </div>
                 )
               })}
-            </>
+            </div>
           )}
         </div>
 

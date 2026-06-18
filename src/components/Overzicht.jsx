@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts'
@@ -14,6 +14,35 @@ import DagRapport from './DagRapport'
 import KasAfsluiting from './KasAfsluiting'
 
 const fmt   = n => `€ ${parseFloat(n ?? 0).toFixed(2)}`
+
+// ── Count-up hook ─────────────────────────────────────────────────────────────
+function useCountUp(target, duration = 550) {
+  const [displayed, setDisplayed] = useState(target)
+  const stateRef = useRef({ current: target, animId: null })
+
+  useEffect(() => {
+    const s = stateRef.current
+    if (s.animId) { cancelAnimationFrame(s.animId); s.animId = null }
+    const from = s.current
+    const to = parseFloat(target ?? 0)
+    if (from === to) return
+    const start = performance.now()
+    const step = (now) => {
+      const t = Math.min((now - start) / duration, 1)
+      const eased = 1 - Math.pow(1 - t, 3)
+      const val = from + (to - from) * eased
+      s.current = val
+      setDisplayed(val)
+      if (t < 1) { s.animId = requestAnimationFrame(step) }
+      else { s.current = to; s.animId = null; setDisplayed(to) }
+    }
+    s.animId = requestAnimationFrame(step)
+    return () => { if (s.animId) { cancelAnimationFrame(s.animId); s.animId = null } }
+  }, [target, duration])
+
+  return displayed
+}
+
 const GREEN  = '#16A34A'
 const PURPLE = '#7C3AED'
 const PALETTE = ['#16A34A','#22C55E','#0EA5E9','#F59E0B','#8B5CF6','#EC4899','#10B981','#F97316']
@@ -92,6 +121,7 @@ export default function Overzicht({ role }) {
   const [customDate, setCustomDate]         = useState('')
   const [showDagRapport, setShowDagRapport] = useState(false)
   const [refreshing, setRefreshing]         = useState(false)
+  const [contentKey, setContentKey]         = useState(0)
 
   async function load(p = period, d = customDate, animate = false) {
     if (p === 'date' && !d) return
@@ -101,6 +131,7 @@ export default function Overzicht({ role }) {
     setStats(data)
     setLoading(false)
     setRefreshing(false)
+    setContentKey(k => k + 1)
   }
 
   useEffect(() => { load() }, [period, customDate]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -142,6 +173,9 @@ export default function Overzicht({ role }) {
     estimatedCosts = 0, estimatedProfit = 0,
     yesterdayRevenue = 0,
   } = stats ?? {}
+
+  const animRevenue = useCountUp(totalRevenue)
+  const animProfit  = useCountUp(profit)
 
   const isAdmin = role === 'admin'
 
@@ -237,7 +271,7 @@ export default function Overzicht({ role }) {
 
       {/* ── Loading ──────────────────────────────────────────────────────────── */}
       {loading ? <div className="spinner" /> : (
-        <>
+        <div key={contentKey} className="stats-enter" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {/* ── Hero cards ──────────────────────────────────────────────────── */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
 
@@ -276,7 +310,7 @@ export default function Overzicht({ role }) {
               </div>
 
               <div style={{ fontSize: 'clamp(1.7rem, 5vw, 2.4rem)', fontWeight: 900, letterSpacing: '-1px', lineHeight: 1.05, position: 'relative' }}>
-                {fmt(totalRevenue)}
+                {fmt(animRevenue)}
               </div>
 
               {period === 'all' && todayRevenue > 0 && (
@@ -348,7 +382,7 @@ export default function Overzicht({ role }) {
                 </div>
 
                 <div style={{ fontSize: 'clamp(1.7rem, 5vw, 2.4rem)', fontWeight: 900, letterSpacing: '-1px', lineHeight: 1.05, position: 'relative' }}>
-                  {fmt(profit)}
+                  {fmt(animProfit)}
                 </div>
 
                 <div style={{ marginTop: 6, fontSize: '0.78rem', color: 'rgba(255,255,255,0.65)', position: 'relative' }}>
@@ -704,7 +738,7 @@ export default function Overzicht({ role }) {
               </div>
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   )

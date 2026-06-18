@@ -98,7 +98,26 @@ export default function KasAfsluiting({ todayContant = 0, todayQr = 0 }) {
     setRecord(prev => ({ ...prev, correcties: (prev.correcties || []).filter(c => c.id !== corrId) }))
   }
 
-  if (loading) return null
+  if (loading) return (
+    <div style={{
+      background: 'var(--surface)', border: '1px solid var(--border)',
+      borderRadius: 12, padding: '1rem 1.1rem',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <Wallet size={14} color="#2563EB" strokeWidth={2.3} />
+          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+            {t('kas_title')}
+          </span>
+        </div>
+        <span style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>
+          {new Date().toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })}
+        </span>
+      </div>
+      <div className="skeleton-block" style={{ height: 120 }} />
+    </div>
+  )
 
   const correcties      = record?.correcties || []
   const corrContant     = correcties.filter(c => c.type === 'contant').reduce((s, c) => s + c.amount, 0)

@@ -144,7 +144,6 @@ export default function Bonnen({ onOpenDetail }) {
     setSelected(new Set(visible.map(r => r.id)))
   }
 
-  if (loading) return <div className="spinner" />
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -279,7 +278,13 @@ export default function Bonnen({ onOpenDetail }) {
       </div>
 
       {/* ── Receipt list ─────────────────────────────────────────────────── */}
-      {visible.length === 0 ? (
+      {loading ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="skeleton-row" style={{ animationDelay: `${i * 60}ms` }} />
+          ))}
+        </div>
+      ) : visible.length === 0 ? (
         <div style={{
           background: 'var(--surface)', border: '1px solid var(--border)',
           borderRadius: 12, padding: '3rem 1rem',

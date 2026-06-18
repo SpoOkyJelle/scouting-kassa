@@ -309,7 +309,11 @@ export default function InkoopBonnen() {
 
       {/* ── Lijst ───────────────────────────────────────────────────────── */}
       {loading ? (
-        <div className="spinner" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="skeleton-row" style={{ animationDelay: `${i * 60}ms` }} />
+          ))}
+        </div>
       ) : bonnen.length === 0 ? (
         <div style={{
           background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12,

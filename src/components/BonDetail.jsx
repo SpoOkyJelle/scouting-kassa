@@ -276,8 +276,16 @@ export default function BonDetail({ id, onBack }) {
     }
   }
 
-  if (loading) return <div className="spinner" />
-  if (!receipt) return null
+  if (loading || !receipt) return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      <button className="btn btn-ghost btn-sm no-print" onClick={onBack} style={{ alignSelf: 'flex-start' }}>
+        <ArrowLeft size={14} /> {t('back')}
+      </button>
+      <div className="skeleton-block" style={{ height: 130 }} />
+      <div className="skeleton-block" style={{ height: 220 }} />
+      <div className="skeleton-block" style={{ height: 90 }} />
+    </div>
+  )
 
   const subtotal    = receipt.items?.reduce((s, i) => s + i.product_price * i.quantity, 0) ?? 0
   const discountAmt = subtotal * (receipt.discount_pct || 0) / 100

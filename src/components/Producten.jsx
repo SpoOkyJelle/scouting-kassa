@@ -131,7 +131,6 @@ export default function Producten() {
     showToast(updated.available ? t('product_available_back') : t('product_unavailable'))
   }
 
-  if (loading) return <div className="spinner" />
 
   const groups = CATEGORIES.map(cat => ({
     cat,
@@ -187,7 +186,13 @@ export default function Producten() {
       </div>
 
       {/* ── Product groepen ──────────────────────────────────────────────── */}
-      {products.length === 0 ? (
+      {loading ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="skeleton-row" style={{ animationDelay: `${i * 50}ms` }} />
+          ))}
+        </div>
+      ) : products.length === 0 ? (
         <div style={{
           background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12,
           padding: '3rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center',
