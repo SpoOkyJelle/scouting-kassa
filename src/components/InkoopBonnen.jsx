@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { PlusCircle, Trash2, Pencil, Check, X, ShoppingCart, TrendingDown, TrendingUp, User, Trophy, FlaskConical } from 'lucide-react'
+import { PlusCircle, Trash2, Pencil, Check, X, ShoppingCart, TrendingDown, TrendingUp, User, Trophy } from 'lucide-react'
 import { useLang } from '../LangContext'
-import { fetchInkoop, createInkoop, updateInkoop, deleteInkoop, fetchStats, fetchProducts, fetchIngredients } from '../api'
+import { fetchInkoop, createInkoop, updateInkoop, deleteInkoop, fetchStats } from '../api'
 import { useToast } from './Toast'
 import { useConfirm } from './ConfirmModal'
 
@@ -37,45 +37,21 @@ export default function InkoopBonnen() {
   const [form, setForm]             = useState(EMPTY_FORM)
   const [saving, setSaving]         = useState(false)
   const [editId, setEditId]         = useState(null)
-  const [topProducts, setTopProducts]   = useState([])
-  const [products, setProducts]         = useState([])
-  const [ingredients, setIngredients]   = useState([])
-  const [showTrends, setShowTrends]     = useState(false)
-  const [trendsTab, setTrendsTab]       = useState('verkoop') // 'verkoop' | 'grondstoffen'
+  const [topProducts, setTopProducts] = useState([])
+  const [showTrends, setShowTrends]   = useState(false)
 
   async function load() {
     setLoading(true)
     try {
-      const [list, stats, prods, ings] = await Promise.all([
+      const [list, stats] = await Promise.all([
         fetchInkoop(),
         fetchStats().catch(() => null),
-        fetchProducts().catch(() => []),
-        fetchIngredients().catch(() => []),
       ])
       setBonnen(list)
       setTopProducts(stats?.topProducts ?? [])
-      setProducts(prods)
-      setIngredients(ings)
     } finally {
       setLoading(false)
     }
-  }
-
-  // Bereken grondstofverbruik op basis van verkopen × recepten
-  function calcIngredientUsage() {
-    const usage = {} // ingredient_id → { ing, total }
-    topProducts.forEach(sold => {
-      const prod = products.find(p => p.name === sold.name)
-      if (!prod?.recipe?.length) return
-      prod.recipe.forEach(({ ingredient_id, quantity }) => {
-        const ing = ingredients.find(i => i.id === ingredient_id)
-        if (!ing) return
-        if (!usage[ingredient_id]) usage[ingredient_id] = { ing, total: 0, sources: [] }
-        usage[ingredient_id].total += sold.quantity * quantity
-        usage[ingredient_id].sources.push({ name: sold.name, qty: sold.quantity, perUnit: quantity })
-      })
-    })
-    return Object.values(usage).sort((a, b) => b.total - a.total)
   }
 
   useEffect(() => { load() }, [])
@@ -163,17 +139,10 @@ export default function InkoopBonnen() {
           <div style={{ display: 'flex', gap: 6 }}>
             <button
               className="btn btn-sm"
-              onClick={() => { setShowTrends(v => !v); setTrendsTab('verkoop') }}
+              onClick={() => setShowTrends(v => !v)}
               style={{ background: showTrends ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.25)', gap: 5 }}
             >
               <TrendingUp size={13} /> {t('inkoop_trends')}
-            </button>
-            <button
-              className="btn btn-sm"
-              onClick={() => { setShowTrends(true); setTrendsTab('grondstoffen') }}
-              style={{ background: showTrends && trendsTab === 'grondstoffen' ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.25)', gap: 5 }}
-            >
-              <FlaskConical size={13} /> Grondstoffen
             </button>
             <button
               className="btn btn-sm"
@@ -186,117 +155,73 @@ export default function InkoopBonnen() {
         </div>
       </div>
 
-      {/* ── Trends paneel ───────────────────────────────────────────────── */}
+      {/* ── Verkooptrends ───────────────────────────────────────────────── */}
       {showTrends && (
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-
-          {/* Tab-balk */}
-          <div style={{ background: 'var(--s50)', borderBottom: '1px solid var(--border)', padding: '0.5rem 0.85rem', display: 'flex', gap: 4, alignItems: 'center' }}>
-            {[
-              { key: 'verkoop',      Icon: Trophy,       label: t('inkoop_trends'),  color: '#F59E0B' },
-              { key: 'grondstoffen', Icon: FlaskConical, label: 'Grondstoffen',       color: '#7C3AED' },
-            ].map(({ key, Icon, label, color }) => (
-              <button key={key} onClick={() => setTrendsTab(key)} style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                padding: '5px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                background: trendsTab === key ? color : 'transparent',
-                color: trendsTab === key ? '#fff' : 'var(--muted)',
-                fontWeight: 600, fontSize: '0.78rem', fontFamily: 'inherit',
-                transition: 'all 0.15s',
-              }}>
-                <Icon size={12} /> {label}
-              </button>
-            ))}
-            <span style={{ flex: 1 }} />
-            <span style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>{t('inkoop_trends_hint')}</span>
+        <div style={{
+          background: 'var(--surface)', border: '1px solid var(--border)',
+          borderRadius: 12, overflow: 'hidden',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+        }}>
+          <div style={{
+            background: 'var(--s50)', borderBottom: '1px solid var(--border)',
+            padding: '0.65rem 1rem', display: 'flex', alignItems: 'center', gap: 7,
+          }}>
+            <Trophy size={13} color="#F59E0B" strokeWidth={2.3} />
+            <span style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--s800)', flex: 1 }}>
+              {t('inkoop_trends')}
+            </span>
+            <span style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>{t('inkoop_trends_hint')}</span>
           </div>
-
-          {/* ── Verkooptrends ── */}
-          {trendsTab === 'verkoop' && (topProducts.length === 0 ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)', fontSize: '0.84rem' }}>{t('stats_empty')}</div>
-          ) : topProducts.map((p, i) => {
-            const maxQty = topProducts[0].quantity
-            const barW   = maxQty > 0 ? (p.quantity / maxQty) * 100 : 0
-            const hasRecipe = products.find(pr => pr.name === p.name)?.recipe?.length > 0
-            return (
-              <div key={p.name} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.6rem 1rem', borderTop: i > 0 ? '1px solid var(--s100)' : 'none', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${barW}%`, background: `${PALETTE[i % PALETTE.length]}12`, transition: 'width 0.5s ease' }} />
-                <span style={{ width: 20, height: 20, borderRadius: 6, background: PALETTE[i % PALETTE.length], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 800, color: '#fff', flexShrink: 0, position: 'relative' }}>{i + 1}</span>
-                <span style={{ flex: 1, fontSize: '0.84rem', fontWeight: 500, color: 'var(--s800)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', position: 'relative' }}>{p.name}</span>
-                {hasRecipe && <FlaskConical size={11} color="#7C3AED" style={{ flexShrink: 0, position: 'relative' }} />}
-                <span style={{ fontSize: '0.78rem', color: 'var(--muted)', position: 'relative', flexShrink: 0 }}>{p.quantity}×</span>
-                <span style={{ fontWeight: 700, fontSize: '0.85rem', color: PALETTE[i % PALETTE.length], minWidth: 56, textAlign: 'right', position: 'relative', flexShrink: 0 }}>{fmt(p.revenue)}</span>
-              </div>
-            )
-          }))}
-
-          {/* ── Grondstoffen ── */}
-          {trendsTab === 'grondstoffen' && (() => {
-            const usage = calcIngredientUsage()
-            const noRecipes = products.every(p => !p.recipe?.length)
-
-            if (ingredients.length === 0) return (
-              <div style={{ padding: '1.5rem 1rem', textAlign: 'center', color: 'var(--muted)', fontSize: '0.84rem' }}>
-                <FlaskConical size={28} strokeWidth={1.2} style={{ color: 'var(--s300)', display: 'block', margin: '0 auto 0.5rem' }} />
-                Geen ingrediënten ingesteld. Voeg ze toe via het <strong>Producten</strong>-tabblad.
-              </div>
-            )
-            if (noRecipes) return (
-              <div style={{ padding: '1.5rem 1rem', textAlign: 'center', color: 'var(--muted)', fontSize: '0.84rem' }}>
-                <FlaskConical size={28} strokeWidth={1.2} style={{ color: 'var(--s300)', display: 'block', margin: '0 auto 0.5rem' }} />
-                Nog geen recepten gekoppeld aan producten. Klik op 🧪 bij een product om een recept toe te voegen.
-              </div>
-            )
-            if (usage.length === 0) return (
-              <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--muted)', fontSize: '0.84rem' }}>{t('stats_empty')}</div>
-            )
-
-            const maxTotal = usage[0].total
-            return (
-              <div>
-                {/* Tabel-header */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px 70px', gap: 8, padding: '0.45rem 1rem', background: 'var(--s50)', borderBottom: '1px solid var(--s100)', fontSize: '0.68rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  <span>Ingrediënt</span>
-                  <span style={{ textAlign: 'right' }}>Verbruikt</span>
-                  <span style={{ textAlign: 'right' }}>Eenheid</span>
+          {topProducts.length === 0 ? (
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)', fontSize: '0.84rem' }}>
+              {t('stats_empty')}
+            </div>
+          ) : (
+            topProducts.map((p, i) => {
+              const maxQty = topProducts[0].quantity
+              const barW   = maxQty > 0 ? (p.quantity / maxQty) * 100 : 0
+              return (
+                <div
+                  key={p.name}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '0.6rem 1rem',
+                    borderTop: i > 0 ? '1px solid var(--s100)' : 'none',
+                    position: 'relative', overflow: 'hidden',
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute', left: 0, top: 0, bottom: 0,
+                    width: `${barW}%`, background: `${PALETTE[i % PALETTE.length]}12`,
+                    transition: 'width 0.5s ease',
+                  }} />
+                  <span style={{
+                    width: 20, height: 20, borderRadius: 6,
+                    background: PALETTE[i % PALETTE.length],
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '0.65rem', fontWeight: 800, color: '#fff', flexShrink: 0, position: 'relative',
+                  }}>
+                    {i + 1}
+                  </span>
+                  <span style={{
+                    flex: 1, fontSize: '0.84rem', fontWeight: 500, color: 'var(--s800)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', position: 'relative',
+                  }}>
+                    {p.name}
+                  </span>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--muted)', position: 'relative', flexShrink: 0 }}>
+                    {p.quantity}×
+                  </span>
+                  <span style={{
+                    fontWeight: 700, fontSize: '0.85rem', color: PALETTE[i % PALETTE.length],
+                    minWidth: 56, textAlign: 'right', position: 'relative', flexShrink: 0,
+                  }}>
+                    {fmt(p.revenue)}
+                  </span>
                 </div>
-                {usage.map(({ ing, total, sources }) => {
-                  const barW = maxTotal > 0 ? (total / maxTotal) * 100 : 0
-                  const rounded = Math.round(total * 100) / 100
-                  return (
-                    <details key={ing.id} style={{ borderTop: '1px solid var(--s100)' }}>
-                      <summary style={{
-                        display: 'grid', gridTemplateColumns: '1fr 90px 70px',
-                        gap: 8, padding: '0.6rem 1rem',
-                        cursor: 'pointer', listStyle: 'none',
-                        position: 'relative', overflow: 'hidden',
-                        alignItems: 'center',
-                      }}>
-                        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${barW}%`, background: 'rgba(124,58,237,0.07)', transition: 'width 0.5s ease' }} />
-                        <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--s800)', position: 'relative', display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <FlaskConical size={12} color="#7C3AED" />
-                          {ing.name}
-                        </span>
-                        <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#7C3AED', textAlign: 'right', position: 'relative' }}>
-                          {rounded}
-                        </span>
-                        <span style={{ fontSize: '0.78rem', color: 'var(--muted)', textAlign: 'right', position: 'relative' }}>{ing.unit}</span>
-                      </summary>
-                      {/* Uitsplitsing per product */}
-                      <div style={{ padding: '0.35rem 1rem 0.6rem 2.5rem', borderTop: '1px solid var(--s100)', background: 'var(--s50)' }}>
-                        {sources.map(s => (
-                          <div key={s.name} style={{ display: 'flex', fontSize: '0.78rem', color: 'var(--muted)', gap: 6, padding: '2px 0' }}>
-                            <span style={{ flex: 1 }}>{s.name}</span>
-                            <span>{s.qty}× × {s.perUnit} = <strong style={{ color: 'var(--s700)' }}>{Math.round(s.qty * s.perUnit * 100) / 100} {ing.unit}</strong></span>
-                          </div>
-                        ))}
-                      </div>
-                    </details>
-                  )
-                })}
-              </div>
-            )
-          })()}
+              )
+            })
+          )}
         </div>
       )}
 

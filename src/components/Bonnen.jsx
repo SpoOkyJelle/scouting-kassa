@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   CheckCircle2, Clock, Trash2, Check, X, FileText,
   Calendar, Search, CheckSquare, StickyNote, Euro,
-  Banknote, CreditCard, Smartphone, PlusCircle,
+  Banknote, CreditCard, Smartphone,
 } from 'lucide-react'
 import { useLang } from '../LangContext'
 import { fetchReceipts, updateReceipt, deleteReceipt, bulkMarkPaid } from '../api'
@@ -18,7 +18,7 @@ function fmtDate(str) {
   })
 }
 
-export default function Bonnen({ onOpenDetail, onNew }) {
+export default function Bonnen({ onOpenDetail }) {
   const { t } = useLang()
   const showToast  = useToast()
   const confirm    = useConfirm()
@@ -189,15 +189,6 @@ export default function Bonnen({ onOpenDetail, onNew }) {
 
       {/* ── Toolbar ─────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        {onNew && (
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={onNew}
-            style={{ gap: 5, flexShrink: 0, whiteSpace: 'nowrap' }}
-          >
-            <PlusCircle size={14} /> {t('new_receipt')}
-          </button>
-        )}
         <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
           <Search size={14} style={{ position: 'absolute', left: 10, color: 'var(--s400)', pointerEvents: 'none' }} />
           <input

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { CheckCircle2, Tent, Clock } from 'lucide-react'
+import { CheckCircle2, Clock } from 'lucide-react'
 
 const fmt = n => `€ ${parseFloat(n ?? 0).toFixed(2)}`
 
@@ -64,13 +64,11 @@ function Logo({ settings, size = 48 }) {
     )
   }
   return (
-    <div style={{
-      width: size, height: size, borderRadius: size * 0.22,
-      background: 'rgba(255,255,255,0.15)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-    }}>
-      <Tent size={size * 0.5} color="#fff" />
-    </div>
+    <img
+      src="/tappy-pos.png"
+      alt="Tappy POS"
+      style={{ height: size, maxWidth: size * 3, objectFit: 'contain' }}
+    />
   )
 }
 

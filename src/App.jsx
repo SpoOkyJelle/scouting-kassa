@@ -1,40 +1,34 @@
 import { useState, useEffect } from 'react'
-import { Check, FileText, BarChart2, LogOut, WifiOff, QrCode, Settings, Layers, Monitor, Copy, ExternalLink, X, LayoutGrid } from 'lucide-react'
+import { FileText, PlusCircle, Package, BarChart2, LogOut, WifiOff, QrCode, Settings, ShoppingCart, Heart, Monitor, Copy, Check, ExternalLink, X } from 'lucide-react'
 import { translations } from './i18n'
-import { logout as apiLogout, fetchSettings, fetchAccount } from './api'
+import { logout as apiLogout, fetchSettings } from './api'
 import { LangContext } from './LangContext'
 import { SettingsContext } from './SettingsContext'
 import { ToastProvider } from './components/Toast'
 import { ConfirmProvider } from './components/ConfirmModal'
 import PaymentModal from './components/PaymentModal'
-import SubscriptionBanner from './components/SubscriptionBanner'
 import LoginScreen from './components/LoginScreen'
 import Bonnen      from './components/Bonnen'
 import NieuweBon   from './components/NieuweBon'
+import Producten   from './components/Producten'
 import BonDetail   from './components/BonDetail'
 import Overzicht   from './components/Overzicht'
 import Instellingen  from './components/Instellingen'
-import TafelIndeling   from './components/TafelIndeling'
-import Beheer          from './components/Beheer'
+import InkoopBonnen from './components/InkoopBonnen'
+import Donaties      from './components/Donaties'
 
 export { LangContext }
 export { useLang } from './LangContext'
 
 const TABS = [
-  { id: 'receipts', Icon: FileText,   labelKey: 'receipts',   roles: ['admin','cashier'] },
-  { id: 'tables',   Icon: LayoutGrid, labelKey: 'tafels_tab', roles: ['admin','cashier'] },
-  { id: 'overview', Icon: BarChart2,  labelKey: 'overview',   roles: ['admin','cashier'] },
-  { id: 'beheer',   Icon: Layers,     labelKey: 'beheer_tab', roles: ['admin'] },
-  { id: 'settings', Icon: Settings,   labelKey: 'settings',   roles: ['admin'] },
+  { id: 'receipts',  Icon: FileText,      labelKey: 'receipts',    roles: ['admin','cashier'] },
+  { id: 'new',       Icon: PlusCircle,    labelKey: 'new_receipt', roles: ['admin','cashier'] },
+  { id: 'overview',  Icon: BarChart2,     labelKey: 'overview',    roles: ['admin','cashier'] },
+  { id: 'inkoop',    Icon: ShoppingCart,  labelKey: 'inkoop_tab',    roles: ['admin'] },
+  { id: 'donaties',  Icon: Heart,         labelKey: 'donaties_tab',  roles: ['admin', 'cashier'] },
+  { id: 'products',  Icon: Package,       labelKey: 'products',    roles: ['admin'] },
+  { id: 'settings',  Icon: Settings,      labelKey: 'settings',    roles: ['admin'] },
 ]
-
-function activeTab(tab, id) {
-  if (tab === id) return true
-  if (id === 'receipts' && (tab === 'new' || tab === 'detail')) return true
-  if (id === 'overview' && tab === 'donaties') return true
-  if (id === 'beheer'   && (tab === 'inkoop' || tab === 'products')) return true
-  return false
-}
 
 function OfflineBanner({ t }) {
   const [offline, setOffline] = useState(!navigator.onLine)
@@ -63,14 +57,12 @@ export default function App() {
   const [role, setRole]               = useState(() => localStorage.getItem('kassa_role') || 'admin')
   const [darkMode, setDarkModeRaw]    = useState(() => localStorage.getItem('kassa_theme') === 'dark')
   const [tab, setTab]                 = useState('receipts')
+  const [slideDir, setSlideDir]       = useState('left')
   const [detailId, setDetailId]       = useState(null)
-  const [employeeName, setEmployeeName] = useState(() => localStorage.getItem('kassa_employee') || '')
-  const [showPayment, setShowPayment]       = useState(false)
-  const [showDisplay, setShowDisplay]       = useState(false)
-  const [displayCopied, setDisplayCopied]   = useState(false)
-  const [prefilledBonNaam, setPrefilledBonNaam] = useState('')
-  const [appSettings, setAppSettings]       = useState({ paymentUrl: '', paymentName: '' })
-  const [account, setAccount]               = useState(null)
+  const [showPayment, setShowPayment]   = useState(false)
+  const [showDisplay, setShowDisplay]   = useState(false)
+  const [displayCopied, setDisplayCopied] = useState(false)
+  const [appSettings, setAppSettings] = useState({ paymentUrl: '', paymentName: '' })
 
   const t = key => translations[lang]?.[key] ?? key
 
@@ -96,28 +88,12 @@ export default function App() {
     document.documentElement.style.fontSize = fsMap[fs] || '100%'
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load settings + account when logged in
+  // Load settings when logged in
   useEffect(() => {
     if (token) {
       fetchSettings().then(setAppSettings).catch(() => {})
-      fetchAccount().then(setAccount).catch(() => {})
-    } else {
-      setAccount(null)
     }
   }, [token])
-
-  // Handle Stripe checkout return
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    if (params.get('checkout') === 'success') {
-      window.history.replaceState({}, '', '/')
-      // Toast wordt getoond via de checkout param — kleine timeout zodat ToastProvider klaar is
-      setTimeout(() => {
-        const ev = new CustomEvent('tickd:toast', { detail: { message: 'Abonnement geactiveerd! Welkom bij Tickd Pro.', type: 'success' } })
-        window.dispatchEvent(ev)
-      }, 300)
-    }
-  }, [])
 
   // Update favicon when logo changes
   useEffect(() => {
@@ -179,18 +155,20 @@ export default function App() {
     setDetailId(newDetailId)
   }
 
-  function openDetail(id) { navigateTo('detail', id) }
-  function closeDetail()  { navigateTo('receipts') }
-  function openNewBon(name = '') { setPrefilledBonNaam(name); navigateTo('new') }
+  function openDetail(id) { setSlideDir('left');  navigateTo('detail', id) }
+  function closeDetail()  { setSlideDir('right'); navigateTo('receipts') }
 
-  function handleTabChange(id) { navigateTo(id) }
+  function handleTabChange(id) {
+    const allIds = visibleTabs.map(t => t.id)
+    const oldIdx = allIds.indexOf(tab === 'detail' ? 'receipts' : tab)
+    const newIdx = allIds.indexOf(id)
+    setSlideDir(newIdx >= oldIdx ? 'left' : 'right')
+    navigateTo(id)
+  }
 
-  function handleLogin(tok, r, empName = '') {
+  function handleLogin(tok, r) {
     setToken(tok)
     setRole(r || 'admin')
-    setEmployeeName(empName)
-    if (empName) localStorage.setItem('kassa_employee', empName)
-    else localStorage.removeItem('kassa_employee')
     history.replaceState({ tab: 'receipts', detailId: null }, '')
   }
 
@@ -200,8 +178,6 @@ export default function App() {
     setRole('admin')
     setTab('receipts')
     setDetailId(null)
-    setEmployeeName('')
-    localStorage.removeItem('kassa_employee')
     history.replaceState({ tab: 'receipts', detailId: null }, '')
   }
 
@@ -256,7 +232,6 @@ export default function App() {
               <LoginScreen onLogin={handleLogin} lang={lang} setLang={setLang} />
             ) : (
               <>
-                <SubscriptionBanner account={account} onRefresh={() => fetchAccount().then(setAccount).catch(() => {})} />
                 {/* ── Header ──────────────────────────────────────────────── */}
                 <header className="header">
                   <div className="header-brand">
@@ -268,11 +243,13 @@ export default function App() {
                       />
                     ) : (
                       <>
-                        <div className="header-logomark">
-                          <Check size={16} strokeWidth={3} />
-                        </div>
+                        <img
+                          src="/tappy-pos.png"
+                          alt="Tappy POS"
+                          style={{ height: 36, maxWidth: 160, objectFit: 'contain' }}
+                        />
                         <div>
-                          <div className="header-name">Tickd</div>
+                          <div className="header-name">Tappy</div>
                           <div className="header-tagline">POS</div>
                         </div>
                       </>
@@ -280,32 +257,6 @@ export default function App() {
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {employeeName && (
-                      <span style={{
-                        fontSize: '0.72rem', fontWeight: 600, color: 'rgba(255,255,255,0.65)',
-                        padding: '3px 8px', background: 'rgba(255,255,255,0.1)',
-                        borderRadius: 20, whiteSpace: 'nowrap',
-                      }}>
-                        {employeeName}
-                      </span>
-                    )}
-                    <button
-                      className="btn btn-sm"
-                      onClick={() => window.open('/kitchen', '_blank')}
-                      title="Keukenscherm"
-                      style={{ background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)', gap: 6 }}
-                    >
-                      <span className="tab-label">Keuken</span>
-                    </button>
-                    <button
-                      className="btn btn-sm"
-                      onClick={() => window.open('/waiter', '_blank')}
-                      title="Bedieningsscherm"
-                      style={{ background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)', gap: 6 }}
-                    >
-                      <LayoutGrid size={14} />
-                      <span className="tab-label">Bediening</span>
-                    </button>
                     <button
                       className="btn btn-sm"
                       onClick={() => setShowDisplay(true)}
@@ -314,20 +265,6 @@ export default function App() {
                     >
                       <Monitor size={14} />
                       <span className="tab-label">{t('display_btn')}</span>
-                    </button>
-                    <button
-                      className="btn btn-sm"
-                      onClick={() => setShowPayment(true)}
-                      title={t('payment_btn')}
-                      style={{
-                        background: 'rgba(255,255,255,0.10)',
-                        color: '#fff',
-                        border: '1px solid rgba(255,255,255,0.18)',
-                        gap: 6,
-                      }}
-                    >
-                      <QrCode size={14} />
-                      <span className="tab-label">{t('payment_btn')}</span>
                     </button>
                     <button
                       className="btn btn-ghost btn-sm"
@@ -345,7 +282,7 @@ export default function App() {
                   {visibleTabs.map(({ id, Icon, labelKey }) => (
                     <button
                       key={id}
-                      className={`tab-btn ${activeTab(tab, id) ? 'active' : ''}`}
+                      className={`tab-btn ${tab === id || (tab === 'detail' && id === 'receipts') ? 'active' : ''}`}
                       onClick={() => handleTabChange(id)}
                     >
                       <Icon size={15} strokeWidth={2} />
@@ -356,25 +293,26 @@ export default function App() {
 
                 {/* ── Content ───────────────────────────────────────────── */}
                 <main className="main-content">
-                  {tab === 'receipts'  && <Bonnen onOpenDetail={openDetail} onNew={() => openNewBon()} />}
-                  {tab === 'new'       && <NieuweBon prefilledName={prefilledBonNaam} onCreated={() => { setPrefilledBonNaam(''); navigateTo('receipts') }} />}
-                  {(tab === 'overview' || tab === 'donaties') && <Overzicht role={role} initialView={tab === 'donaties' ? 'donaties' : 'stats'} />}
-                  {(tab === 'beheer' || tab === 'inkoop' || tab === 'products') && (
-                    <Beheer initialView={tab === 'inkoop' ? 'inkoop' : 'producten'} />
-                  )}
-                  {tab === 'tables'    && <TafelIndeling role={role} onOpenDetail={openDetail} onNewBon={openNewBon} />}
-                  {tab === 'settings'  && (
-                    <Instellingen
-                      settings={appSettings}
-                      onSave={setAppSettings}
-                      lang={lang}
-                      setLang={setLang}
-                      darkMode={darkMode}
-                      setDarkMode={setDarkMode}
-                      role={role}
-                    />
-                  )}
-                  {tab === 'detail' && detailId && <BonDetail id={detailId} onBack={closeDetail} />}
+                  <div key={tab} className={`tab-panel tab-panel--${slideDir}`}>
+                    {tab === 'receipts'  && <Bonnen    onOpenDetail={openDetail} />}
+                    {tab === 'new'       && <NieuweBon onCreated={() => {}} />}
+                    {tab === 'overview'  && <Overzicht role={role} />}
+                    {tab === 'inkoop'    && <InkoopBonnen />}
+                    {tab === 'donaties'  && <Donaties />}
+                    {tab === 'products'  && <Producten />}
+                    {tab === 'settings'  && (
+                      <Instellingen
+                        settings={appSettings}
+                        onSave={setAppSettings}
+                        lang={lang}
+                        setLang={setLang}
+                        darkMode={darkMode}
+                        setDarkMode={setDarkMode}
+                        role={role}
+                      />
+                    )}
+                    {tab === 'detail' && detailId && <BonDetail id={detailId} onBack={closeDetail} />}
+                  </div>
                 </main>
               </>
             )}

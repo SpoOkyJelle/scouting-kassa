@@ -5,8 +5,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': 'http://localhost:3001'
-    },
-    historyApiFallback: true,
+      '/api': 'http://localhost:3001',
+      '/display-events': { target: 'http://localhost:3001', changeOrigin: true },
+      '/display-data':   { target: 'http://localhost:3001', changeOrigin: true },
+    }
   }
 })

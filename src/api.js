@@ -23,32 +23,17 @@ async function req(path, options = {}) {
 
 // ─── Auth ──────────────────────────────────────────────────────────────────
 
-export async function register(name, email, password) {
-  const res = await fetch(`${BASE}/auth/register`, {
+export async function login(pin) {
+  const res = await fetch(`${BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, email, password }),
+    body: JSON.stringify({ pin }),
   })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.error || 'Registratie mislukt')
-  return data
+  if (!res.ok) throw new Error('Wrong PIN')
+  return res.json()   // { token, role }
 }
 
-export async function emailLogin(email, password) {
-  const res = await fetch(`${BASE}/auth/email-login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.error || 'Inloggen mislukt')
-  return data
-}
-
-export const fetchAccount    = ()       => req('/accounts/me')
-export const createCheckout  = (plan)   => req('/stripe/create-checkout', { method: 'POST', body: JSON.stringify({ plan }) })
-export const openPortal      = ()       => req('/stripe/portal', { method: 'POST', body: JSON.stringify({}) })
-
+export const changePin     = (data) => req('/auth/change-pin', { method: 'POST', body: JSON.stringify(data) })
 export const updateDisplay = (data) => req('/display', { method: 'PUT',  body: JSON.stringify(data) })
 export const clearDisplay  = ()     => req('/display', { method: 'DELETE' })
 
@@ -89,22 +74,8 @@ export const bulkMarkPaid   = (ids, paid) => req('/receipts/bulk', { method: 'PO
 export const fetchBackup    = ()     => req('/backup')
 export const restoreBackup  = (data) => req('/restore', { method: 'POST', body: JSON.stringify(data) })
 
-export const fetchSettings       = ()     => req('/settings')
-export const updateSettings      = (data) => req('/settings', { method: 'PUT', body: JSON.stringify(data) })
-export const fetchIngredients      = ()         => req('/ingredients')
-export const createIngredient     = (data)     => req('/ingredients', { method: 'POST', body: JSON.stringify(data) })
-export const updateIngredient     = (id, data) => req(`/ingredients/${id}`, { method: 'PUT', body: JSON.stringify(data) })
-export const deleteIngredient     = (id)       => req(`/ingredients/${id}`, { method: 'DELETE' })
-export const updateProductRecipe  = (id, recipe) => req(`/products/${id}`, { method: 'PUT', body: JSON.stringify({ recipe }) })
-export const fetchEmployees   = ()         => req('/employees')
-export const createEmployee  = (data)     => req('/employees', { method: 'POST', body: JSON.stringify(data) })
-export const updateEmployee  = (id, data) => req(`/employees/${id}`, { method: 'PUT', body: JSON.stringify(data) })
-export const deleteEmployee  = (id)       => req(`/employees/${id}`, { method: 'DELETE' })
-export const fetchKitchenOrders  = ()                    => req('/kitchen')
-export const toggleKitchenItem   = (receiptId, itemId)   => req(`/kitchen/${receiptId}/items/${itemId}`, { method: 'PATCH' })
-export const resetKitchenOrder   = (receiptId)           => req(`/kitchen/${receiptId}/reset`, { method: 'PATCH' })
-export const fetchTafelindeling  = ()     => req('/tafelindeling')
-export const saveTafelindeling   = (data) => req('/tafelindeling', { method: 'PUT', body: JSON.stringify(data) })
+export const fetchSettings  = ()     => req('/settings')
+export const updateSettings = (data) => req('/settings', { method: 'PUT', body: JSON.stringify(data) })
 
 // ─── Stats ────────────────────────────────────────────────────────────────
 

@@ -1,34 +1,34 @@
 import { useState, useRef, useEffect } from 'react'
-import { Lock, ArrowRight, Mail } from 'lucide-react'
+import { Lock, ArrowRight } from 'lucide-react'
 import { useLang } from '../LangContext'
-import { emailLogin } from '../api'
+import { login } from '../api'
 
 export default function LoginScreen({ onLogin, lang, setLang }) {
   const { t } = useLang()
-  const [email, setEmail]   = useState('')
-  const [password, setPassword] = useState('')
+  const [pin, setPin]       = useState('')
   const [error, setError]   = useState(false)
-  const [errorMsg, setErrorMsg] = useState('')
+  const [shake, setShake]   = useState(false)
   const [loading, setLoading] = useState(false)
   const inputRef = useRef(null)
 
   useEffect(() => { inputRef.current?.focus() }, [])
 
-  async function handleEmailSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
-    if (!email || !password || loading) return
+    if (!pin || loading) return
     setLoading(true)
     setError(false)
-    setErrorMsg('')
     try {
-      const { token, role } = await emailLogin(email, password)
+      const { token, role } = await login(pin)
       localStorage.setItem('kassa_token', token)
       localStorage.setItem('kassa_role', role || 'admin')
-      localStorage.removeItem('kassa_employee')
-      onLogin(token, role || 'admin', '')
-    } catch (err) {
+      onLogin(token, role || 'admin')
+    } catch {
       setError(true)
-      setErrorMsg(err.message || 'Inloggen mislukt')
+      setShake(true)
+      setPin('')
+      setTimeout(() => setShake(false), 500)
+      inputRef.current?.focus()
     }
     setLoading(false)
   }
@@ -61,57 +61,83 @@ export default function LoginScreen({ onLogin, lang, setLang }) {
         boxShadow: '0 25px 50px -12px rgba(0,0,0,0.45)',
       }}>
         {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-          <img src="/tickd-logo.png" alt="Tickd" style={{ height: 80, width: 'auto', margin: '0 auto 0.75rem', display: 'block' }} />
+        <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
+          <img
+            src="/tappy-pos.png"
+            alt="Tappy POS"
+            style={{ height: 64, objectFit: 'contain', margin: '0 auto 1rem', display: 'block' }}
+          />
           <p style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: 4 }}>
             {t('login_sub')}
           </p>
         </div>
 
-        {/* E-mail form */}
-        <form onSubmit={handleEmailSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <div style={{ position: 'relative' }}>
-            <Mail size={14} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--s400)', pointerEvents: 'none' }} />
+        {/* Form */}
+        <form onSubmit={handleSubmit}>
+          <div style={{ position: 'relative', marginBottom: '1rem' }}>
+            <Lock
+              size={15}
+              style={{
+                position: 'absolute', left: 11, top: '50%',
+                transform: 'translateY(-50%)',
+                color: 'var(--s400)',
+                pointerEvents: 'none',
+              }}
+            />
             <input
               ref={inputRef}
-              type="email"
-              className="form-input"
-              style={{ paddingLeft: 32 }}
-              placeholder="E-mailadres"
-              value={email}
-              onChange={e => { setError(false); setEmail(e.target.value) }}
-              autoComplete="email"
-              required
-            />
-          </div>
-          <div style={{ position: 'relative' }}>
-            <Lock size={14} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--s400)', pointerEvents: 'none' }} />
-            <input
               type="password"
-              className="form-input"
-              style={{ paddingLeft: 32, borderColor: error ? 'var(--danger)' : undefined }}
-              placeholder="Wachtwoord"
-              value={password}
-              onChange={e => { setError(false); setPassword(e.target.value) }}
+              inputMode="numeric"
+              className={`form-input${shake ? ' login-shake' : ''}`}
+              style={{
+                paddingLeft: 34,
+                fontSize: '1.1rem',
+                letterSpacing: '0.25em',
+                textAlign: 'center',
+                borderColor: error ? 'var(--danger)' : undefined,
+              }}
+              placeholder={t('login_placeholder')}
+              value={pin}
+              onChange={e => {
+                setError(false)
+                setPin(e.target.value.replace(/\D/g, '').slice(0, 16))
+              }}
               autoComplete="current-password"
-              required
             />
           </div>
-          {error && <p style={{ fontSize: '0.78rem', color: 'var(--danger)', fontWeight: 600, margin: 0 }}>{errorMsg || t('login_error')}</p>}
-          <button type="submit" className="btn btn-primary btn-full btn-lg" disabled={!email || !password || loading} style={{ gap: 8 }}>
-            {loading
-              ? <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
-              : <><ArrowRight size={15} /> Inloggen</>}
+
+          {error && (
+            <p style={{
+              fontSize: '0.78rem',
+              color: 'var(--danger)',
+              textAlign: 'center',
+              marginBottom: '0.85rem',
+              fontWeight: 600,
+            }}>
+              {t('login_error')}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            className="btn btn-primary btn-full btn-lg"
+            disabled={!pin || loading}
+            style={{ gap: 8 }}
+          >
+            {loading ? (
+              <span style={{
+                width: 16, height: 16,
+                border: '2px solid rgba(255,255,255,0.4)',
+                borderTopColor: '#fff',
+                borderRadius: '50%',
+                display: 'inline-block',
+                animation: 'spin 0.7s linear infinite',
+              }} />
+            ) : (
+              <><ArrowRight size={15} /> {t('login_submit')}</>
+            )}
           </button>
         </form>
-
-        {/* Register link */}
-        <p style={{ textAlign: 'center', fontSize: '0.78rem', color: 'var(--muted)', marginTop: '1.25rem' }}>
-          Nog geen account?{' '}
-          <a href="/register" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'none' }}>
-            Gratis starten →
-          </a>
-        </p>
       </div>
     </div>
   )

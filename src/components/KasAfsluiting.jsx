@@ -142,7 +142,6 @@ export default function KasAfsluiting({ todayContant = 0, todayQr = 0 }) {
               value={beginInput}
               onChange={e => setBeginInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && saveBegin()}
-              autoFocus
               min="0" step="0.50"
               placeholder="0,00"
             />
@@ -280,7 +279,6 @@ export default function KasAfsluiting({ todayContant = 0, todayQr = 0 }) {
                     step="0.01"
                     value={corrForm.amount}
                     onChange={e => setCorrForm(f => ({ ...f, amount: e.target.value }))}
-                    autoFocus
                   />
                 </div>
                 {/* Omschrijving */}
