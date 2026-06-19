@@ -19,7 +19,6 @@ import { useSettings } from '../SettingsContext'
 import { CATEGORIES, getCat } from '../categories'
 import { useToast } from './Toast'
 import { useConfirm } from './ConfirmModal'
-import PaymentModal from './PaymentModal'
 import KioskScreen from './KioskScreen'
 
 const fmt = p => `€ ${parseFloat(p).toFixed(2)}`
@@ -57,7 +56,6 @@ export default function BonDetail({ id, onBack }) {
   const [savingPayment, setSavingPayment]   = useState(false)
   const [editingName, setEditingName]       = useState(false)
   const [nameInput, setNameInput]           = useState('')
-  const [showPayment, setShowPayment]       = useState(false)
   const [showKiosk, setShowKiosk]           = useState(false)
   const [received, setReceived]             = useState('')
   const [discountInput, setDiscountInput]   = useState('0')
@@ -308,8 +306,7 @@ export default function BonDetail({ id, onBack }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-      {showPayment && <PaymentModal onClose={() => setShowPayment(false)} />}
-      {showKiosk   && <KioskScreen total={total} name={receiptTitle} onClose={() => setShowKiosk(false)} />}
+      {showKiosk && <KioskScreen total={total} name={receiptTitle} onClose={() => setShowKiosk(false)} />}
 
       {/* Back */}
       <button className="btn btn-ghost btn-sm no-print" onClick={onBack} style={{ alignSelf: 'flex-start' }}>
@@ -417,13 +414,6 @@ export default function BonDetail({ id, onBack }) {
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               {!isPaid && (
                 <>
-                  <button
-                    className="btn btn-sm no-print"
-                    onClick={() => setShowPayment(true)}
-                    style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', gap: 5 }}
-                  >
-                    <QrCode size={13} /> {t('payment_btn')}
-                  </button>
                   <button
                     className="btn btn-sm no-print"
                     onClick={togglePayOnDisplay}

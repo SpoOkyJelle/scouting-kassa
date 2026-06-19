@@ -107,12 +107,12 @@ export default function Bonnen({ onOpenDetail }) {
     showToast(t('toast_marked_unpaid'))
   }
 
-  const paidCount   = receipts.filter(r =>  r.paid).length
   const unpaidCount = receipts.filter(r => !r.paid).length
-  const totalPaid   = receipts.filter(r =>  r.paid).reduce((s, r) => s + r.total, 0)
   const totalUnpaid = receipts.filter(r => !r.paid).reduce((s, r) => s + r.total, 0)
 
   const todayStr     = new Date().toDateString()
+  const paidTodayCount = receipts.filter(r => r.paid && new Date(r.created_at).toDateString() === todayStr).length
+  const totalPaidToday = receipts.filter(r => r.paid && new Date(r.created_at).toDateString() === todayStr).reduce((s, r) => s + r.total, 0)
   const yesterdayStr = new Date(Date.now() - 86400000).toDateString()
 
   const q = search.trim().toLowerCase()
@@ -158,13 +158,13 @@ export default function Bonnen({ onOpenDetail }) {
           }}>
             <div style={{ position: 'absolute', top: -15, right: -15, width: 70, height: 70, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
             <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.6)', marginBottom: 3 }}>
-              {t('paid')}
+              {t('paid')} vandaag
             </div>
             <div style={{ fontSize: '1.4rem', fontWeight: 900, letterSpacing: '-0.5px', lineHeight: 1.1 }}>
-              {fmt(totalPaid)}
+              {fmt(totalPaidToday)}
             </div>
             <div style={{ fontSize: '0.7rem', color: '#86efac', marginTop: 2, fontWeight: 600 }}>
-              {paidCount} {t('stats_count').toLowerCase()}
+              {paidTodayCount} {t('stats_count').toLowerCase()}
             </div>
           </div>
           <div style={{

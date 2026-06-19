@@ -1,2 +1,1 @@
-// Database is now managed directly in server.js using lowdb (JSON file).
-// This file is kept as a placeholder.
+// Database is managed in server.js using better-sqlite3 (kassa.db).

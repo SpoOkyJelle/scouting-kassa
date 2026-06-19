@@ -5,7 +5,14 @@
       "Bash(Select-Object FullName, Attributes)",
       "Bash(Format-Table -AutoSize)",
       "Bash(npm run *)",
-      "Bash(npx vite *)"
+      "Bash(npx vite *)",
+      "Bash(npm install *)",
+      "Bash(node -e \"import\\('better-sqlite3'\\).then\\(m => console.log\\('ok', typeof m.default\\)\\).catch\\(e => console.error\\('fail', e.message\\)\\)\")",
+      "Bash(node server.js)",
+      "Bash(curl -s http://localhost:3001/api/products -H \"Authorization: Bearer test\")",
+      "Bash(kill %1)",
+      "Bash(node --check server.js)",
+      "Bash(node --input-type=module)"
     ]
   }
 }
