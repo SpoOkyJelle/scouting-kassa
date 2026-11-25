@@ -62,13 +62,34 @@ dev`; needs DATABASE_URL in .env matching POSTGRES_PASSWORD.
   wizard on next login (intended live demo). PIN login → account 1 → wizard; click "Overslaan" to
   skip.
 
+**Fase 3 done — team invitations, accept flow, account switching.**
+- Migration `0002_invitations.js`: `invitations` (account_id, email, role admin|cashier, token unique,
+  invited_by nullable, accepted_at, expires_at; unique(account_id,email)). Applied (Batch 2).
+- `src/mailer.js`: provider-agnostic, sends via Resend ONLY if `RESEND_API_KEY`+`MAIL_FROM` set,
+  else logs the link; never throws. Invite endpoints always ALSO return the link so it works without
+  a provider.
+- Server: middleware now sets `req.userId`/`req.token`. Public: `GET /api/auth/invite/:token`,
+  `POST /api/auth/accept` (existing user → verify password; new user → create). Authed:
+  `GET /api/auth/accounts`, `POST /api/auth/switch` (deletes old session token, issues new one —
+  verified a switch invalidates the prior token). Admin: `GET /api/team`,
+  `POST /api/team/invite`, `PUT/DELETE /api/team/member/:userId`, `DELETE /api/team/invite/:id`.
+  Guards verified: cashier blocked from /api/team (403); owner can't be removed/demoted (403);
+  can't remove/demote yourself; reused invite token → 404.
+- Frontend: `TeamManager.jsx` in Instellingen (admin) — members list with role dropdown + remove,
+  pending invites with copy-link + revoke, invite form (email+role). Account switcher `<select>` in
+  the header (App.jsx) when `fetchAccounts()` returns >1. Standalone `AcceptInvite.jsx` page at
+  route `/invite?token=…` (main.jsx routes it like /display). api.js: fetchInvite, acceptInvite,
+  fetchTeam, inviteMember, revokeInvite, removeMember, changeMemberRole, fetchAccounts, switchAccount.
+
 **Known gaps / next:**
-- `SETTING_DEFAULTS` still holds the pannenkoeken org's paymentUrl/paymentName/categories; new
-  accounts inherit them until the wizard overrides. Genericize the seed defaults later (careful:
-  account 1 relies on them since its stored settings are `{}`).
-- Single membership per login assumed (login picks first membership); no account-switch UI yet.
-- Sessions in-memory (lost on restart). Harden later (persist; sessions table has NOT NULL user_id
-  → make nullable for PIN sessions).
+- `.env` password mismatch: `DATABASE_URL=...kassa:kassa...` but `POSTGRES_PASSWORD=change_me`, so
+  host `npm run migrate`/`npm run dev` need the URL fixed to `kassa:change_me@localhost:5432`.
+  (Worked around with inline DATABASE_URL for the migration.)
+- `SETTING_DEFAULTS` still holds pannenkoeken org's payment/categories; genericize later (account 1
+  relies on them since its stored settings are `{}`).
+- Sessions in-memory (lost on restart). Harden later (persist to the `sessions` table; note that
+  table has NOT NULL user_id → make nullable for PIN sessions when persisting).
+- PIN session has `userId=null` → no account switcher and not flagged "you" in team list (fine).
 - Local Caddy only under the `prod` compose profile; locally the app is on 127.0.0.1:3001.
-**Next — Fase 3:** team invitations (real email provider: Resend/Postmark), account-switch UI.
-Fase 4: billing, subdomains, PIN hashing + argon2 for passwords + rate limiting.
+**Next — Fase 4:** billing/plans, subdomain-per-tenant, hardening (hash PINs, argon2 for passwords,
+rate limiting, persist sessions), and configure a real mail provider (RESEND_API_KEY + MAIL_FROM).

@@ -5,6 +5,7 @@ import { dirname, join } from 'path'
 import { randomUUID } from 'crypto'
 import bcrypt from 'bcryptjs'
 import { computePromotions } from './src/promotions.js'
+import { sendInviteEmail, mailerConfigured } from './src/mailer.js'
 import { db, scoped } from './db/index.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -291,13 +292,69 @@ app.post('/api/auth/logout', (req, res) => {
   res.json({ ok: true })
 })
 
+// ─── Invitations: public lookup + accept ────────────────────────────────────────
+async function loadOpenInvite(token) {
+  if (!token) return null
+  const inv = await db('invitations').where({ token }).first()
+  if (!inv || inv.accepted_at) return null
+  if (new Date(inv.expires_at).getTime() < Date.now()) return null
+  return inv
+}
+
+app.get('/api/auth/invite/:token', wrap(async (req, res) => {
+  const inv = await loadOpenInvite(req.params.token)
+  if (!inv) return res.status(404).json({ error: 'Uitnodiging ongeldig of verlopen' })
+  const account = await db('accounts').where({ id: inv.account_id }).first()
+  const user    = await db('users').whereRaw('lower(email) = ?', [inv.email]).first()
+  res.json({
+    email: inv.email,
+    role: inv.role,
+    account: { name: account?.name || '' },
+    userExists: !!user,
+  })
+}))
+
+app.post('/api/auth/accept', wrap(async (req, res) => {
+  const { token, password, name } = req.body
+  const inv = await loadOpenInvite(token)
+  if (!inv) return res.status(404).json({ error: 'Uitnodiging ongeldig of verlopen' })
+  if (!password) return res.status(400).json({ error: 'Wachtwoord verplicht' })
+
+  const existing = await db('users').whereRaw('lower(email) = ?', [inv.email]).first()
+  let user
+  if (existing) {
+    // Existing user: verify their password to prove identity before joining.
+    if (!bcrypt.compareSync(password, existing.password_hash))
+      return res.status(401).json({ error: 'Onjuist wachtwoord voor dit account' })
+    user = existing
+  } else {
+    if (String(password).length < 6) return res.status(400).json({ error: 'Wachtwoord minimaal 6 tekens' })
+    ;[user] = await db('users')
+      .insert({ email: inv.email, password_hash: bcrypt.hashSync(password, 10), name: name || null })
+      .returning('*')
+  }
+
+  await db.transaction(async (trx) => {
+    const has = await trx('memberships').where({ user_id: user.id, account_id: inv.account_id }).first()
+    if (!has) await trx('memberships').insert({ user_id: user.id, account_id: inv.account_id, role: inv.role })
+    await trx('invitations').where({ id: inv.id }).update({ accepted_at: trx.fn.now() })
+  })
+
+  const sessionToken = randomUUID()
+  const role = normRole(inv.role)
+  sessions.set(sessionToken, { accountId: inv.account_id, role, userId: user.id })
+  res.json({ token: sessionToken, role })
+}))
+
 // ─── Auth middleware (everything under /api below this point) ────────────────────
 app.use('/api', (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1]
   const sess  = token ? sessions.get(token) : null
   if (!sess) return res.status(401).json({ error: 'Niet ingelogd' })
+  req.token     = token
   req.accountId = sess.accountId
   req.role      = sess.role
+  req.userId    = sess.userId || null
   next()
 })
 
@@ -334,6 +391,106 @@ app.post('/api/auth/change-pin', requireAdmin, wrap(async (req, res) => {
   if (target === 'cashier') s.cashierPin = String(newPin)
   else                      s.adminPin   = String(newPin)
   await saveSettings(req.accountId, s)
+  res.json({ ok: true })
+}))
+
+// ─── Accounts the current user belongs to + switching ────────────────────────────
+app.get('/api/auth/accounts', wrap(async (req, res) => {
+  if (!req.userId) {
+    const acc = await db('accounts').where({ id: req.accountId }).first()
+    return res.json([{ id: req.accountId, name: acc?.name || '', role: req.role, current: true }])
+  }
+  const rows = await db('memberships')
+    .join('accounts', 'accounts.id', 'memberships.account_id')
+    .where('memberships.user_id', req.userId)
+    .orderBy('accounts.name')
+    .select('accounts.id', 'accounts.name', 'memberships.role')
+  res.json(rows.map(r => ({ id: r.id, name: r.name, role: normRole(r.role), current: r.id === req.accountId })))
+}))
+
+app.post('/api/auth/switch', wrap(async (req, res) => {
+  if (!req.userId) return res.status(403).json({ error: 'Wisselen kan niet in een PIN-sessie' })
+  const accountId = Number(req.body.accountId)
+  const m = await db('memberships').where({ user_id: req.userId, account_id: accountId }).first()
+  if (!m) return res.status(403).json({ error: 'Geen toegang tot dit account' })
+  sessions.delete(req.token)
+  const token = randomUUID()
+  const role  = normRole(m.role)
+  sessions.set(token, { accountId, role, userId: req.userId })
+  res.json({ token, role })
+}))
+
+// ─── Team management (admin) ─────────────────────────────────────────────────────
+function inviteLink(req, token) {
+  const origin = process.env.APP_URL ||
+    `${req.headers['x-forwarded-proto'] || req.protocol}://${req.get('host')}`
+  return `${origin}/invite?token=${token}`
+}
+
+app.get('/api/team', requireAdmin, wrap(async (req, res) => {
+  const members = await db('memberships')
+    .join('users', 'users.id', 'memberships.user_id')
+    .where('memberships.account_id', req.accountId)
+    .orderBy('memberships.id')
+    .select('users.id as user_id', 'users.email', 'users.name', 'memberships.role')
+  const invRows = await db('invitations')
+    .where({ account_id: req.accountId })
+    .whereNull('accepted_at')
+    .where('expires_at', '>', new Date().toISOString())
+    .orderBy('id', 'desc')
+    .select('id', 'email', 'role', 'token', 'expires_at', 'created_at')
+  const invites = invRows.map(i => ({ ...i, link: inviteLink(req, i.token), token: undefined }))
+  res.json({ members, invites, currentUserId: req.userId, mailerConfigured: mailerConfigured() })
+}))
+
+app.post('/api/team/invite', requireAdmin, wrap(async (req, res) => {
+  const email = String(req.body.email || '').toLowerCase().trim()
+  const role  = req.body.role === 'admin' ? 'admin' : 'cashier'
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'Ongeldig e-mailadres' })
+
+  const alreadyMember = await db('memberships')
+    .join('users', 'users.id', 'memberships.user_id')
+    .where('memberships.account_id', req.accountId)
+    .whereRaw('lower(users.email) = ?', [email]).first()
+  if (alreadyMember) return res.status(409).json({ error: 'Deze persoon is al lid van dit account' })
+
+  const token   = randomUUID().replace(/-/g, '')
+  const expires = new Date(Date.now() + 14 * 86400000).toISOString()
+  await db('invitations')
+    .insert({ account_id: req.accountId, email, role, token, invited_by: req.userId, expires_at: expires })
+    .onConflict(['account_id', 'email'])
+    .merge({ role, token, invited_by: req.userId, expires_at: expires, accepted_at: null })
+
+  const account = await db('accounts').where({ id: req.accountId }).first()
+  const inviter = req.userId ? (await db('users').where({ id: req.userId }).first())?.name : null
+  const link    = inviteLink(req, token)
+  const mail    = await sendInviteEmail({ to: email, link, orgName: account?.name || '', role, inviterName: inviter })
+  res.json({ ok: true, link, emailed: mail.sent })
+}))
+
+app.put('/api/team/member/:userId', requireAdmin, wrap(async (req, res) => {
+  const uid = Number(req.params.userId)
+  if (uid === req.userId) return res.status(400).json({ error: 'Je kunt je eigen rol niet wijzigen' })
+  const m = await db('memberships').where({ account_id: req.accountId, user_id: uid }).first()
+  if (!m) return res.status(404).json({ error: 'Lid niet gevonden' })
+  if (m.role === 'owner') return res.status(403).json({ error: 'De eigenaar kan niet gewijzigd worden' })
+  const role = req.body.role === 'admin' ? 'admin' : 'cashier'
+  await db('memberships').where({ id: m.id }).update({ role })
+  res.json({ ok: true })
+}))
+
+app.delete('/api/team/member/:userId', requireAdmin, wrap(async (req, res) => {
+  const uid = Number(req.params.userId)
+  if (uid === req.userId) return res.status(400).json({ error: 'Je kunt jezelf niet verwijderen' })
+  const m = await db('memberships').where({ account_id: req.accountId, user_id: uid }).first()
+  if (!m) return res.status(404).json({ error: 'Lid niet gevonden' })
+  if (m.role === 'owner') return res.status(403).json({ error: 'De eigenaar kan niet verwijderd worden' })
+  await db('memberships').where({ id: m.id }).del()
+  res.json({ ok: true })
+}))
+
+app.delete('/api/team/invite/:id', requireAdmin, wrap(async (req, res) => {
+  await db('invitations').where({ id: Number(req.params.id), account_id: req.accountId }).del()
   res.json({ ok: true })
 }))
 

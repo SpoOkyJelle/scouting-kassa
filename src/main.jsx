@@ -11,12 +11,16 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import KlantenschermDisplay from './components/KlantenschermDisplay'
+import AcceptInvite from './components/AcceptInvite'
 import './styles.css'
 
-const isDisplay = window.location.pathname === '/display'
+const path = window.location.pathname
+const route = path === '/display' ? <KlantenschermDisplay />
+            : path === '/invite'  ? <AcceptInvite />
+            : <App />
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    {isDisplay ? <KlantenschermDisplay /> : <App />}
+    {route}
   </React.StrictMode>
 )

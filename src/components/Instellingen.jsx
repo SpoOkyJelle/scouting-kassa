@@ -7,6 +7,7 @@ import { useConfirm } from './ConfirmModal'
 import SettingsCard from './SettingsCard'
 import CategoryEditor from './CategoryEditor'
 import PromotionEditor from './PromotionEditor'
+import TeamManager from './TeamManager'
 
 export default function Instellingen({ settings, onSave, lang, setLang, darkMode, setDarkMode, role }) {
   const { t }     = useLang()
@@ -317,6 +318,9 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
       {role === 'admin' && (
         <PromotionEditor settings={settings} onSave={onSave} />
       )}
+
+      {/* ── Team ────────────────────────────────────────────────────────── */}
+      {role === 'admin' && <TeamManager />}
 
       {/* ── Backup & Herstel ────────────────────────────────────────────── */}
       {role === 'admin' && (

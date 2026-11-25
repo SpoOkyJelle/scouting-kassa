@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { FileText, PlusCircle, Package, BarChart2, LogOut, WifiOff, QrCode, Settings, ShoppingCart, Heart, Monitor, Copy, Check, ExternalLink, X } from 'lucide-react'
 import { translations } from './i18n'
-import { logout as apiLogout, fetchSettings, fetchDisplayToken } from './api'
+import { logout as apiLogout, fetchSettings, fetchDisplayToken, fetchAccounts, switchAccount } from './api'
 import { LangContext } from './LangContext'
 import { SettingsContext } from './SettingsContext'
 import { CategoriesProvider } from './CategoriesContext'
@@ -67,6 +67,7 @@ export default function App() {
   const [displayToken, setDisplayToken] = useState(null)
   const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [onboardingDismissed, setOnboardingDismissed] = useState(false)
+  const [accounts, setAccounts] = useState([])
   const [appSettings, setAppSettings] = useState({ paymentUrl: '', paymentName: '' })
 
   const t = key => translations[lang]?.[key] ?? key
@@ -110,6 +111,19 @@ export default function App() {
       fetchDisplayToken().then(d => setDisplayToken(d.token)).catch(() => {})
     }
   }, [showDisplay, displayToken])
+
+  // Load the accounts this user can switch between
+  useEffect(() => {
+    if (token) fetchAccounts().then(setAccounts).catch(() => setAccounts([]))
+    else setAccounts([])
+  }, [token])
+
+  async function handleSwitchAccount(id) {
+    const current = accounts.find(a => a.current)
+    if (!id || current?.id === id) return
+    try { await switchAccount(id); window.location.reload() }
+    catch { /* stays on current account */ }
+  }
 
   // Update favicon when logo changes
   useEffect(() => {
@@ -288,6 +302,22 @@ export default function App() {
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {accounts.length > 1 && (
+                      <select
+                        value={accounts.find(a => a.current)?.id ?? ''}
+                        onChange={e => handleSwitchAccount(Number(e.target.value))}
+                        title={t('account_switch')}
+                        style={{
+                          background: 'rgba(255,255,255,0.10)', color: '#fff',
+                          border: '1px solid rgba(255,255,255,0.18)', borderRadius: 8,
+                          padding: '6px 8px', fontSize: '0.82rem', fontWeight: 600, maxWidth: 170, cursor: 'pointer',
+                        }}
+                      >
+                        {accounts.map(a => (
+                          <option key={a.id} value={a.id} style={{ color: '#111' }}>{a.name}</option>
+                        ))}
+                      </select>
+                    )}
                     <button
                       className="btn btn-sm"
                       onClick={() => setShowDisplay(true)}

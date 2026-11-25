@@ -61,6 +61,43 @@ export async function register({ email, password, org, name }) {
   return res.json()   // { token, role, account }
 }
 
+// Public invite lookup + accept (no session yet).
+export async function fetchInvite(token) {
+  const res = await fetch(`${BASE}/auth/invite/${token}`)
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}))
+    throw new Error(e.error || 'Uitnodiging ongeldig')
+  }
+  return res.json()   // { email, role, account:{name}, userExists }
+}
+export async function acceptInvite({ token, password, name }) {
+  const res = await fetch(`${BASE}/auth/accept`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, password, name }),
+  })
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}))
+    throw new Error(e.error || 'Accepteren mislukt')
+  }
+  return res.json()   // { token, role }
+}
+
+// ─── Team & accounts ─────────────────────────────────────────────────────────
+export const fetchTeam         = ()            => req('/team')
+export const inviteMember      = (email, role) => req('/team/invite', { method: 'POST', body: JSON.stringify({ email, role }) })
+export const revokeInvite      = (id)          => req(`/team/invite/${id}`, { method: 'DELETE' })
+export const removeMember      = (userId)      => req(`/team/member/${userId}`, { method: 'DELETE' })
+export const changeMemberRole  = (userId, role) => req(`/team/member/${userId}`, { method: 'PUT', body: JSON.stringify({ role }) })
+
+export const fetchAccounts = () => req('/auth/accounts')
+export async function switchAccount(accountId) {
+  const r = await req('/auth/switch', { method: 'POST', body: JSON.stringify({ accountId }) })
+  localStorage.setItem('kassa_token', r.token)
+  localStorage.setItem('kassa_role', r.role)
+  return r   // { token, role }
+}
+
 export const changePin     = (data) => req('/auth/change-pin', { method: 'POST', body: JSON.stringify(data) })
 export const updateDisplay = (data) => req('/display', { method: 'PUT',  body: JSON.stringify(data) })
 export const clearDisplay  = ()     => req('/display', { method: 'DELETE' })
