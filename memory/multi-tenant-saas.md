@@ -26,6 +26,23 @@ the owner's **own VPS**. Builds on [[generic-app-direction]].
 `package.json` (deps: knex, pg, bcryptjs; scripts: migrate*, import:sqlite). Migration NOT yet
 run here (no running Postgres/daemon).
 
-**Next — Fase 0b cutover:** rewrite `server.js` from `better-sqlite3` (sync) to `pg`/Knex
-(async) routed through `scoped(req.accountId)`. Then Fase 1 (registration/login + per-account
-`displayState` map), Fase 2 (setup wizard reusing Category/Promotion/Instellingen editors).
+**Fase 0b done — server.js cut over to Postgres/Knex (async).** All endpoints go through
+`scoped(req.accountId)`; `account_id` comes from an in-memory session (token → {accountId, role}).
+Old SQLite server kept as `server.sqlite.js.bak`. Auth: `POST /api/auth/register` (email+password
++ org → account+owner+membership), `POST /api/auth/login` accepts `{email,password}` OR `{pin}`
+(PIN resolves to the first account, falling back to env PIN — so the existing PIN LoginScreen still
+works → account 1). `db/index.js` sets pg type parsers (numeric→float, bigint→int, timestamptz→ISO
+string, date→string) so shapes match the old SQLite API. Verified end-to-end against the running
+Postgres (register → products → "elke 5e gratis" promo → receipt totals → paid → stats; cascade
+delete confirms isolation). Dev: `docker compose up -d db` (now bound to 127.0.0.1:5432) + `npm run
+dev`; needs DATABASE_URL in .env matching POSTGRES_PASSWORD.
+
+**Known transitional gaps / next:**
+- Frontend still logs in with PIN only; no registration/login UI yet.
+- `displayState` is still a single global (last writer wins), tagged with accountId — NOT yet
+  per-account; public /display page not account-aware. Fase 1.
+- Sessions are in-memory (lost on restart). Harden later (persist; sessions table has NOT NULL
+  user_id → make nullable for PIN sessions).
+- Local Caddy can't bind :80 on Windows (http.sys); irrelevant on the Linux VPS.
+**Next — Fase 1:** registration/login UI (email+password + account switch), per-account displayState
++ display token. Then Fase 2 setup wizard reusing Category/Promotion/Instellingen editors.

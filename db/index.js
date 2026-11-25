@@ -1,5 +1,18 @@
 import knex from 'knex'
+import pg from 'pg'
 import knexConfig from '../knexfile.js'
+
+// pg returns some types as strings/Date by default; normalize them so the rest
+// of the app (and the frontend) sees the same shapes the old SQLite layer gave:
+//   numeric/decimal → JS number   (prices, amounts)
+//   bigint          → JS number   (ids; safe for this app's volumes)
+//   date            → 'YYYY-MM-DD' string
+//   timestamp(tz)   → ISO string   (so .split('T') and new Date() keep working)
+pg.types.setTypeParser(1700, (v) => (v === null ? null : parseFloat(v)))      // numeric
+pg.types.setTypeParser(20,   (v) => (v === null ? null : parseInt(v, 10)))    // int8 / bigint
+pg.types.setTypeParser(1082, (v) => v)                                        // date
+pg.types.setTypeParser(1114, (v) => (v === null ? null : new Date(v + 'Z').toISOString())) // timestamp
+pg.types.setTypeParser(1184, (v) => (v === null ? null : new Date(v).toISOString()))        // timestamptz
 
 // Single shared Knex/pg connection pool for the whole app.
 const environment = process.env.NODE_ENV === 'production' ? 'production' : 'development'

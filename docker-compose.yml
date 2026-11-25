@@ -11,6 +11,10 @@ services:
       POSTGRES_DB: kassa
     volumes:
       - pgdata:/var/lib/postgresql/data
+    # Bound to localhost only, so host-side dev (npm run dev / migrate / import)
+    # can connect to Postgres while it stays unreachable from the public network.
+    ports:
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U kassa"]
       interval: 5s
@@ -24,16 +28,24 @@ services:
       NODE_ENV: production
       DATABASE_URL: postgres://kassa:${POSTGRES_PASSWORD:-kassa}@db:5432/kassa
       SESSION_SECRET: ${SESSION_SECRET}
-      # Still required while server.js runs the single-tenant SQLite app:
       PIN: ${PIN}
       CASHIER_PIN: ${CASHIER_PIN:-}
+    # Published on localhost so you can reach the app directly during local
+    # testing (http://localhost:3001). In production Caddy proxies to it over the
+    # internal network; this localhost binding stays private to the host.
+    ports:
+      - "127.0.0.1:3001:3001"
     depends_on:
       db:
         condition: service_healthy
     restart: unless-stopped
 
+  # Caddy only runs in the "prod" profile, so local `docker compose up` does NOT
+  # try to bind :80/:443 (which conflict with Windows http.sys). On the VPS:
+  #   docker compose --profile prod up -d --build
   caddy:
     image: caddy:2-alpine
+    profiles: ["prod"]
     ports:
       - "80:80"
       - "443:443"
