@@ -81,15 +81,27 @@ dev`; needs DATABASE_URL in .env matching POSTGRES_PASSWORD.
   route `/invite?token=…` (main.jsx routes it like /display). api.js: fetchInvite, acceptInvite,
   fetchTeam, inviteMember, revokeInvite, removeMember, changeMemberRole, fetchAccounts, switchAccount.
 
+**Fase 4 (hardening) done — persisted sessions, hashed PINs, rate limiting.**
+- Migration `0003_session_hardening.js`: `sessions.user_id` now nullable (PIN sessions have no user).
+  Applied (Batch 3).
+- Sessions persisted to the `sessions` table (7-day TTL) with an in-memory cache; survive restarts
+  (verified). `createSession`/`getSession`/`deleteSession` replaced the old Map; middleware is async.
+- PINs stored hashed: `adminPinHash`/`cashierPinHash` (bcrypt). `verifyPin()` returns the unlocked
+  role; `hasAdminPin()` gates change-pin. Env `PIN`/`CASHIER_PIN` are a plaintext bootstrap for the
+  FIRST account only (`envPinApplies` = accountId === firstAccountId). Both `PUT /api/settings`
+  (wizard path) and `change-pin` hash on write and drop plaintext; `safeSettings` strips the hashes.
+  change-pin requires the current admin PIN unless none is set yet (first setup).
+- `app.set('trust proxy', 1)`; in-memory `rateLimit()` → `authLimiter` (30 / 15min / IP, shared
+  across register+login+accept). Verified: 30×401 then 429 under flood.
+
 **Known gaps / next:**
 - `.env` password mismatch: `DATABASE_URL=...kassa:kassa...` but `POSTGRES_PASSWORD=change_me`, so
   host `npm run migrate`/`npm run dev` need the URL fixed to `kassa:change_me@localhost:5432`.
   (Worked around with inline DATABASE_URL for the migration.)
 - `SETTING_DEFAULTS` still holds pannenkoeken org's payment/categories; genericize later (account 1
   relies on them since its stored settings are `{}`).
-- Sessions in-memory (lost on restart). Harden later (persist to the `sessions` table; note that
-  table has NOT NULL user_id → make nullable for PIN sessions when persisting).
-- PIN session has `userId=null` → no account switcher and not flagged "you" in team list (fine).
+- authLimiter budget is shared across register+login+accept per IP; split if a busy till hits it.
 - Local Caddy only under the `prod` compose profile; locally the app is on 127.0.0.1:3001.
-**Next — Fase 4:** billing/plans, subdomain-per-tenant, hardening (hash PINs, argon2 for passwords,
-rate limiting, persist sessions), and configure a real mail provider (RESEND_API_KEY + MAIL_FROM).
+**Next — Fase 4 remainder (needs user decisions):** billing/plans (Mollie vs Stripe; what's gated) and
+tenant routing (subdomain-per-tenant w/ wildcard DNS+cert vs keep session-based). Also configure a
+real mail provider (RESEND_API_KEY + MAIL_FROM) on the VPS.

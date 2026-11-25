@@ -12,6 +12,31 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const app  = express()
 const PORT = 3001
 
+// Behind Caddy/Nginx: trust the first proxy so req.ip reflects X-Forwarded-For
+// (used by the rate limiter) and req.protocol respects X-Forwarded-Proto.
+app.set('trust proxy', 1)
+
+// Minimal in-memory rate limiter (per IP) for brute-force-sensitive endpoints.
+function rateLimit({ windowMs, max }) {
+  const hits = new Map()
+  return (req, res, next) => {
+    const now = Date.now()
+    const key = req.ip || 'unknown'
+    let rec = hits.get(key)
+    if (!rec || now > rec.reset) { rec = { count: 0, reset: now + windowMs }; hits.set(key, rec) }
+    rec.count++
+    if (rec.count > max) {
+      const retry = Math.ceil((rec.reset - now) / 1000)
+      res.setHeader('Retry-After', String(retry))
+      return res.status(429).json({ error: 'Te veel pogingen. Probeer het later opnieuw.' })
+    }
+    // Opportunistic cleanup so the map can't grow unbounded.
+    if (hits.size > 5000) for (const [k, v] of hits) if (now > v.reset) hits.delete(k)
+    next()
+  }
+}
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30 })
+
 // PIN fallback from env (used for account 1 until PINs are set per account).
 const ADMIN_PIN   = process.env.PIN || null
 const CASHIER_PIN = process.env.CASHIER_PIN || null
@@ -19,10 +44,41 @@ const CASHIER_PIN = process.env.CASHIER_PIN || null
 // Wrap async route handlers so rejections reach the error middleware.
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
 
-// ─── Sessions (in-memory; lost on restart → users re-login) ────────────────────
-// token → { accountId, role, userId? }. role is normalized to admin|cashier.
-const sessions = new Map()
+// ─── Sessions (persisted to the DB, cached in memory) ──────────────────────────
+// Survive restarts. In-memory cache avoids a DB hit on every request; the DB row
+// is the source of truth. token → { accountId, role, userId, expiresAt }.
+const SESSION_TTL = 7 * 24 * 60 * 60 * 1000  // 7 days
+const sessionCache = new Map()
 const normRole = (r) => (r === 'owner' ? 'admin' : r)
+
+async function createSession({ accountId, role, userId = null }) {
+  const token = randomUUID()
+  const expiresAt = new Date(Date.now() + SESSION_TTL)
+  await db('sessions').insert({
+    token, user_id: userId, account_id: accountId, role, expires_at: expiresAt.toISOString(),
+  })
+  sessionCache.set(token, { accountId, role, userId, expiresAt })
+  return token
+}
+
+async function getSession(token) {
+  if (!token) return null
+  let s = sessionCache.get(token)
+  if (!s) {
+    const row = await db('sessions').where({ token }).first()
+    if (!row) return null
+    s = { accountId: row.account_id, role: row.role, userId: row.user_id, expiresAt: new Date(row.expires_at) }
+    sessionCache.set(token, s)
+  }
+  if (s.expiresAt.getTime() < Date.now()) { await deleteSession(token); return null }
+  return s
+}
+
+async function deleteSession(token) {
+  if (!token) return
+  sessionCache.delete(token)
+  await db('sessions').where({ token }).del().catch(() => {})
+}
 
 // ─── Settings (per account) ────────────────────────────────────────────────────
 const SETTING_DEFAULTS = {
@@ -47,7 +103,7 @@ async function getSettings(accountId) {
 }
 // Strip secrets before sending settings to the client (any session can read them).
 function safeSettings(s) {
-  const { adminPin, cashierPin, displayToken, ...safe } = s
+  const { adminPin, cashierPin, adminPinHash, cashierPinHash, displayToken, ...safe } = s
   return safe
 }
 // Store only the raw (non-default) object; defaults are merged on read.
@@ -63,8 +119,30 @@ async function firstAccountId() {
   return row?.id ?? null
 }
 
-async function getAdminPin(accountId)   { return (await getSettings(accountId)).adminPin   || ADMIN_PIN }
-async function getCashierPin(accountId) { return (await getSettings(accountId)).cashierPin || CASHIER_PIN }
+// The env PINs are a plaintext bootstrap for the very first account only (the
+// original single-tenant till); other accounts set their own PIN in the UI.
+async function envPinApplies(accountId) {
+  return accountId === (await firstAccountId())
+}
+// PINs are stored hashed (adminPinHash / cashierPinHash). Returns the role the
+// PIN unlocks ('admin' | 'cashier'), or null.
+async function verifyPin(accountId, pin) {
+  if (!pin) return null
+  const raw = await getRawSettings(accountId)
+  if (raw.adminPinHash   && bcrypt.compareSync(pin, raw.adminPinHash))   return 'admin'
+  if (raw.cashierPinHash && bcrypt.compareSync(pin, raw.cashierPinHash)) return 'cashier'
+  if (await envPinApplies(accountId)) {
+    if (!raw.adminPinHash   && ADMIN_PIN   && pin === ADMIN_PIN)   return 'admin'
+    if (!raw.cashierPinHash && CASHIER_PIN && pin === CASHIER_PIN) return 'cashier'
+  }
+  return null
+}
+// True when this account already has an admin PIN (its own, or the env bootstrap).
+async function hasAdminPin(accountId) {
+  const raw = await getRawSettings(accountId)
+  if (raw.adminPinHash) return true
+  return Boolean(ADMIN_PIN) && (await envPinApplies(accountId))
+}
 
 // ─── Promotions snapshot ───────────────────────────────────────────────────────
 async function getProductCatMap(accountId) {
@@ -231,7 +309,7 @@ function slugify(s) {
   return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'account'
 }
 
-app.post('/api/auth/register', wrap(async (req, res) => {
+app.post('/api/auth/register', authLimiter, wrap(async (req, res) => {
   const { email, password, org, name } = req.body
   if (!email || !password || !org) return res.status(400).json({ error: 'email, password en org verplicht' })
   if (String(password).length < 6)  return res.status(400).json({ error: 'Wachtwoord minimaal 6 tekens' })
@@ -248,12 +326,11 @@ app.post('/api/auth/register', wrap(async (req, res) => {
     return { account, user }
   })
 
-  const token = randomUUID()
-  sessions.set(token, { accountId: account.id, role: 'admin', userId: user.id })
+  const token = await createSession({ accountId: account.id, role: 'admin', userId: user.id })
   res.json({ token, role: 'admin', account: { id: account.id, name: account.name } })
 }))
 
-app.post('/api/auth/login', wrap(async (req, res) => {
+app.post('/api/auth/login', authLimiter, wrap(async (req, res) => {
   const { pin, email, password } = req.body
 
   // Email + password (real accounts)
@@ -263,34 +340,28 @@ app.post('/api/auth/login', wrap(async (req, res) => {
       return res.status(401).json({ error: 'Onjuiste inloggegevens' })
     const m = await db('memberships').where({ user_id: user.id }).orderBy('id').first()
     if (!m) return res.status(403).json({ error: 'Geen account gekoppeld' })
-    const token = randomUUID()
     const role  = normRole(m.role)
-    sessions.set(token, { accountId: m.account_id, role, userId: user.id })
+    const token = await createSession({ accountId: m.account_id, role, userId: user.id })
     return res.json({ token, role })
   }
 
   // PIN (quick till login → resolves to the first account for now)
   const acctId = await firstAccountId()
   if (acctId && pin) {
-    const adminPin   = await getAdminPin(acctId)
-    const cashierPin = await getCashierPin(acctId)
-    let role = null
-    if (adminPin && pin === adminPin) role = 'admin'
-    else if (cashierPin && pin === cashierPin) role = 'cashier'
+    const role = await verifyPin(acctId, pin)
     if (role) {
-      const token = randomUUID()
-      sessions.set(token, { accountId: acctId, role })
+      const token = await createSession({ accountId: acctId, role, userId: null })
       return res.json({ token, role })
     }
   }
   res.status(401).json({ error: 'Verkeerde PIN' })
 }))
 
-app.post('/api/auth/logout', (req, res) => {
+app.post('/api/auth/logout', wrap(async (req, res) => {
   const token = req.headers.authorization?.split(' ')[1]
-  if (token) sessions.delete(token)
+  await deleteSession(token)
   res.json({ ok: true })
-})
+}))
 
 // ─── Invitations: public lookup + accept ────────────────────────────────────────
 async function loadOpenInvite(token) {
@@ -314,7 +385,7 @@ app.get('/api/auth/invite/:token', wrap(async (req, res) => {
   })
 }))
 
-app.post('/api/auth/accept', wrap(async (req, res) => {
+app.post('/api/auth/accept', authLimiter, wrap(async (req, res) => {
   const { token, password, name } = req.body
   const inv = await loadOpenInvite(token)
   if (!inv) return res.status(404).json({ error: 'Uitnodiging ongeldig of verlopen' })
@@ -340,23 +411,22 @@ app.post('/api/auth/accept', wrap(async (req, res) => {
     await trx('invitations').where({ id: inv.id }).update({ accepted_at: trx.fn.now() })
   })
 
-  const sessionToken = randomUUID()
   const role = normRole(inv.role)
-  sessions.set(sessionToken, { accountId: inv.account_id, role, userId: user.id })
+  const sessionToken = await createSession({ accountId: inv.account_id, role, userId: user.id })
   res.json({ token: sessionToken, role })
 }))
 
 // ─── Auth middleware (everything under /api below this point) ────────────────────
-app.use('/api', (req, res, next) => {
+app.use('/api', wrap(async (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1]
-  const sess  = token ? sessions.get(token) : null
+  const sess  = await getSession(token)
   if (!sess) return res.status(401).json({ error: 'Niet ingelogd' })
   req.token     = token
   req.accountId = sess.accountId
   req.role      = sess.role
   req.userId    = sess.userId || null
   next()
-})
+}))
 
 function requireAdmin(req, res, next) {
   if (req.role !== 'admin') return res.status(403).json({ error: 'Geen toegang' })
@@ -385,11 +455,16 @@ app.delete('/api/display', wrap(async (req, res) => {
 // ─── PIN wijzigen ─────────────────────────────────────────────────────────────
 app.post('/api/auth/change-pin', requireAdmin, wrap(async (req, res) => {
   const { currentPin, newPin, target } = req.body
-  if (currentPin !== (await getAdminPin(req.accountId))) return res.status(403).json({ error: 'Huidige PIN is onjuist' })
+  // Verify the current admin PIN — unless none is set yet (first PIN setup).
+  if (await hasAdminPin(req.accountId)) {
+    if ((await verifyPin(req.accountId, currentPin)) !== 'admin')
+      return res.status(403).json({ error: 'Huidige PIN is onjuist' })
+  }
   if (!newPin || String(newPin).length < 4) return res.status(400).json({ error: 'PIN moet minimaal 4 tekens zijn' })
   const s = await getRawSettings(req.accountId)
-  if (target === 'cashier') s.cashierPin = String(newPin)
-  else                      s.adminPin   = String(newPin)
+  const hash = bcrypt.hashSync(String(newPin), 10)
+  if (target === 'cashier') { s.cashierPinHash = hash; delete s.cashierPin }
+  else                      { s.adminPinHash   = hash; delete s.adminPin }
   await saveSettings(req.accountId, s)
   res.json({ ok: true })
 }))
@@ -413,10 +488,9 @@ app.post('/api/auth/switch', wrap(async (req, res) => {
   const accountId = Number(req.body.accountId)
   const m = await db('memberships').where({ user_id: req.userId, account_id: accountId }).first()
   if (!m) return res.status(403).json({ error: 'Geen toegang tot dit account' })
-  sessions.delete(req.token)
-  const token = randomUUID()
+  await deleteSession(req.token)
   const role  = normRole(m.role)
-  sessions.set(token, { accountId, role, userId: req.userId })
+  const token = await createSession({ accountId, role, userId: req.userId })
   res.json({ token, role })
 }))
 
@@ -895,7 +969,13 @@ app.get('/api/settings', wrap(async (req, res) => {
 }))
 
 app.put('/api/settings', requireAdmin, wrap(async (req, res) => {
-  const merged = { ...(await getRawSettings(req.accountId)), ...req.body }
+  const body = { ...req.body }
+  // Never persist PINs in plaintext — hash any that come through (e.g. the setup
+  // wizard) into *PinHash and drop the plaintext keys.
+  if (body.adminPin)   { body.adminPinHash   = bcrypt.hashSync(String(body.adminPin), 10) }
+  if (body.cashierPin) { body.cashierPinHash = bcrypt.hashSync(String(body.cashierPin), 10) }
+  delete body.adminPin; delete body.cashierPin
+  const merged = { ...(await getRawSettings(req.accountId)), ...body }
   await saveSettings(req.accountId, merged)
   res.json(safeSettings(await getSettings(req.accountId)))
 }))
