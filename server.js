@@ -1022,15 +1022,20 @@ app.post('/api/sumup/checkout', wrap(async (req, res) => {
   if (!r) return res.status(404).json({ error: 'Bon niet gevonden' })
   if (r.paid) return res.status(400).json({ error: 'Bon is al betaald' })
 
+  // The receipts row has no stored total; compute the outstanding amount the same
+  // way the customer display does (items − promo − discount %, plus any donation).
+  const totalDue = calcTotal(r.items, r.discount_pct, r.promo_discount) + (r.donation || 0)
+  if (!(totalDue > 0)) return res.status(400).json({ error: 'Bon heeft geen openstaand bedrag' })
+
   try {
     const result = await createReaderCheckout({
       apiKey:       s.sumupApiKey,
       merchantCode: s.sumupMerchantCode,
       readerId:     s.sumupReaderId,
-      amount:       r.total_due,
+      amount:       totalDue,
       description:  `Bon #${receiptId}${r.name ? ` — ${r.name}` : ''}`,
     })
-    res.json({ ok: true, clientTransactionId: result.clientTransactionId, amount: r.total_due })
+    res.json({ ok: true, clientTransactionId: result.clientTransactionId, amount: totalDue })
   } catch (err) {
     res.status(502).json({ error: err.message })
   }
