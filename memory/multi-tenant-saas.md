@@ -94,10 +94,26 @@ dev`; needs DATABASE_URL in .env matching POSTGRES_PASSWORD.
 - `app.set('trust proxy', 1)`; in-memory `rateLimit()` → `authLimiter` (30 / 15min / IP, shared
   across register+login+accept). Verified: 30×401 then 429 under flood.
 
+**Plans + settings/header cleanup done (no billing yet).**
+- `src/plans.js`: PLANS (free/pro/business) with bilingual marketing copy + indicative prices;
+  `PLAN_IDS`, `DEFAULT_PLAN`, `getPlan`. `accounts.plan` column already existed.
+- Server: `GET /api/account` ({id,name,plan}), `PUT /api/account/plan` (requireAdmin, validates
+  against PLAN_IDS; no payment — just records the choice). Verified: defaults to free, switch to
+  pro persists, unknown plan → 400.
+- Header: `AccountMenu.jsx` dropdown (account name + role & plan badges, account switcher if >1,
+  "Abonnement beheren" → settings, logout) replaced the bare switcher `<select>` + logout button.
+  App.jsx fetches `fetchAccount()` into `account` state and passes it down.
+- Settings cleanup (`Instellingen.jsx`): removed the standalone "Rollen" card (role now in the
+  header menu; its cashier-PIN hint folded into the PIN card). Added `Group` section headers:
+  ACCOUNT (→ `PlanSelector.jsx` plan cards), BEHEER (Logo, PIN, Categorieën, Acties, Team, Backup,
+  Betaalverzoek), WEERGAVE (taal + donker/tekstgrootte, moved to the bottom, visible to all roles).
+  Verified live in-browser: header menu, plan cards, grouped settings all render correctly.
+
 **Known gaps / next:**
 - `.env` password mismatch: `DATABASE_URL=...kassa:kassa...` but `POSTGRES_PASSWORD=change_me`, so
   host `npm run migrate`/`npm run dev` need the URL fixed to `kassa:change_me@localhost:5432`.
   (Worked around with inline DATABASE_URL for the migration.)
+- Plans are cosmetic for now — no feature/limit enforcement by plan yet (intentional until billing).
 - `SETTING_DEFAULTS` still holds pannenkoeken org's payment/categories; genericize later (account 1
   relies on them since its stored settings are `{}`).
 - authLimiter budget is shared across register+login+accept per IP; split if a busy till hits it.

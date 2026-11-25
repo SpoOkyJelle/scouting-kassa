@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { FileText, PlusCircle, Package, BarChart2, LogOut, WifiOff, QrCode, Settings, ShoppingCart, Heart, Monitor, Copy, Check, ExternalLink, X } from 'lucide-react'
 import { translations } from './i18n'
-import { logout as apiLogout, fetchSettings, fetchDisplayToken, fetchAccounts, switchAccount } from './api'
+import { logout as apiLogout, fetchSettings, fetchDisplayToken, fetchAccounts, switchAccount, fetchAccount } from './api'
 import { LangContext } from './LangContext'
 import { SettingsContext } from './SettingsContext'
 import { CategoriesProvider } from './CategoriesContext'
@@ -18,6 +18,7 @@ import Instellingen  from './components/Instellingen'
 import InkoopBonnen from './components/InkoopBonnen'
 import Donaties      from './components/Donaties'
 import OnboardingWizard from './components/OnboardingWizard'
+import AccountMenu from './components/AccountMenu'
 
 export { LangContext }
 export { useLang } from './LangContext'
@@ -68,6 +69,7 @@ export default function App() {
   const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [onboardingDismissed, setOnboardingDismissed] = useState(false)
   const [accounts, setAccounts] = useState([])
+  const [account, setAccount]   = useState(null)   // { id, name, plan }
   const [appSettings, setAppSettings] = useState({ paymentUrl: '', paymentName: '' })
 
   const t = key => translations[lang]?.[key] ?? key
@@ -112,10 +114,14 @@ export default function App() {
     }
   }, [showDisplay, displayToken])
 
-  // Load the accounts this user can switch between
+  // Load the accounts this user can switch between + the current account/plan
   useEffect(() => {
-    if (token) fetchAccounts().then(setAccounts).catch(() => setAccounts([]))
-    else setAccounts([])
+    if (token) {
+      fetchAccounts().then(setAccounts).catch(() => setAccounts([]))
+      fetchAccount().then(setAccount).catch(() => setAccount(null))
+    } else {
+      setAccounts([]); setAccount(null)
+    }
   }, [token])
 
   async function handleSwitchAccount(id) {
@@ -302,22 +308,6 @@ export default function App() {
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {accounts.length > 1 && (
-                      <select
-                        value={accounts.find(a => a.current)?.id ?? ''}
-                        onChange={e => handleSwitchAccount(Number(e.target.value))}
-                        title={t('account_switch')}
-                        style={{
-                          background: 'rgba(255,255,255,0.10)', color: '#fff',
-                          border: '1px solid rgba(255,255,255,0.18)', borderRadius: 8,
-                          padding: '6px 8px', fontSize: '0.82rem', fontWeight: 600, maxWidth: 170, cursor: 'pointer',
-                        }}
-                      >
-                        {accounts.map(a => (
-                          <option key={a.id} value={a.id} style={{ color: '#111' }}>{a.name}</option>
-                        ))}
-                      </select>
-                    )}
                     <button
                       className="btn btn-sm"
                       onClick={() => setShowDisplay(true)}
@@ -327,14 +317,14 @@ export default function App() {
                       <Monitor size={14} />
                       <span className="tab-label">{t('display_btn')}</span>
                     </button>
-                    <button
-                      className="btn btn-ghost btn-sm"
-                      onClick={handleLogout}
-                      title={t('logout')}
-                      style={{ color: 'var(--s400)', padding: '5px 8px' }}
-                    >
-                      <LogOut size={15} />
-                    </button>
+                    <AccountMenu
+                      accounts={accounts}
+                      account={account}
+                      role={role}
+                      onSwitch={handleSwitchAccount}
+                      onLogout={handleLogout}
+                      onManagePlan={role === 'admin' ? () => navigateTo('settings') : null}
+                    />
                   </div>
                 </header>
 
@@ -370,6 +360,8 @@ export default function App() {
                         darkMode={darkMode}
                         setDarkMode={setDarkMode}
                         role={role}
+                        account={account}
+                        onAccountChange={setAccount}
                       />
                     )}
                     {tab === 'detail' && detailId && <BonDetail id={detailId} onBack={closeDetail} />}

@@ -6,6 +6,7 @@ import { randomUUID } from 'crypto'
 import bcrypt from 'bcryptjs'
 import { computePromotions } from './src/promotions.js'
 import { sendInviteEmail, mailerConfigured } from './src/mailer.js'
+import { PLAN_IDS, DEFAULT_PLAN } from './src/plans.js'
 import { db, scoped } from './db/index.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -492,6 +493,22 @@ app.post('/api/auth/switch', wrap(async (req, res) => {
   const role  = normRole(m.role)
   const token = await createSession({ accountId, role, userId: req.userId })
   res.json({ token, role })
+}))
+
+// ─── Current account + plan ──────────────────────────────────────────────────────
+app.get('/api/account', wrap(async (req, res) => {
+  const acc = await db('accounts').where({ id: req.accountId }).first()
+  if (!acc) return res.status(404).json({ error: 'Account niet gevonden' })
+  res.json({ id: acc.id, name: acc.name, plan: acc.plan || DEFAULT_PLAN })
+}))
+
+// Change the plan (no payment yet — just records the choice).
+app.put('/api/account/plan', requireAdmin, wrap(async (req, res) => {
+  const plan = String(req.body.plan || '')
+  if (!PLAN_IDS.includes(plan)) return res.status(400).json({ error: 'Onbekend abonnement' })
+  await db('accounts').where({ id: req.accountId }).update({ plan })
+  const acc = await db('accounts').where({ id: req.accountId }).first()
+  res.json({ id: acc.id, name: acc.name, plan: acc.plan })
 }))
 
 // ─── Team management (admin) ─────────────────────────────────────────────────────

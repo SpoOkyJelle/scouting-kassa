@@ -90,6 +90,9 @@ export const revokeInvite      = (id)          => req(`/team/invite/${id}`, { me
 export const removeMember      = (userId)      => req(`/team/member/${userId}`, { method: 'DELETE' })
 export const changeMemberRole  = (userId, role) => req(`/team/member/${userId}`, { method: 'PUT', body: JSON.stringify({ role }) })
 
+export const fetchAccount  = ()      => req('/account')               // { id, name, plan }
+export const updatePlan    = (plan)  => req('/account/plan', { method: 'PUT', body: JSON.stringify({ plan }) })
+
 export const fetchAccounts = () => req('/auth/accounts')
 export async function switchAccount(accountId) {
   const r = await req('/auth/switch', { method: 'POST', body: JSON.stringify({ accountId }) })

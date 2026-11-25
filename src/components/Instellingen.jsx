@@ -8,8 +8,19 @@ import SettingsCard from './SettingsCard'
 import CategoryEditor from './CategoryEditor'
 import PromotionEditor from './PromotionEditor'
 import TeamManager from './TeamManager'
+import PlanSelector from './PlanSelector'
 
-export default function Instellingen({ settings, onSave, lang, setLang, darkMode, setDarkMode, role }) {
+// Small uppercase group heading to structure the settings page.
+function Group({ children }) {
+  return (
+    <div style={{
+      fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+      color: 'var(--muted)', margin: '1.4rem 0 0.6rem', paddingLeft: 2,
+    }}>{children}</div>
+  )
+}
+
+export default function Instellingen({ settings, onSave, lang, setLang, darkMode, setDarkMode, role, account, onAccountChange }) {
   const { t }     = useLang()
   const showToast = useToast()
   const confirm   = useConfirm()
@@ -143,6 +154,16 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
   return (
     <div style={{ maxWidth: 560 }}>
 
+      {/* ── Account & abonnement ───────────────────────────────────────── */}
+      {role === 'admin' && (
+        <>
+          <Group>{t('settings_group_account')}</Group>
+          <PlanSelector account={account} onChange={onAccountChange} />
+        </>
+      )}
+
+      {role === 'admin' && <Group>{t('settings_group_manage')}</Group>}
+
       {/* ── Logo ────────────────────────────────────────────────────────── */}
       {role === 'admin' && (
         <SettingsCard Icon={ImageIcon} label={t('settings_logo_section')} color="#F59E0B">
@@ -181,81 +202,16 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
         </SettingsCard>
       )}
 
-      {/* ── Taal ────────────────────────────────────────────────────────── */}
-      <SettingsCard Icon={Globe} label={t('settings_language')} color="#3C7A86">
-        <div style={{ display: 'flex', gap: 8 }}>
-          {['nl', 'en'].map(code => (
-            <button
-              key={code}
-              className={`btn ${lang === code ? 'btn-primary' : 'btn-outline'}`}
-              style={{ minWidth: 90, gap: 6 }}
-              onClick={() => setLang(code)}
-            >
-              {code === 'nl' ? '🇳🇱  Nederlands' : '🇬🇧  English'}
-            </button>
-          ))}
-        </div>
-      </SettingsCard>
-
-      {/* ── Weergave ────────────────────────────────────────────────────── */}
-      <SettingsCard Icon={Moon} label={t('settings_appearance')} color="#8A6D9B">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontWeight: 600, fontSize: '0.87rem', color: 'var(--s800)' }}>
-              {t('dark_mode')}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 2 }}>
-              {darkMode ? 'Donkere modus actief' : 'Lichte modus actief'}
-            </div>
-          </div>
-          <button
-            className={`toggle-switch${darkMode ? ' on' : ''}`}
-            onClick={() => setDarkMode(d => !d)}
-            aria-label={t('dark_mode')}
-          >
-            <span className="toggle-knob" />
-          </button>
-        </div>
-        <div style={{ height: 1, background: 'var(--border)', margin: '0.75rem 0' }} />
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontWeight: 600, fontSize: '0.87rem', color: 'var(--s800)' }}>Tekstgrootte</div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {[{ key: 'small', label: 'Klein' }, { key: 'normal', label: 'Normaal' }, { key: 'large', label: 'Groot' }].map(({ key, label }) => (
-              <button
-                key={key}
-                className={`btn btn-sm ${fontSize === key ? 'btn-primary' : 'btn-outline'}`}
-                onClick={() => applyFontSize(key)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </SettingsCard>
-
-      {/* ── Rollen ──────────────────────────────────────────────────────── */}
-      <SettingsCard Icon={Shield} label={t('settings_roles')} color="#C77A1A">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: role === 'admin' ? 10 : 0 }}>
-          <span style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>{t('your_role')}:</span>
-          <span className={`role-badge ${role === 'admin' ? 'role-admin' : 'role-cashier'}`}>
-            {role === 'admin' ? t('role_admin') : t('role_cashier')}
-          </span>
-        </div>
-        {role === 'admin' && (
-          <div style={{
-            background: 'var(--s50)', border: '1px solid var(--border)',
-            borderRadius: 8, padding: '8px 10px',
-            fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.6,
-            fontFamily: 'monospace',
-          }}>
-            {t('cashier_pin_hint')}
-          </div>
-        )}
-      </SettingsCard>
-
       {/* ── PIN wijzigen ────────────────────────────────────────────────── */}
       {role === 'admin' && (
         <SettingsCard Icon={KeyRound} label={t('settings_pin_section')} color="#DC2626">
+          <div style={{
+            background: 'var(--s50)', border: '1px solid var(--border)',
+            borderRadius: 8, padding: '8px 10px', marginBottom: '0.85rem',
+            fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.6,
+          }}>
+            {t('cashier_pin_hint')}
+          </div>
           {/* Kies PIN type */}
           <div style={{ display: 'flex', gap: 6, marginBottom: '0.85rem' }}>
             {[
@@ -404,6 +360,59 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
           </form>
         </SettingsCard>
       )}
+
+      {/* ── Weergave & taal (alle rollen) ──────────────────────────────── */}
+      <Group>{t('settings_group_display')}</Group>
+
+      <SettingsCard Icon={Globe} label={t('settings_language')} color="#3C7A86">
+        <div style={{ display: 'flex', gap: 8 }}>
+          {['nl', 'en'].map(code => (
+            <button
+              key={code}
+              className={`btn ${lang === code ? 'btn-primary' : 'btn-outline'}`}
+              style={{ minWidth: 90, gap: 6 }}
+              onClick={() => setLang(code)}
+            >
+              {code === 'nl' ? '🇳🇱  Nederlands' : '🇬🇧  English'}
+            </button>
+          ))}
+        </div>
+      </SettingsCard>
+
+      <SettingsCard Icon={Moon} label={t('settings_appearance')} color="#8A6D9B">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: '0.87rem', color: 'var(--s800)' }}>
+              {t('dark_mode')}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 2 }}>
+              {darkMode ? 'Donkere modus actief' : 'Lichte modus actief'}
+            </div>
+          </div>
+          <button
+            className={`toggle-switch${darkMode ? ' on' : ''}`}
+            onClick={() => setDarkMode(d => !d)}
+            aria-label={t('dark_mode')}
+          >
+            <span className="toggle-knob" />
+          </button>
+        </div>
+        <div style={{ height: 1, background: 'var(--border)', margin: '0.75rem 0' }} />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontWeight: 600, fontSize: '0.87rem', color: 'var(--s800)' }}>Tekstgrootte</div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {[{ key: 'small', label: 'Klein' }, { key: 'normal', label: 'Normaal' }, { key: 'large', label: 'Groot' }].map(({ key, label }) => (
+              <button
+                key={key}
+                className={`btn btn-sm ${fontSize === key ? 'btn-primary' : 'btn-outline'}`}
+                onClick={() => applyFontSize(key)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </SettingsCard>
     </div>
   )
 }
