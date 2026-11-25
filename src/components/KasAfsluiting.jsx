@@ -106,8 +106,8 @@ export default function KasAfsluiting({ todayContant = 0, todayQr = 0 }) {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          <Wallet size={14} color="#2563EB" strokeWidth={2.3} />
-          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+          <Wallet size={14} color="#3C7A86" strokeWidth={2.3} />
+          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'none', letterSpacing: '0.6px' }}>
             {t('kas_title')}
           </span>
         </div>
@@ -138,8 +138,8 @@ export default function KasAfsluiting({ todayContant = 0, todayQr = 0 }) {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          <Wallet size={14} color="#2563EB" strokeWidth={2.3} />
-          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+          <Wallet size={14} color="#3C7A86" strokeWidth={2.3} />
+          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'none', letterSpacing: '0.6px' }}>
             {t('kas_title')}
           </span>
         </div>
@@ -210,20 +210,20 @@ export default function KasAfsluiting({ todayContant = 0, todayQr = 0 }) {
           <Row
             label={<span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Banknote size={12} /> {t('kas_contant')}</span>}
             value={fmt(todayContant)}
-            accent="#16A34A"
+            accent="#2E6B4E"
           />
           {todayQr > 0 && (
             <Row
               label={<span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Smartphone size={12} /> {t('payment_method_qr')}</span>}
               value={fmt(todayQr)}
-              accent="#7C3AED"
+              accent="#8A6D9B"
             />
           )}
 
           {/* ── Correcties ────────────────────────────────────────────── */}
           {(correcties.length > 0 || showCorrForm) && (
             <div style={{ borderTop: '1px dashed var(--s200)', marginTop: '0.5rem', paddingTop: '0.5rem' }}>
-              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.4rem' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'none', letterSpacing: '0.5px', marginBottom: '0.4rem' }}>
                 {t('kas_correcties')}
               </div>
               {correcties.map(c => (
@@ -233,7 +233,7 @@ export default function KasAfsluiting({ todayContant = 0, todayQr = 0 }) {
                 }}>
                   <span style={{
                     fontSize: '0.65rem', fontWeight: 700, padding: '1px 6px', borderRadius: 4,
-                    background: c.type === 'contant' ? '#FEF9C3' : '#F5F3FF',
+                    background: c.type === 'contant' ? '#FEF9C3' : '#EFEAF2',
                     color: c.type === 'contant' ? '#854D0E' : '#6D28D9',
                   }}>
                     {c.type === 'contant' ? <Banknote size={10} /> : <Smartphone size={10} />}
@@ -243,7 +243,7 @@ export default function KasAfsluiting({ todayContant = 0, todayQr = 0 }) {
                   </span>
                   <span style={{
                     fontSize: '0.84rem', fontWeight: 700,
-                    color: c.amount >= 0 ? '#16A34A' : '#DC2626',
+                    color: c.amount >= 0 ? '#2E6B4E' : '#DC2626',
                   }}>
                     {c.amount >= 0 ? '+' : ''}{fmt(c.amount)}
                   </span>
@@ -335,14 +335,14 @@ export default function KasAfsluiting({ todayContant = 0, todayQr = 0 }) {
             <Row
               label={t('kas_correctie_contant')}
               value={`${corrContant >= 0 ? '+' : ''}${fmt(corrContant)}`}
-              accent={corrContant >= 0 ? '#16A34A' : '#DC2626'}
+              accent={corrContant >= 0 ? '#2E6B4E' : '#DC2626'}
             />
           )}
           {corrQr !== 0 && (
             <Row
               label={t('kas_correctie_qr')}
               value={`${corrQr >= 0 ? '+' : ''}${fmt(corrQr)}`}
-              accent={corrQr >= 0 ? '#7C3AED' : '#DC2626'}
+              accent={corrQr >= 0 ? '#8A6D9B' : '#DC2626'}
             />
           )}
 
@@ -355,7 +355,7 @@ export default function KasAfsluiting({ todayContant = 0, todayQr = 0 }) {
             <Row
               label={t('kas_verwacht_qr')}
               value={fmt(verwachtQr)}
-              accent="#7C3AED"
+              accent="#8A6D9B"
             />
           )}
 
@@ -386,16 +386,16 @@ export default function KasAfsluiting({ todayContant = 0, todayQr = 0 }) {
               marginTop: '0.75rem',
               padding: '0.65rem 0.9rem',
               borderRadius: 8,
-              background: verschil === 0 ? '#F0FDF4' : Math.abs(verschil) < 0.5 ? '#FFFBEB' : '#FEF2F2',
+              background: verschil === 0 ? '#EDF4EF' : Math.abs(verschil) < 0.5 ? '#FBF1DE' : '#FEF2F2',
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             }}>
-              <span style={{ fontSize: '0.82rem', fontWeight: 600, color: verschil === 0 ? '#166534' : '#92400E' }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 600, color: verschil === 0 ? '#1E4D39' : '#92400E' }}>
                 {verschil === 0 ? t('kas_klopt') : t('kas_verschil')}
               </span>
               {verschil !== 0 && (
                 <span style={{
                   fontWeight: 800, fontSize: '0.95rem',
-                  color: verschil > 0 ? '#16A34A' : '#DC2626',
+                  color: verschil > 0 ? '#2E6B4E' : '#DC2626',
                 }}>
                   {verschil > 0 ? '+' : ''}{fmt(verschil)}
                 </span>

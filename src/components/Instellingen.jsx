@@ -209,7 +209,7 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
       )}
 
       {/* ── Taal ────────────────────────────────────────────────────────── */}
-      <SettingsCard Icon={Globe} label={t('settings_language')} color="#2563EB">
+      <SettingsCard Icon={Globe} label={t('settings_language')} color="#3C7A86">
         <div style={{ display: 'flex', gap: 8 }}>
           {['nl', 'en'].map(code => (
             <button
@@ -225,7 +225,7 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
       </SettingsCard>
 
       {/* ── Weergave ────────────────────────────────────────────────────── */}
-      <SettingsCard Icon={Moon} label={t('settings_appearance')} color="#7C3AED">
+      <SettingsCard Icon={Moon} label={t('settings_appearance')} color="#8A6D9B">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontWeight: 600, fontSize: '0.87rem', color: 'var(--s800)' }}>
@@ -261,7 +261,7 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
       </SettingsCard>
 
       {/* ── Rollen ──────────────────────────────────────────────────────── */}
-      <SettingsCard Icon={Shield} label={t('settings_roles')} color="#D97706">
+      <SettingsCard Icon={Shield} label={t('settings_roles')} color="#C77A1A">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: role === 'admin' ? 10 : 0 }}>
           <span style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>{t('your_role')}:</span>
           <span className={`role-badge ${role === 'admin' ? 'role-admin' : 'role-cashier'}`}>
@@ -338,7 +338,7 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
 
       {/* ── Backup & Herstel ────────────────────────────────────────────── */}
       {role === 'admin' && (
-        <SettingsCard Icon={HardDrive} label={t('settings_backup_section')} color="#7C3AED">
+        <SettingsCard Icon={HardDrive} label={t('settings_backup_section')} color="#8A6D9B">
           <p style={{ fontSize: '0.78rem', color: 'var(--muted)', marginBottom: '0.85rem', lineHeight: 1.5 }}>
             {t('settings_backup_hint')}
           </p>
@@ -362,7 +362,7 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
 
       {/* ── Betaalverzoek ───────────────────────────────────────────────── */}
       {role === 'admin' && (
-        <SettingsCard Icon={QrCode} label={t('settings_payment_section')} color="#16A34A">
+        <SettingsCard Icon={QrCode} label={t('settings_payment_section')} color="#2E6B4E">
           <form onSubmit={handleSave}>
             <div className="form-group">
               <label className="form-label">{t('settings_payment_url')}</label>

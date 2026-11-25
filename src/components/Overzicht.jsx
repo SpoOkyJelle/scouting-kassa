@@ -43,9 +43,9 @@ function useCountUp(target, duration = 550) {
   return displayed
 }
 
-const GREEN  = '#16A34A'
-const PURPLE = '#7C3AED'
-const PALETTE = ['#16A34A','#22C55E','#0EA5E9','#F59E0B','#8B5CF6','#EC4899','#10B981','#F97316']
+const GREEN  = '#2E6B4E'
+const PURPLE = '#8A6D9B'
+const PALETTE = ['#2E6B4E','#C77A1A','#3C7A86','#5C8A3C','#B0683A','#8A6D9B','#D9A741','#8A8374']
 
 // ── Tooltip ───────────────────────────────────────────────────────────────────
 function ChartTip({ active, payload, label, color = GREEN }) {
@@ -63,7 +63,7 @@ function ChartTip({ active, payload, label, color = GREEN }) {
 }
 
 // ── Kleine KPI-kaart ──────────────────────────────────────────────────────────
-function KpiCard({ Icon, label, value, sub, accent = '#64748B', accentBg = 'var(--s100)' }) {
+function KpiCard({ Icon, label, value, sub, accent = '#8A8374', accentBg = 'var(--s100)' }) {
   return (
     <div style={{
       background: 'var(--surface)',
@@ -86,7 +86,7 @@ function KpiCard({ Icon, label, value, sub, accent = '#64748B', accentBg = 'var(
           {value}
         </div>
         {sub && <div style={{ fontSize: '0.72rem', color: accent, fontWeight: 600, marginTop: 1 }}>{sub}</div>}
-        <div style={{ fontSize: '0.7rem', color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px', marginTop: 2 }}>
+        <div style={{ fontSize: '0.7rem', color: 'var(--muted)', fontWeight: 600, textTransform: 'none', letterSpacing: '0.4px', marginTop: 2 }}>
           {label}
         </div>
       </div>
@@ -104,7 +104,7 @@ function SectionHead({ Icon, label, color = 'var(--muted)' }) {
       <Icon size={14} color={color} strokeWidth={2.3} />
       <span style={{
         fontSize: '0.7rem', fontWeight: 700, color: 'var(--muted)',
-        textTransform: 'uppercase', letterSpacing: '0.6px',
+        textTransform: 'none', letterSpacing: '0.6px',
       }}>{label}</span>
     </div>
   )
@@ -277,7 +277,7 @@ export default function Overzicht({ role }) {
 
             {/* Omzet hero */}
             <div style={{
-              background: 'linear-gradient(135deg, #052e16 0%, #14532d 60%, #166534 100%)',
+              background: 'linear-gradient(135deg, #163A2B 0%, #1E4D39 60%, #1E4D39 100%)',
               borderRadius: 16,
               padding: '1.25rem 1.4rem',
               color: '#fff',
@@ -297,7 +297,7 @@ export default function Overzicht({ role }) {
               }} />
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4, position: 'relative' }}>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'rgba(255,255,255,0.6)' }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'none', letterSpacing: '0.6px', color: 'rgba(255,255,255,0.6)' }}>
                   {period === 'today' ? t('stats_today')
                     : period === 'yesterday' ? t('filter_yesterday')
                     : period === 'date' && customDate
@@ -315,7 +315,7 @@ export default function Overzicht({ role }) {
 
               {period === 'all' && todayRevenue > 0 && (
                 <div style={{ marginTop: 6, fontSize: '0.78rem', color: 'rgba(255,255,255,0.65)', position: 'relative' }}>
-                  Vandaag: <span style={{ color: '#86efac', fontWeight: 700 }}>{fmt(todayRevenue)}</span>
+                  Vandaag: <span style={{ color: '#9BE3BC', fontWeight: 700 }}>{fmt(todayRevenue)}</span>
                 </div>
               )}
               {period === 'today' && yesterdayRevenue > 0 && (() => {
@@ -325,7 +325,7 @@ export default function Overzicht({ role }) {
                   <div style={{ marginTop: 6, fontSize: '0.78rem', color: 'rgba(255,255,255,0.65)', position: 'relative' }}>
                     {t('stats_yesterday')}: <span style={{ color: 'rgba(255,255,255,0.75)', fontWeight: 700 }}>{fmt(yesterdayRevenue)}</span>
                     {diff !== 0 && (
-                      <span style={{ marginLeft: 6, fontWeight: 800, color: diff > 0 ? '#86efac' : '#fca5a5' }}>
+                      <span style={{ marginLeft: 6, fontWeight: 800, color: diff > 0 ? '#9BE3BC' : '#fca5a5' }}>
                         {diff > 0 ? '↑' : '↓'}{pct}%
                       </span>
                     )}
@@ -370,7 +370,7 @@ export default function Overzicht({ role }) {
                 }} />
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4, position: 'relative' }}>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'rgba(255,255,255,0.6)' }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'none', letterSpacing: '0.6px', color: 'rgba(255,255,255,0.6)' }}>
                     {t('stats_profit')}
                   </span>
                   <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 7, padding: '4px 6px' }}>
@@ -390,7 +390,7 @@ export default function Overzicht({ role }) {
                 </div>
                 {unpaidRevenue > 0 && (
                   <div style={{ marginTop: 3, fontSize: '0.78rem', color: 'rgba(255,255,255,0.65)', position: 'relative' }}>
-                    {t('stats_exp_profit')}: <span style={{ color: '#86efac', fontWeight: 700 }}>{fmt(totalRevenue - totalCosts)}</span>
+                    {t('stats_exp_profit')}: <span style={{ color: '#9BE3BC', fontWeight: 700 }}>{fmt(totalRevenue - totalCosts)}</span>
                   </div>
                 )}
 
@@ -439,12 +439,12 @@ export default function Overzicht({ role }) {
                 <KpiCard
                   Icon={CheckCircle2} label={t('stats_paid_amt')} value={fmt(paidRevenue)}
                   sub={`${paidCount} ${t('stats_count').toLowerCase()}`}
-                  accent={GREEN} accentBg="#F0FDF4"
+                  accent={GREEN} accentBg="#EDF4EF"
                 />
                 <KpiCard
                   Icon={Clock} label={t('stats_unpaid_amt')} value={fmt(unpaidRevenue)}
                   sub={`${unpaidCount} ${t('stats_count').toLowerCase()}`}
-                  accent="#D97706" accentBg="#FFFBEB"
+                  accent="#C77A1A" accentBg="#FBF1DE"
                 />
                 <KpiCard
                   Icon={FileText} label={t('stats_count')} value={receiptCount}
@@ -452,7 +452,7 @@ export default function Overzicht({ role }) {
                 />
                 <KpiCard
                   Icon={Divide} label={t('stats_avg')} value={fmt(avgReceiptValue)}
-                  accent="#2563EB" accentBg="#EFF6FF"
+                  accent="#3C7A86" accentBg="#E6F0F1"
                 />
                 {period === 'all' && hasInkoop && (
                   <KpiCard
@@ -463,14 +463,14 @@ export default function Overzicht({ role }) {
                 {totalDonations > 0 && (
                   <KpiCard
                     Icon={Heart} label={t('stats_donations')} value={fmt(totalDonations)}
-                    accent="#16A34A" accentBg="#F0FDF4"
+                    accent="#2E6B4E" accentBg="#EDF4EF"
                   />
                 )}
                 {estimatedCosts > 0 && (
                   <KpiCard
                     Icon={ShoppingCart} label={t('stats_est_costs')} value={fmt(estimatedCosts)}
                     sub={`Marge ${totalRevenue > 0 ? Math.round((estimatedProfit / totalRevenue) * 100) : 0}%`}
-                    accent="#7C3AED" accentBg="#F5F3FF"
+                    accent="#8A6D9B" accentBg="#EFEAF2"
                   />
                 )}
               </div>
@@ -480,10 +480,10 @@ export default function Overzicht({ role }) {
           {/* ── Betaalmethode breakdown ──────────────────────────────────────── */}
           {paidRevenue > 0 && (() => {
             const methods = [
-              { key: 'contant', label: t('payment_method_contant'), Icon: Banknote,   color: '#16A34A', bg: '#F0FDF4' },
-              { key: 'pin',     label: t('payment_method_pin'),     Icon: CreditCard, color: '#2563EB', bg: '#EFF6FF' },
-              { key: 'qr',      label: t('payment_method_qr'),      Icon: Smartphone, color: '#7C3AED', bg: '#F5F3FF' },
-              { key: 'onbekend',label: t('payment_method_onbekend'),Icon: FileText,   color: '#64748B', bg: 'var(--s100)' },
+              { key: 'contant', label: t('payment_method_contant'), Icon: Banknote,   color: '#2E6B4E', bg: '#EDF4EF' },
+              { key: 'pin',     label: t('payment_method_pin'),     Icon: CreditCard, color: '#3C7A86', bg: '#E6F0F1' },
+              { key: 'qr',      label: t('payment_method_qr'),      Icon: Smartphone, color: '#8A6D9B', bg: '#EFEAF2' },
+              { key: 'onbekend',label: t('payment_method_onbekend'),Icon: FileText,   color: '#8A8374', bg: 'var(--s100)' },
             ].map(m => ({ ...m, amount: paymentBreakdown[m.key] ?? 0 }))
               .filter(m => m.amount > 0)
 
@@ -493,7 +493,7 @@ export default function Overzicht({ role }) {
 
             return (
               <div>
-                <SectionHead Icon={CreditCard} label={t('payment_method')} color="#2563EB" />
+                <SectionHead Icon={CreditCard} label={t('payment_method')} color="#3C7A86" />
                 <div style={{
                   background: 'var(--surface)', border: '1px solid var(--border)',
                   borderRadius: 12, overflow: 'hidden',
@@ -690,7 +690,7 @@ export default function Overzicht({ role }) {
           {/* ── Kasafsluiting (admin only) ────────────────────────────────────── */}
           {isAdmin && (
             <div>
-              <SectionHead Icon={Wallet} label="Kasafsluiting" color="#2563EB" />
+              <SectionHead Icon={Wallet} label="Kasafsluiting" color="#3C7A86" />
               <KasAfsluiting todayContant={todayPaymentBreakdown.contant ?? 0} todayQr={todayPaymentBreakdown.qr ?? 0} />
             </div>
           )}
@@ -706,8 +706,8 @@ export default function Overzicht({ role }) {
               }}>
                 <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '0.85rem', flexWrap: 'wrap' }}>
                   {[
-                    { label: t('paid'),   value: fmt(paidRevenue),   count: paidCount,   color: GREEN,     bg: '#F0FDF4' },
-                    { label: t('unpaid'), value: fmt(unpaidRevenue), count: unpaidCount, color: '#D97706', bg: '#FFFBEB' },
+                    { label: t('paid'),   value: fmt(paidRevenue),   count: paidCount,   color: GREEN,     bg: '#EDF4EF' },
+                    { label: t('unpaid'), value: fmt(unpaidRevenue), count: unpaidCount, color: '#C77A1A', bg: '#FBF1DE' },
                   ].map(item => (
                     <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 10, flex: '1 1 120px' }}>
                       <div style={{ width: 10, height: 10, borderRadius: 3, background: item.color, flexShrink: 0 }} />
@@ -722,7 +722,7 @@ export default function Overzicht({ role }) {
                 </div>
 
                 {/* Stacked bar */}
-                <div style={{ height: 10, borderRadius: 6, overflow: 'hidden', background: '#FFFBEB', display: 'flex' }}>
+                <div style={{ height: 10, borderRadius: 6, overflow: 'hidden', background: '#FBF1DE', display: 'flex' }}>
                   {paidPct > 0 && (
                     <div style={{
                       width: `${paidPct}%`, background: GREEN, borderRadius: paidPct < 100 ? '6px 0 0 6px' : 6,
@@ -731,7 +731,7 @@ export default function Overzicht({ role }) {
                   )}
                   {paidPct < 100 && unpaidRevenue > 0 && (
                     <div style={{
-                      flex: 1, background: '#D97706', borderRadius: paidPct > 0 ? '0 6px 6px 0' : 6,
+                      flex: 1, background: '#C77A1A', borderRadius: paidPct > 0 ? '0 6px 6px 0' : 6,
                     }} />
                   )}
                 </div>

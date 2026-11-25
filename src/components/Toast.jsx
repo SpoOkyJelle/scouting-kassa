@@ -5,9 +5,9 @@ const ToastCtx = createContext(null)
 export const useToast = () => useContext(ToastCtx)
 
 const CFG = {
-  success: { Icon: CheckCircle2, color: '#16A34A', bg: '#F0FDF4', border: '#BBF7D0' },
+  success: { Icon: CheckCircle2, color: '#2E6B4E', bg: '#EDF4EF', border: '#C8E0D2' },
   error:   { Icon: AlertCircle,  color: '#DC2626', bg: '#FEF2F2', border: '#FECACA' },
-  info:    { Icon: Info,         color: '#2563EB', bg: '#EFF6FF', border: '#BFDBFE' },
+  info:    { Icon: Info,         color: '#3C7A86', bg: '#E6F0F1', border: '#BFDBFE' },
 }
 
 export function ToastProvider({ children }) {

@@ -3,7 +3,7 @@ import { useLang } from '../LangContext'
 
 const fmt = n => `€ ${parseFloat(n ?? 0).toFixed(2)}`
 
-const PALETTE = ['#16A34A','#22C55E','#0EA5E9','#F59E0B','#8B5CF6','#EC4899','#10B981','#F97316']
+const PALETTE = ['#2E6B4E','#C77A1A','#3C7A86','#5C8A3C','#B0683A','#8A6D9B','#D9A741','#8A8374']
 
 export default function DagRapport({ stats, onClose }) {
   const { t } = useLang()
@@ -52,11 +52,11 @@ export default function DagRapport({ stats, onClose }) {
             <div className="rapport-card-lbl">{t('stats_total')}</div>
           </div>
           <div className="rapport-card">
-            <div className="rapport-card-val" style={{ color: '#16A34A' }}>{fmt(paidRevenue)}</div>
+            <div className="rapport-card-val" style={{ color: '#2E6B4E' }}>{fmt(paidRevenue)}</div>
             <div className="rapport-card-lbl">{t('paid')}</div>
           </div>
           <div className="rapport-card">
-            <div className="rapport-card-val" style={{ color: '#D97706' }}>{fmt(unpaidRevenue)}</div>
+            <div className="rapport-card-val" style={{ color: '#C77A1A' }}>{fmt(unpaidRevenue)}</div>
             <div className="rapport-card-lbl">{t('unpaid')}</div>
           </div>
         </div>
@@ -71,7 +71,7 @@ export default function DagRapport({ stats, onClose }) {
                 <div className="rapport-card-lbl">{t('stats_costs')}</div>
               </div>
               <div className="rapport-card">
-                <div className="rapport-card-val" style={{ color: profit >= 0 ? '#16A34A' : '#DC2626' }}>
+                <div className="rapport-card-val" style={{ color: profit >= 0 ? '#2E6B4E' : '#DC2626' }}>
                   {fmt(profit)}
                 </div>
                 <div className="rapport-card-lbl">{t('stats_profit')}</div>
@@ -98,7 +98,7 @@ export default function DagRapport({ stats, onClose }) {
         {/* Top products */}
         {topProducts?.length > 0 && (
           <>
-            <p style={{ fontSize: '0.71rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.5rem' }}>
+            <p style={{ fontSize: '0.71rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'none', letterSpacing: '0.5px', marginBottom: '0.5rem' }}>
               {t('stats_top')}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: '0.5rem' }}>
@@ -118,7 +118,7 @@ export default function DagRapport({ stats, onClose }) {
         {categoryStats?.length > 0 && (
           <>
             <div style={{ height: 1, background: 'var(--border)', margin: '0.75rem 0' }} />
-            <p style={{ fontSize: '0.71rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.5rem' }}>
+            <p style={{ fontSize: '0.71rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'none', letterSpacing: '0.5px', marginBottom: '0.5rem' }}>
               Per categorie
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

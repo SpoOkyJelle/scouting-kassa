@@ -34,7 +34,7 @@ function SectionHead({ Icon, label, color = 'var(--muted)' }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: '0.6rem' }}>
       <Icon size={13} color={color} strokeWidth={2.3} />
-      <span style={{ fontSize: '0.69rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+      <span style={{ fontSize: '0.69rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'none', letterSpacing: '0.6px' }}>
         {label}
       </span>
     </div>
@@ -316,7 +316,7 @@ export default function BonDetail({ id, onBack }) {
       {/* ── Hero header ─────────────────────────────────────────────────── */}
       <div style={{
         background: isPaid
-          ? 'linear-gradient(135deg, #052e16 0%, #14532d 60%, #166534 100%)'
+          ? 'linear-gradient(135deg, #163A2B 0%, #1E4D39 60%, #1E4D39 100%)'
           : 'linear-gradient(135deg, #451a03 0%, #78350f 60%, #92400e 100%)',
         borderRadius: 14,
         padding: '1.1rem 1.25rem',
@@ -369,7 +369,7 @@ export default function BonDetail({ id, onBack }) {
               <span style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5,
                 padding: '4px 10px', borderRadius: 20,
-                fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px',
+                fontSize: '0.72rem', fontWeight: 700, textTransform: 'none', letterSpacing: '0.4px',
                 background: 'rgba(255,255,255,0.15)',
                 color: '#fff',
               }}>
@@ -408,7 +408,7 @@ export default function BonDetail({ id, onBack }) {
 
           {/* Right: total + actions */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
-            <div style={{ fontSize: 'clamp(1.5rem, 5vw, 2rem)', fontWeight: 900, letterSpacing: '-0.5px', color: isPaid ? '#86efac' : '#fcd34d' }}>
+            <div style={{ fontSize: 'clamp(1.5rem, 5vw, 2rem)', fontWeight: 900, letterSpacing: '-0.5px', color: isPaid ? '#9BE3BC' : '#fcd34d' }}>
               {fmt(total)}
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -418,9 +418,9 @@ export default function BonDetail({ id, onBack }) {
                     className="btn btn-sm no-print"
                     onClick={togglePayOnDisplay}
                     style={{
-                      background: showPayOnDisplay ? '#16A34A' : 'rgba(255,255,255,0.2)',
+                      background: showPayOnDisplay ? '#2E6B4E' : 'rgba(255,255,255,0.2)',
                       color: '#fff',
-                      border: `1px solid ${showPayOnDisplay ? '#16A34A' : 'rgba(255,255,255,0.35)'}`,
+                      border: `1px solid ${showPayOnDisplay ? '#2E6B4E' : 'rgba(255,255,255,0.35)'}`,
                       gap: 5,
                     }}
                   >
@@ -453,7 +453,7 @@ export default function BonDetail({ id, onBack }) {
                 className="btn btn-ghost btn-sm no-print"
                 onClick={toggleShowOnDisplay}
                 style={{
-                  color: showOnDisplay ? '#86efac' : 'rgba(255,255,255,0.6)',
+                  color: showOnDisplay ? '#9BE3BC' : 'rgba(255,255,255,0.6)',
                   background: showOnDisplay ? 'rgba(22,163,74,0.25)' : 'rgba(255,255,255,0.08)',
                   fontSize: '0.72rem', gap: 4,
                 }}
@@ -495,7 +495,7 @@ export default function BonDetail({ id, onBack }) {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                 <Layers size={14} color="var(--primary)" strokeWidth={2.3} />
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'none', letterSpacing: '0.6px' }}>
                   {t('split_payment')}
                 </span>
               </div>
@@ -556,7 +556,7 @@ export default function BonDetail({ id, onBack }) {
             <div style={{ borderTop: '1px solid var(--s100)', paddingTop: '0.65rem', marginTop: 4, marginBottom: '0.75rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 3 }}>
                 <span style={{ color: 'var(--muted)' }}>{t('split_enter')}</span>
-                <span style={{ fontWeight: 700, color: canConfirm ? '#16A34A' : 'var(--s700)' }}>{fmt(entered)}</span>
+                <span style={{ fontWeight: 700, color: canConfirm ? '#2E6B4E' : 'var(--s700)' }}>{fmt(entered)}</span>
               </div>
               {remaining > 0.005 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 3 }}>
@@ -566,8 +566,8 @@ export default function BonDetail({ id, onBack }) {
               )}
               {change !== null && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
-                  <span style={{ color: '#16A34A', fontWeight: 600 }}>{t('change')}</span>
-                  <span style={{ fontWeight: 800, color: '#16A34A', fontSize: '1rem' }}>{fmt(change)}</span>
+                  <span style={{ color: '#2E6B4E', fontWeight: 600 }}>{t('change')}</span>
+                  <span style={{ fontWeight: 800, color: '#2E6B4E', fontSize: '1rem' }}>{fmt(change)}</span>
                 </div>
               )}
             </div>
@@ -705,7 +705,7 @@ export default function BonDetail({ id, onBack }) {
 
         {donation > 0 && (
           <>
-            <div className="items-row" style={{ fontSize: '0.82rem', color: '#16A34A' }}>
+            <div className="items-row" style={{ fontSize: '0.82rem', color: '#2E6B4E' }}>
               <span style={{ gridColumn: '1 / 4', display: 'flex', alignItems: 'center', gap: 5 }}>
                 <Heart size={12} /> {t('donation')}
               </span>
@@ -835,7 +835,7 @@ export default function BonDetail({ id, onBack }) {
           borderRadius: 12, padding: '0.85rem 1rem', flex: '1 1 180px',
           boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
         }} className="no-print">
-          <SectionHead Icon={Heart} label={t('donation')} color="#16A34A" />
+          <SectionHead Icon={Heart} label={t('donation')} color="#2E6B4E" />
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <span style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>€</span>
             <input
@@ -852,7 +852,7 @@ export default function BonDetail({ id, onBack }) {
             </button>
           </div>
           {donation > 0 && (
-            <div style={{ fontSize: '0.75rem', color: '#16A34A', marginTop: 5 }}>
+            <div style={{ fontSize: '0.75rem', color: '#2E6B4E', marginTop: 5 }}>
               {t('total_due')}: {fmt(totalDue)}
             </div>
           )}
@@ -867,7 +867,7 @@ export default function BonDetail({ id, onBack }) {
           }} className="no-print">
             <SectionHead Icon={Calculator} label={t('change_calc')} />
             {donation > 0 && (
-              <div style={{ fontSize: '0.73rem', color: '#16A34A', marginBottom: 6 }}>
+              <div style={{ fontSize: '0.73rem', color: '#2E6B4E', marginBottom: 6 }}>
                 {t('total_due')}: {fmt(totalDue)} ({fmt(total)} + {fmt(donation)} {t('donation').toLowerCase()})
               </div>
             )}
@@ -903,7 +903,7 @@ export default function BonDetail({ id, onBack }) {
               {change !== null && (
                 <div style={{
                   fontWeight: 800, fontSize: '1rem',
-                  color: change >= 0 ? '#16A34A' : 'var(--danger)',
+                  color: change >= 0 ? '#2E6B4E' : 'var(--danger)',
                 }}>
                   {change === 0 ? t('change_exact') : `${t('change')}: € ${Math.abs(change).toFixed(2)}`}
                 </div>

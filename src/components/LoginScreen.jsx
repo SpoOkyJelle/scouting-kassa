@@ -36,15 +36,25 @@ export default function LoginScreen({ onLogin, lang, setLang }) {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'var(--s900)',
+      background:
+        'radial-gradient(130% 80% at 50% -10%, #2E6B4E 0%, #1E4D39 45%, #163A2B 100%)',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
       padding: '1.5rem',
+      position: 'relative',
+      overflow: 'hidden',
     }}>
+      {/* Faint campfire glow, drawn with CSS so it works offline */}
+      <div aria-hidden style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none',
+        background:
+          'radial-gradient(40% 30% at 50% 8%, rgba(199,122,26,0.22) 0%, rgba(199,122,26,0) 70%)',
+      }} />
+
       {/* Language toggle */}
-      <div style={{ position: 'absolute', top: '1rem', right: '1rem' }}>
+      <div style={{ position: 'absolute', top: '1rem', right: '1rem', zIndex: 2 }}>
         <div className="lang-switcher">
           <button className={`lang-btn ${lang === 'nl' ? 'active' : ''}`} onClick={() => setLang('nl')}>NL</button>
           <button className={`lang-btn ${lang === 'en' ? 'active' : ''}`} onClick={() => setLang('en')}>EN</button>
@@ -53,21 +63,30 @@ export default function LoginScreen({ onLogin, lang, setLang }) {
 
       {/* Card */}
       <div style={{
-        background: '#fff',
+        background: 'var(--surface)',
         borderRadius: 'var(--r-xl)',
-        padding: '2.25rem 2rem',
+        padding: '2.5rem 2rem 2rem',
         width: '100%',
-        maxWidth: '340px',
-        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.45)',
+        maxWidth: '360px',
+        boxShadow: '0 30px 60px -18px rgba(12,30,20,0.55)',
+        position: 'relative',
+        zIndex: 2,
+        borderTop: '4px solid var(--accent)',
       }}>
-        {/* Logo */}
+        {/* Brand */}
         <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
           <img
             src="/tappy-pos.png"
-            alt="Tappy POS"
-            style={{ height: 64, objectFit: 'contain', margin: '0 auto 1rem', display: 'block' }}
+            alt="Tappy"
+            style={{ height: 60, objectFit: 'contain', margin: '0 auto 0.75rem', display: 'block' }}
           />
-          <p style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: 4 }}>
+          <p style={{
+            fontFamily: 'var(--display)',
+            fontSize: '1.15rem',
+            fontWeight: 700,
+            letterSpacing: '-0.4px',
+            color: 'var(--s900)',
+          }}>
             {t('login_sub')}
           </p>
         </div>
@@ -76,11 +95,11 @@ export default function LoginScreen({ onLogin, lang, setLang }) {
         <form onSubmit={handleSubmit}>
           <div style={{ position: 'relative', marginBottom: '1rem' }}>
             <Lock
-              size={15}
+              size={16}
               style={{
-                position: 'absolute', left: 11, top: '50%',
+                position: 'absolute', left: 13, top: '50%',
                 transform: 'translateY(-50%)',
-                color: 'var(--s400)',
+                color: error ? 'var(--danger)' : 'var(--s400)',
                 pointerEvents: 'none',
               }}
             />
@@ -90,9 +109,12 @@ export default function LoginScreen({ onLogin, lang, setLang }) {
               inputMode="numeric"
               className={`form-input${shake ? ' login-shake' : ''}`}
               style={{
-                paddingLeft: 34,
-                fontSize: '1.1rem',
-                letterSpacing: '0.25em',
+                paddingLeft: 38,
+                paddingTop: 12,
+                paddingBottom: 12,
+                fontSize: '1.35rem',
+                fontFamily: 'var(--display)',
+                letterSpacing: '0.3em',
                 textAlign: 'center',
                 borderColor: error ? 'var(--danger)' : undefined,
               }}
@@ -108,7 +130,7 @@ export default function LoginScreen({ onLogin, lang, setLang }) {
 
           {error && (
             <p style={{
-              fontSize: '0.78rem',
+              fontSize: '0.8rem',
               color: 'var(--danger)',
               textAlign: 'center',
               marginBottom: '0.85rem',
@@ -134,7 +156,7 @@ export default function LoginScreen({ onLogin, lang, setLang }) {
                 animation: 'spin 0.7s linear infinite',
               }} />
             ) : (
-              <><ArrowRight size={15} /> {t('login_submit')}</>
+              <><ArrowRight size={16} /> {t('login_submit')}</>
             )}
           </button>
         </form>

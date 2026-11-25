@@ -17,7 +17,7 @@ function SectionHead({ Icon, label, color = 'var(--muted)', right }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: '0.6rem' }}>
       <Icon size={13} color={color} strokeWidth={2.3} />
-      <span style={{ fontSize: '0.69rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.6px', flex: 1 }}>
+      <span style={{ fontSize: '0.69rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'none', letterSpacing: '0.6px', flex: 1 }}>
         {label}
       </span>
       {right}
@@ -289,7 +289,7 @@ export default function Producten() {
                           <span style={{
                             marginLeft: 7, fontSize: '0.65rem', fontWeight: 700,
                             background: '#FEF3C7', color: '#92400E',
-                            padding: '1px 6px', borderRadius: 8, textTransform: 'uppercase', letterSpacing: '0.4px',
+                            padding: '1px 6px', borderRadius: 8, textTransform: 'none', letterSpacing: '0.4px',
                           }}>
                             {t('product_unavailable')}
                           </span>
@@ -300,8 +300,8 @@ export default function Producten() {
                       {(() => {
                         const m = margin(product.price, product.cost_price)
                         if (m === null) return null
-                        const color = m >= 50 ? '#16A34A' : m >= 25 ? '#D97706' : '#DC2626'
-                        const bg    = m >= 50 ? '#F0FDF4' : m >= 25 ? '#FFFBEB' : '#FEF2F2'
+                        const color = m >= 50 ? '#2E6B4E' : m >= 25 ? '#C77A1A' : '#DC2626'
+                        const bg    = m >= 50 ? '#EDF4EF' : m >= 25 ? '#FBF1DE' : '#FEF2F2'
                         return (
                           <span style={{ fontSize: '0.72rem', fontWeight: 700, color, background: bg, padding: '2px 7px', borderRadius: 8, flexShrink: 0 }}>
                             {m}%
@@ -322,7 +322,7 @@ export default function Producten() {
                         className="btn btn-ghost btn-sm"
                         onClick={() => toggleAvailable(product)}
                         title={product.available === false ? t('product_available_back') : t('product_unavailable')}
-                        style={{ padding: '4px 7px', color: product.available === false ? '#D97706' : 'var(--s400)' }}
+                        style={{ padding: '4px 7px', color: product.available === false ? '#C77A1A' : 'var(--s400)' }}
                       >
                         {product.available === false ? <EyeOff size={13} /> : <Eye size={13} />}
                       </button>

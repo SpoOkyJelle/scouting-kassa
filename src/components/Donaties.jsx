@@ -90,20 +90,20 @@ export default function Donaties() {
 
       {/* ── Hero ────────────────────────────────────────────────────────── */}
       <div style={{
-        background: 'linear-gradient(135deg, #052e16 0%, #14532d 60%, #166534 100%)',
+        background: 'linear-gradient(135deg, #163A2B 0%, #1E4D39 60%, #1E4D39 100%)',
         borderRadius: 14, padding: '1.1rem 1.25rem', color: '#fff',
         position: 'relative', overflow: 'hidden',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
         <div style={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
         <div>
-          <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.6)', marginBottom: 3 }}>
+          <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'none', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.6)', marginBottom: 3 }}>
             {t('donaties_total')}
           </div>
           <div style={{ fontSize: 'clamp(1.6rem, 5vw, 2.2rem)', fontWeight: 900, letterSpacing: '-0.5px', lineHeight: 1.1 }}>
             {fmt(totaal)}
           </div>
-          <div style={{ fontSize: '0.7rem', color: '#86efac', marginTop: 2, fontWeight: 600 }}>
+          <div style={{ fontSize: '0.7rem', color: '#9BE3BC', marginTop: 2, fontWeight: 600 }}>
             {donaties.length} {donaties.length === 1 ? 'donatie' : 'donaties'}
           </div>
         </div>
@@ -231,7 +231,7 @@ export default function Donaties() {
               onMouseEnter={e => e.currentTarget.style.background = 'var(--s50)'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
-              <div style={{ width: 3, alignSelf: 'stretch', background: '#16A34A', borderRadius: 2, flexShrink: 0 }} />
+              <div style={{ width: 3, alignSelf: 'stretch', background: '#2E6B4E', borderRadius: 2, flexShrink: 0 }} />
 
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--s800)', marginBottom: 1 }}>
@@ -243,7 +243,7 @@ export default function Donaties() {
                 </div>
               </div>
 
-              <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#16A34A', flexShrink: 0 }}>
+              <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#2E6B4E', flexShrink: 0 }}>
                 {fmt(d.amount)}
               </div>
 

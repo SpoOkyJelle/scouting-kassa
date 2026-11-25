@@ -26,7 +26,7 @@ export function ConfirmProvider({ children }) {
         <div className="modal-overlay" onClick={() => close(false)}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
             <div className="modal-icon-wrap">
-              <AlertTriangle size={22} color="#D97706" />
+              <AlertTriangle size={22} color="#C77A1A" />
             </div>
             <p className="modal-message">{state.message}</p>
             <div className="modal-actions">

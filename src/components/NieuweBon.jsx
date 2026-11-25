@@ -10,7 +10,7 @@ function SectionHead({ Icon, label, color = 'var(--muted)' }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: '0.6rem' }}>
       <Icon size={13} color={color} strokeWidth={2.3} />
-      <span style={{ fontSize: '0.69rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+      <span style={{ fontSize: '0.69rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'none', letterSpacing: '0.6px' }}>
         {label}
       </span>
     </div>
@@ -215,7 +215,7 @@ export default function NieuweBon({ onCreated }) {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: collapsed[cat.id] ? 0 : '0.6rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                         <Icon size={13} color={cat.color} strokeWidth={2.3} />
-                        <span style={{ fontSize: '0.69rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                        <span style={{ fontSize: '0.69rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'none', letterSpacing: '0.6px' }}>
                           {t(`cat_${cat.id}`)}
                         </span>
                       </div>
@@ -262,7 +262,7 @@ export default function NieuweBon({ onCreated }) {
         }}>
           {/* Panel header */}
           <div style={{
-            background: 'linear-gradient(135deg, #052e16 0%, #166534 100%)',
+            background: 'linear-gradient(135deg, #163A2B 0%, #1E4D39 100%)',
             padding: '0.85rem 1rem',
             display: 'flex', alignItems: 'center', gap: 8,
           }}>
@@ -271,7 +271,7 @@ export default function NieuweBon({ onCreated }) {
               {t('order_summary')}
             </span>
             {orderItems.length > 0 && (
-              <span style={{ fontWeight: 900, fontSize: '1.05rem', color: '#86efac', letterSpacing: '-0.4px' }}>
+              <span style={{ fontWeight: 900, fontSize: '1.05rem', color: '#9BE3BC', letterSpacing: '-0.4px' }}>
                 {fmt(total)}
               </span>
             )}
@@ -335,7 +335,7 @@ export default function NieuweBon({ onCreated }) {
             <span style={{ fontWeight: 700, fontSize: '0.82rem', color: 'rgba(255,255,255,0.75)' }}>
               {orderItems.reduce((s, { quantity }) => s + quantity, 0)}× items
             </span>
-            <span style={{ fontWeight: 900, fontSize: '1.1rem', color: '#86efac', letterSpacing: '-0.3px' }}>
+            <span style={{ fontWeight: 900, fontSize: '1.1rem', color: '#9BE3BC', letterSpacing: '-0.3px' }}>
               {fmt(total)}
             </span>
           </div>
@@ -343,7 +343,7 @@ export default function NieuweBon({ onCreated }) {
             className="btn btn-primary btn-sm"
             disabled={saving}
             onClick={handleCreate}
-            style={{ gap: 6, background: '#16A34A', flexShrink: 0 }}
+            style={{ gap: 6, background: '#2E6B4E', flexShrink: 0 }}
           >
             <PlusCircle size={14} />
             {saving ? t('loading') : t('create_receipt')}

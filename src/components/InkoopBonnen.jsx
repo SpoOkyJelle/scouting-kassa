@@ -7,7 +7,7 @@ import { useConfirm } from './ConfirmModal'
 
 const fmt = n => `€ ${parseFloat(n ?? 0).toFixed(2)}`
 
-const PALETTE = ['#16A34A','#22C55E','#0EA5E9','#F59E0B','#8B5CF6','#EC4899','#10B981','#F97316']
+const PALETTE = ['#2E6B4E','#C77A1A','#3C7A86','#5C8A3C','#B0683A','#8A6D9B','#D9A741','#8A8374']
 
 function today() {
   return new Date().toISOString().slice(0, 10)
@@ -17,7 +17,7 @@ function SectionHead({ Icon, label, color = 'var(--muted)' }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: '0.65rem' }}>
       <Icon size={13} color={color} strokeWidth={2.3} />
-      <span style={{ fontSize: '0.69rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+      <span style={{ fontSize: '0.69rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'none', letterSpacing: '0.6px' }}>
         {label}
       </span>
     </div>
@@ -122,7 +122,7 @@ export default function InkoopBonnen() {
       }}>
         <div style={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
         <div>
-          <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.6)', marginBottom: 3 }}>
+          <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'none', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.6)', marginBottom: 3 }}>
             {t('inkoop_total_label')}
           </div>
           <div style={{ fontSize: 'clamp(1.6rem, 5vw, 2.2rem)', fontWeight: 900, letterSpacing: '-0.5px', lineHeight: 1.1 }}>

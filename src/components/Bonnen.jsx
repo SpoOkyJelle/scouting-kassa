@@ -152,34 +152,34 @@ export default function Bonnen({ onOpenDetail }) {
       {receipts.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
           <div style={{
-            background: 'linear-gradient(135deg, #052e16 0%, #14532d 60%, #166534 100%)',
-            borderRadius: 12, padding: '0.9rem 1.1rem', color: '#fff',
+            background: 'linear-gradient(135deg, #1E4D39 0%, #2E6B4E 70%, #3C8A64 100%)',
+            borderRadius: 14, padding: '0.9rem 1.1rem', color: '#fff',
             position: 'relative', overflow: 'hidden',
           }}>
-            <div style={{ position: 'absolute', top: -15, right: -15, width: 70, height: 70, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
-            <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.6)', marginBottom: 3 }}>
+            <div style={{ position: 'absolute', top: -15, right: -15, width: 70, height: 70, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
+            <div style={{ fontSize: '0.74rem', fontWeight: 600, color: 'rgba(255,255,255,0.72)', marginBottom: 4 }}>
               {t('paid')} vandaag
             </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 900, letterSpacing: '-0.5px', lineHeight: 1.1 }}>
+            <div style={{ fontFamily: 'var(--display)', fontSize: '1.55rem', fontWeight: 800, letterSpacing: '-0.6px', lineHeight: 1.05, fontVariantNumeric: 'tabular-nums' }}>
               {fmt(totalPaidToday)}
             </div>
-            <div style={{ fontSize: '0.7rem', color: '#86efac', marginTop: 2, fontWeight: 600 }}>
+            <div style={{ fontSize: '0.72rem', color: '#9BE3BC', marginTop: 3, fontWeight: 600 }}>
               {paidTodayCount} {t('stats_count').toLowerCase()}
             </div>
           </div>
           <div style={{
-            background: 'linear-gradient(135deg, #451a03 0%, #78350f 60%, #92400e 100%)',
-            borderRadius: 12, padding: '0.9rem 1.1rem', color: '#fff',
+            background: 'linear-gradient(135deg, #7A4712 0%, #A5681A 60%, #C77A1A 100%)',
+            borderRadius: 14, padding: '0.9rem 1.1rem', color: '#fff',
             position: 'relative', overflow: 'hidden',
           }}>
-            <div style={{ position: 'absolute', top: -15, right: -15, width: 70, height: 70, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
-            <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.6)', marginBottom: 3 }}>
+            <div style={{ position: 'absolute', top: -15, right: -15, width: 70, height: 70, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
+            <div style={{ fontSize: '0.74rem', fontWeight: 600, color: 'rgba(255,255,255,0.72)', marginBottom: 4 }}>
               {t('unpaid')}
             </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 900, letterSpacing: '-0.5px', lineHeight: 1.1 }}>
+            <div style={{ fontFamily: 'var(--display)', fontSize: '1.55rem', fontWeight: 800, letterSpacing: '-0.6px', lineHeight: 1.05, fontVariantNumeric: 'tabular-nums' }}>
               {fmt(totalUnpaid)}
             </div>
-            <div style={{ fontSize: '0.7rem', color: '#fcd34d', marginTop: 2, fontWeight: 600 }}>
+            <div style={{ fontSize: '0.72rem', color: '#F6D9A8', marginTop: 3, fontWeight: 600 }}>
               {unpaidCount} {t('stats_count').toLowerCase()}
             </div>
           </div>
@@ -305,7 +305,7 @@ export default function Bonnen({ onOpenDetail }) {
                 style={{
                   background: 'var(--surface)',
                   border: '1px solid var(--border)',
-                  borderLeft: `3px solid ${receipt.paid ? '#16A34A' : '#D97706'}`,
+                  borderLeft: `3px solid ${receipt.paid ? '#2E6B4E' : '#D97706'}`,
                   borderRadius: 12,
                   padding: '0.85rem 1rem',
                   cursor: 'pointer',
@@ -362,20 +362,20 @@ export default function Bonnen({ onOpenDetail }) {
                     <span style={{
                       display: 'inline-flex', alignItems: 'center', gap: 4,
                       padding: '3px 9px', borderRadius: 20,
-                      fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px',
-                      background: receipt.paid ? '#DCFCE7' : '#FEF3C7',
-                      color: receipt.paid ? '#166534' : '#92400E',
+                      fontSize: '0.72rem', fontWeight: 700,
+                      background: receipt.paid ? 'var(--g100)' : 'var(--accent-lt)',
+                      color: receipt.paid ? 'var(--g700)' : '#8A5214',
                     }}>
                       {receipt.paid
-                        ? <><CheckCircle2 size={10} /> {t('paid')}</>
-                        : <><Clock size={10} /> {t('unpaid')}</>}
+                        ? <><CheckCircle2 size={11} /> {t('paid')}</>
+                        : <><Clock size={11} /> {t('unpaid')}</>}
                     </span>
                     {receipt.paid && (receipt.payments?.length > 0 || receipt.payment_method) && (
                       <span style={{
                         display: 'inline-flex', alignItems: 'center', gap: 3,
                         padding: '3px 7px', borderRadius: 20,
                         fontSize: '0.66rem', fontWeight: 600,
-                        background: '#EFF6FF', color: '#1D4ED8',
+                        background: '#E6F0F1', color: '#3C7A86',
                       }}>
                         {(receipt.payments?.length > 0
                           ? receipt.payments.map(p => p.method)

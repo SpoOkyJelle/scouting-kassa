@@ -114,7 +114,7 @@ function PaymentScreen({ order, settings }) {
 
       {/* Vaste sectie: bedrag + QR */}
       <div style={{ flexShrink: 0, textAlign: 'center', padding: '1.5rem 0 1rem' }}>
-        <div style={{ fontSize: 'clamp(0.85rem, 2vw, 1rem)', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 6 }}>
+        <div style={{ fontSize: 'clamp(0.85rem, 2vw, 1rem)', color: 'rgba(255,255,255,0.5)', textTransform: 'none', letterSpacing: '0.8px', marginBottom: 6 }}>
           Te betalen
         </div>
         <div style={{ fontSize: 'clamp(3.5rem, 12vw, 7rem)', fontWeight: 900, color: '#ffffff', letterSpacing: '-3px', lineHeight: 1 }}>
@@ -197,7 +197,7 @@ function PaidScreen({ settings }) {
       </div>
       <Logo settings={settings} size={46} />
       <div style={{ textAlign: 'center', animation: 'kPop 0.6s cubic-bezier(.34,1.56,.64,1) both' }}>
-        <div style={{ fontSize: 'clamp(2.8rem, 10vw, 6rem)', fontWeight: 900, color: '#4ade80', letterSpacing: '-1px', lineHeight: 1 }}>
+        <div style={{ fontSize: 'clamp(2.8rem, 10vw, 6rem)', fontWeight: 900, color: '#5FC98E', letterSpacing: '-1px', lineHeight: 1 }}>
           Betaald! 🎊
         </div>
         <div style={{ fontSize: 'clamp(1.1rem, 3vw, 1.8rem)', fontWeight: 700, color: '#fff', marginTop: '0.6rem', animation: 'kPulse 2.5s ease-in-out 0.8s infinite' }}>
@@ -286,8 +286,8 @@ function OrderScreen({ order, settings }) {
       <div style={{ flexShrink: 0, borderTop: '2px solid rgba(255,255,255,0.2)', paddingTop: '1rem', paddingBottom: '1.5rem' }}>
         {donation > 0 && (
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 'clamp(0.9rem, 1.8vw, 1.1rem)', color: '#86efac' }}>Donatie</span>
-            <span style={{ fontSize: 'clamp(0.9rem, 1.8vw, 1.1rem)', color: '#86efac', fontWeight: 700 }}>+{fmt(donation)}</span>
+            <span style={{ fontSize: 'clamp(0.9rem, 1.8vw, 1.1rem)', color: '#9BE3BC' }}>Donatie</span>
+            <span style={{ fontSize: 'clamp(0.9rem, 1.8vw, 1.1rem)', color: '#9BE3BC', fontWeight: 700 }}>+{fmt(donation)}</span>
           </div>
         )}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -310,7 +310,7 @@ export default function KlantenschermDisplay() {
   const bgStyle = {
     height: '100dvh',
     overflow: 'hidden',
-    background: 'linear-gradient(160deg, #0f2027 0%, #14532d 50%, #0f2027 100%)',
+    background: 'linear-gradient(160deg, #0f2027 0%, #1E4D39 50%, #0f2027 100%)',
     display: 'flex', flexDirection: 'column',
     fontFamily: 'Inter, system-ui, sans-serif',
     WebkitFontSmoothing: 'antialiased',
