@@ -10,10 +10,10 @@
   --s600: #6E675B;
   --s500: #8A8374;
   --s400: #A79F8F;
-  --s300: #CEC8BB;
-  --s200: #E5E0D4;
-  --s100: #EFEBE1;
-  --s50:  #F7F5EF;
+  --s300: #CBD0D6;
+  --s200: #E4E7EC;
+  --s100: #F0F2F5;
+  --s50:  #F7F8FA;
 
   /* Pine / primary */
   --g700: #1E4D39;
@@ -36,7 +36,7 @@
   --text:       var(--s900);
   --muted:      var(--s500);
   --border:     var(--s200);
-  --bg:         #F2F0E8;
+  --bg:         #F5F6F8;
   --surface:    #ffffff;
 
   /* Type */
