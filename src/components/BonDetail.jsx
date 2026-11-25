@@ -499,9 +499,19 @@ export default function BonDetail({ id, onBack }) {
                   {t('split_payment')}
                 </span>
               </div>
-              <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--primary)' }}>
-                {t('total_due')}: {fmt(totalDue)}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--primary)' }}>
+                  {t('total_due')}: {fmt(totalDue)}
+                </span>
+                <button
+                  className="btn btn-sm"
+                  style={{ color: 'var(--danger)', border: '1px solid var(--danger)', background: 'transparent', gap: 4 }}
+                  onClick={() => setSplitAmounts({ contant: '', qr: '' })}
+                  title="Bedragen wissen"
+                >
+                  <X size={13} /> Reset
+                </button>
+              </div>
             </div>
 
 
@@ -570,6 +580,14 @@ export default function BonDetail({ id, onBack }) {
                 onClick={confirmSplitPay}
               >
                 <Check size={14} /> {t('split_confirm')}
+              </button>
+              <button
+                className="btn btn-ghost"
+                style={{ gap: 4 }}
+                onClick={() => setSplitAmounts({ contant: '', qr: '' })}
+                title="Bedragen wissen"
+              >
+                <X size={13} /> Reset
               </button>
               <button
                 className="btn btn-ghost"
@@ -747,6 +765,16 @@ export default function BonDetail({ id, onBack }) {
                   <Icon size={13} /> {label}
                 </button>
               ))}
+              {receipt.payment_method && (
+                <button
+                  className="btn btn-sm"
+                  title="Wis betaalmethode"
+                  style={{ color: 'var(--danger)', border: '1px solid var(--danger)', background: 'transparent', gap: 4 }}
+                  onClick={() => setPaymentMethod(null)}
+                >
+                  <X size={13} /> Reset
+                </button>
+              )}
             </div>
           )}
         </div>

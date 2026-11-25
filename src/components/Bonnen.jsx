@@ -224,7 +224,7 @@ export default function Bonnen({ onOpenDetail }) {
         {[
           { key: 'all',    label: `${t('all')} (${receipts.length})`,     Icon: Euro },
           { key: 'unpaid', label: `${t('unpaid')} (${unpaidCount})`,  Icon: Clock },
-          { key: 'paid',   label: `${t('paid')} (${paidCount})`,      Icon: CheckCircle2 },
+          { key: 'paid',   label: `${t('paid')} (${receipts.filter(r => r.paid).length})`, Icon: CheckCircle2 },
         ].map(({ key, label, Icon }) => (
           <button
             key={key}
