@@ -4,6 +4,7 @@ import { translations } from './i18n'
 import { logout as apiLogout, fetchSettings } from './api'
 import { LangContext } from './LangContext'
 import { SettingsContext } from './SettingsContext'
+import { CategoriesProvider } from './CategoriesContext'
 import { ToastProvider } from './components/Toast'
 import { ConfirmProvider } from './components/ConfirmModal'
 import PaymentModal from './components/PaymentModal'
@@ -184,6 +185,7 @@ export default function App() {
   return (
     <LangContext.Provider value={{ t, lang }}>
       <SettingsContext.Provider value={appSettings}>
+       <CategoriesProvider categories={appSettings.categories}>
         <ToastProvider>
           <ConfirmProvider>
             <OfflineBanner t={t} />
@@ -318,6 +320,7 @@ export default function App() {
             )}
           </ConfirmProvider>
         </ToastProvider>
+       </CategoriesProvider>
       </SettingsContext.Provider>
     </LangContext.Provider>
   )

@@ -1,0 +1,1 @@
+- [Generic app direction](generic-app-direction.md) — goal: turn the pancake POS into a configurable, multi-purpose register; categories already data-driven.

@@ -1,5 +1,6 @@
 import { X, Printer, ShoppingCart, TrendingUp, TrendingDown } from 'lucide-react'
 import { useLang } from '../LangContext'
+import { useCategories } from '../CategoriesContext'
 
 const fmt = n => `€ ${parseFloat(n ?? 0).toFixed(2)}`
 
@@ -7,6 +8,7 @@ const PALETTE = ['#2E6B4E','#C77A1A','#3C7A86','#5C8A3C','#B0683A','#8A6D9B','#D
 
 export default function DagRapport({ stats, onClose }) {
   const { t } = useLang()
+  const { labelFor } = useCategories()
   const today = new Date().toLocaleDateString('nl-NL', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   })
@@ -119,13 +121,13 @@ export default function DagRapport({ stats, onClose }) {
           <>
             <div style={{ height: 1, background: 'var(--border)', margin: '0.75rem 0' }} />
             <p style={{ fontSize: '0.71rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'none', letterSpacing: '0.5px', marginBottom: '0.5rem' }}>
-              Per categorie
+              {t('report_per_category')}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {categoryStats.map((c, i) => (
                 <div key={c.cat} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem' }}>
                   <span style={{ width: 10, height: 10, borderRadius: '50%', background: PALETTE[i % PALETTE.length], flexShrink: 0 }} />
-                  <span style={{ flex: 1, color: 'var(--s800)', fontWeight: 500 }}>{t('cat_' + c.cat)}</span>
+                  <span style={{ flex: 1, color: 'var(--s800)', fontWeight: 500 }}>{labelFor(c.cat)}</span>
                   <span style={{ color: 'var(--muted)', fontSize: '0.75rem' }}>{c.quantity}×</span>
                   <span style={{ fontWeight: 700, color: 'var(--primary)', minWidth: 60, textAlign: 'right' }}>{fmt(c.revenue)}</span>
                 </div>

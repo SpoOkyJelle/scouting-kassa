@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
-import { ShoppingCart, Package, Zap, Search, X, PlusCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import { ShoppingCart, Package, Zap, Search, X, PlusCircle, ChevronDown, ChevronUp, Tag } from 'lucide-react'
 import { useLang } from '../LangContext'
 import { fetchProducts, fetchPopularProducts, createReceipt } from '../api'
-import { CATEGORIES, getCat } from '../categories'
+import { useCategories } from '../CategoriesContext'
+import { useSettings } from '../SettingsContext'
+import { computePromotions } from '../promotions'
 
 const fmt = p => `€ ${parseFloat(p).toFixed(2)}`
 
@@ -19,6 +21,8 @@ function SectionHead({ Icon, label, color = 'var(--muted)' }) {
 
 export default function NieuweBon({ onCreated }) {
   const { t } = useLang()
+  const { getCat, groupProducts } = useCategories()
+  const settings = useSettings()
   const [products, setProducts]           = useState([])
   const [popular, setPopular]             = useState([])
   const [loading, setLoading]             = useState(true)
@@ -58,7 +62,17 @@ export default function NieuweBon({ onCreated }) {
   }
 
   const orderItems = Object.values(order)
-  const total      = orderItems.reduce((s, { product, quantity }) => s + product.price * quantity, 0)
+  const subtotal   = orderItems.reduce((s, { product, quantity }) => s + product.price * quantity, 0)
+
+  // Live preview of promotions ("acties"). The server stores the authoritative,
+  // frozen value when the receipt is created; this just shows the buyer's price.
+  const promoItems = orderItems.map(({ product, quantity }) => ({
+    product_id: product.id, product_price: product.price, quantity,
+  }))
+  const productCatMap = Object.fromEntries(products.map(p => [p.id, p.category || 'overig']))
+  const { discount: promoDiscount, lines: promoLines } =
+    computePromotions(promoItems, settings.promotions || [], productCatMap)
+  const total = Math.max(0, subtotal - promoDiscount)
 
   async function handleCreate() {
     if (!orderItems.length) return
@@ -73,10 +87,7 @@ export default function NieuweBon({ onCreated }) {
 
   const available = products.filter(p => p.available !== false)
 
-  const groups = CATEGORIES.map(cat => ({
-    cat,
-    items: available.filter(p => (p.category || 'overig') === cat.id),
-  })).filter(g => g.items.length > 0)
+  const groups = groupProducts(available)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', paddingBottom: orderItems.length ? '4.5rem' : 0 }}
@@ -216,7 +227,7 @@ export default function NieuweBon({ onCreated }) {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                         <Icon size={13} color={cat.color} strokeWidth={2.3} />
                         <span style={{ fontSize: '0.69rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'none', letterSpacing: '0.6px' }}>
-                          {t(`cat_${cat.id}`)}
+                          {cat.label}
                         </span>
                       </div>
                       <button
@@ -304,6 +315,22 @@ export default function NieuweBon({ onCreated }) {
 
           {/* Footer */}
           <div style={{ padding: '0 1rem 1rem' }}>
+            {orderItems.length > 0 && promoLines.length > 0 && (
+              <div style={{ padding: '8px 0 0', fontSize: '0.8rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--muted)' }}>
+                  <span>{t('subtotal')}</span>
+                  <span>{fmt(subtotal)}</span>
+                </div>
+                {promoLines.map((line, idx) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', color: '#2E6B4E', fontWeight: 600, marginTop: 2 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <Tag size={11} /> {line.name || t('promo')}
+                    </span>
+                    <span>−{fmt(line.amount)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             {orderItems.length > 0 && (
               <div style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',

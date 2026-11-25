@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Pencil, Trash2, Package, PlusCircle, GripVertical, EyeOff, Eye } from 'lucide-react'
 import { useLang } from '../LangContext'
 import { fetchProducts, createProduct, updateProduct, deleteProduct, reorderProducts, setProductAvailable } from '../api'
-import { CATEGORIES } from '../categories'
+import { useCategories } from '../CategoriesContext'
 import { useToast } from './Toast'
 import { useConfirm } from './ConfirmModal'
 
@@ -25,7 +25,7 @@ function SectionHead({ Icon, label, color = 'var(--muted)', right }) {
   )
 }
 
-function CatSelect({ value, onChange, t }) {
+function CatSelect({ value, onChange, categories }) {
   return (
     <select
       className="form-input"
@@ -33,8 +33,8 @@ function CatSelect({ value, onChange, t }) {
       value={value}
       onChange={e => onChange(e.target.value)}
     >
-      {CATEGORIES.map(c => (
-        <option key={c.id} value={c.id}>{t(`cat_${c.id}`)}</option>
+      {categories.map(c => (
+        <option key={c.id} value={c.id}>{c.label}</option>
       ))}
     </select>
   )
@@ -44,6 +44,7 @@ export default function Producten() {
   const { t }      = useLang()
   const showToast  = useToast()
   const confirm    = useConfirm()
+  const { categories, groupProducts } = useCategories()
 
   const [products, setProducts]         = useState([])
   const [loading, setLoading]           = useState(true)
@@ -51,11 +52,11 @@ export default function Producten() {
   const [editName, setEditName]         = useState('')
   const [editPrice, setEditPrice]       = useState('')
   const [editCostPrice, setEditCostPrice] = useState('')
-  const [editCat, setEditCat]           = useState('overig')
+  const [editCat, setEditCat]           = useState('')
   const [newName, setNewName]           = useState('')
   const [newPrice, setNewPrice]         = useState('')
   const [newCostPrice, setNewCostPrice] = useState('')
-  const [newCat, setNewCat]             = useState('pannenkoeken')
+  const [newCat, setNewCat]             = useState('')
   const [adding, setAdding]             = useState(false)
   const [dragId, setDragId]             = useState(null)
   const [dragOverId, setDragOverId]     = useState(null)
@@ -87,6 +88,11 @@ export default function Producten() {
   useEffect(() => {
     fetchProducts().then(data => { setProducts(data); setLoading(false) })
   }, [])
+
+  // Default the "new product" category to the first configured category.
+  useEffect(() => {
+    if (!newCat && categories.length) setNewCat(categories[0].id)
+  }, [categories, newCat])
 
   async function handleAdd(e) {
     e.preventDefault()
@@ -132,10 +138,7 @@ export default function Producten() {
   }
 
 
-  const groups = CATEGORIES.map(cat => ({
-    cat,
-    items: products.filter(p => (p.category || 'overig') === cat.id),
-  })).filter(g => g.items.length > 0)
+  const groups = groupProducts(products)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -174,7 +177,7 @@ export default function Producten() {
             onChange={e => setNewCostPrice(e.target.value)}
             title={t('product_cost_price')}
           />
-          <CatSelect value={newCat} onChange={setNewCat} t={t} />
+          <CatSelect value={newCat} onChange={setNewCat} categories={categories} />
           <button type="submit" className="btn btn-primary" disabled={adding} style={{ gap: 6 }}>
             <PlusCircle size={14} />
             {adding ? t('loading') : t('add_product')}
@@ -207,7 +210,7 @@ export default function Producten() {
           return (
             <div key={cat.id}>
               <SectionHead
-                Icon={Icon} label={t(`cat_${cat.id}`)} color={cat.color}
+                Icon={Icon} label={cat.label} color={cat.color}
                 right={
                   <span style={{
                     fontSize: '0.69rem', fontWeight: 600, color: 'var(--muted)',
@@ -254,7 +257,7 @@ export default function Producten() {
                         onChange={e => setEditCostPrice(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && saveEdit(product.id)}
                       />
-                      <CatSelect value={editCat} onChange={setEditCat} t={t} />
+                      <CatSelect value={editCat} onChange={setEditCat} categories={categories} />
                       <button className="btn btn-primary btn-sm" onClick={() => saveEdit(product.id)}>{t('save')}</button>
                       <button className="btn btn-ghost btn-sm" onClick={() => setEditId(null)}>{t('cancel')}</button>
                     </div>

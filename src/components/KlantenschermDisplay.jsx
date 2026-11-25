@@ -153,6 +153,12 @@ function PaymentScreen({ order, settings }) {
                 <span>{fmt(item.subtotal)}</span>
               </div>
             ))}
+            {(Array.isArray(order.promo_lines) ? order.promo_lines : []).map((line, idx) => (
+              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'clamp(0.78rem, 1.5vw, 0.95rem)', color: '#9BE3BC' }}>
+                <span>{line.name || 'Actie'}</span>
+                <span>−{fmt(line.amount)}</span>
+              </div>
+            ))}
             {order.discount_pct > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'clamp(0.78rem, 1.5vw, 0.95rem)', color: '#fca5a5' }}>
                 <span>Korting ({order.discount_pct}%)</span>
@@ -247,6 +253,7 @@ function ScrollList({ children, style }) {
 // ── Bon-overzicht scherm ──────────────────────────────────────────────────────
 function OrderScreen({ order, settings }) {
   const { name, items = [], discount_pct = 0, discount_amt = 0, total = 0, donation = 0, total_due = 0 } = order
+  const promo_lines = Array.isArray(order.promo_lines) ? order.promo_lines : []
 
   return (
     <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', maxWidth: 700, width: '100%', margin: '0 auto', padding: '0 1.5rem' }}>
@@ -272,6 +279,12 @@ function OrderScreen({ order, settings }) {
               <span style={{ fontSize: 'clamp(1rem, 2vw, 1.25rem)', color: '#fff', fontWeight: 500 }}>{item.name}</span>
               <span style={{ fontSize: 'clamp(0.9rem, 1.8vw, 1.1rem)', color: 'rgba(255,255,255,0.45)', textAlign: 'center', minWidth: 40 }}>{item.qty}×</span>
               <span style={{ fontSize: 'clamp(1rem, 2vw, 1.2rem)', fontWeight: 700, color: '#fff', textAlign: 'right', minWidth: 90 }}>{fmt(item.subtotal)}</span>
+            </div>
+          ))}
+          {promo_lines.map((line, idx) => (
+            <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem', padding: '0.65rem 0', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+              <span style={{ fontSize: 'clamp(0.9rem, 1.8vw, 1.1rem)', color: '#9BE3BC' }}>{line.name || 'Actie'}</span>
+              <span style={{ fontSize: 'clamp(0.9rem, 1.8vw, 1.1rem)', fontWeight: 700, color: '#9BE3BC', textAlign: 'right' }}>−{fmt(line.amount)}</span>
             </div>
           ))}
           {discount_pct > 0 && (

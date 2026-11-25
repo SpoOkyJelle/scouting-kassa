@@ -7,7 +7,7 @@ let _displayMountGen = 0
 import {
   ArrowLeft, Check, X, Trash2, Pencil, Calendar, Plus, Package,
   ChevronDown, ChevronUp, Printer, QrCode, Monitor, Calculator, StickyNote, Search, Heart,
-  Banknote, CreditCard, Smartphone, Layers,
+  Banknote, CreditCard, Smartphone, Layers, Tag,
 } from 'lucide-react'
 import { useLang } from '../LangContext'
 import {
@@ -16,7 +16,7 @@ import {
   updateDisplay, clearDisplay,
 } from '../api'
 import { useSettings } from '../SettingsContext'
-import { CATEGORIES, getCat } from '../categories'
+import { useCategories } from '../CategoriesContext'
 import { useToast } from './Toast'
 import { useConfirm } from './ConfirmModal'
 import KioskScreen from './KioskScreen'
@@ -46,6 +46,7 @@ export default function BonDetail({ id, onBack }) {
   const settings   = useSettings()
   const showToast  = useToast()
   const confirm    = useConfirm()
+  const { getCat, groupProducts } = useCategories()
 
   const [receipt, setReceipt]               = useState(null)
   const [products, setProducts]             = useState([])
@@ -110,9 +111,11 @@ export default function BonDetail({ id, onBack }) {
   // Helper: stuur huidige bon naar klantenscherm
   function pushToDisplay(rec) {
     if (!rec) return
-    const sub  = (rec.items || []).reduce((s, i) => s + i.product_price * i.quantity, 0)
-    const disc = sub * (rec.discount_pct || 0) / 100
-    const tot  = sub - disc
+    const sub        = (rec.items || []).reduce((s, i) => s + i.product_price * i.quantity, 0)
+    const promo      = rec.promo_discount || 0
+    const afterPromo = Math.max(0, sub - promo)
+    const disc = afterPromo * (rec.discount_pct || 0) / 100
+    const tot  = afterPromo - disc
     const don  = rec.donation || 0
     updateDisplay({
       active: true, id: rec.id, name: rec.name,
@@ -120,7 +123,8 @@ export default function BonDetail({ id, onBack }) {
         name: i.product_name, qty: i.quantity,
         price: i.product_price, subtotal: i.product_price * i.quantity,
       })),
-      subtotal: sub, discount_pct: rec.discount_pct || 0, discount_amt: disc,
+      subtotal: sub, promo_discount: promo, promo_lines: rec.promo_lines || [],
+      discount_pct: rec.discount_pct || 0, discount_amt: disc,
       total: tot, donation: don, total_due: tot + don, paid: !!rec.paid,
       payment_requested: paymentRequestedRef.current,
     }).catch(() => {})
@@ -248,15 +252,19 @@ export default function BonDetail({ id, onBack }) {
 
   async function changeQty(item, delta) {
     const newQty = item.quantity + delta
-    let newItems
+    let newItems, promo
     if (newQty <= 0) {
-      await deleteReceiptItem(id, item.id)
+      promo = await deleteReceiptItem(id, item.id)
       newItems = receipt.items.filter(i => i.id !== item.id)
     } else {
-      await updateReceiptItem(id, item.id, newQty)
+      promo = await updateReceiptItem(id, item.id, newQty)
       newItems = receipt.items.map(i => i.id === item.id ? { ...i, quantity: newQty } : i)
     }
-    const rec = { ...receipt, items: newItems }
+    const rec = {
+      ...receipt, items: newItems,
+      promo_discount: promo?.promo_discount ?? 0,
+      promo_lines:    promo?.promo_lines ?? [],
+    }
     setReceiptAndRef(rec); maybePushToDisplay(rec)
   }
 
@@ -265,11 +273,12 @@ export default function BonDetail({ id, onBack }) {
     if (existing) {
       await changeQty(existing, 1)
     } else {
-      const newItem = await addReceiptItem(id, {
+      const resp = await addReceiptItem(id, {
         product_id: product.id, product_name: product.name,
         product_price: product.price, quantity: 1,
       })
-      const rec = { ...receipt, items: [...receipt.items, newItem] }
+      const { promo_discount = 0, promo_lines = [], ...newItem } = resp
+      const rec = { ...receipt, items: [...receipt.items, newItem], promo_discount, promo_lines }
       setReceiptAndRef(rec); maybePushToDisplay(rec)
     }
   }
@@ -285,21 +294,21 @@ export default function BonDetail({ id, onBack }) {
     </div>
   )
 
-  const subtotal    = receipt.items?.reduce((s, i) => s + i.product_price * i.quantity, 0) ?? 0
-  const discountAmt = subtotal * (receipt.discount_pct || 0) / 100
-  const total       = subtotal - discountAmt
-  const donation    = receipt.donation || 0
-  const totalDue    = total + donation
+  const subtotal     = receipt.items?.reduce((s, i) => s + i.product_price * i.quantity, 0) ?? 0
+  const promoDiscount = receipt.promo_discount || 0
+  const promoLines    = Array.isArray(receipt.promo_lines) ? receipt.promo_lines : []
+  const afterPromo    = Math.max(0, subtotal - promoDiscount)
+  const discountAmt   = afterPromo * (receipt.discount_pct || 0) / 100
+  const total         = afterPromo - discountAmt
+  const donation      = receipt.donation || 0
+  const totalDue      = total + donation
 
   const receivedNum = parseFloat(received) || 0
   const change      = received.trim() !== '' ? receivedNum - totalDue : null
 
   const productCatMap = Object.fromEntries(products.map(p => [p.id, p.category || 'overig']))
   const availableProducts = products.filter(p => p.available !== false)
-  const groups = CATEGORIES.map(cat => ({
-    cat,
-    items: availableProducts.filter(p => (p.category || 'overig') === cat.id),
-  })).filter(g => g.items.length > 0)
+  const groups = groupProducts(availableProducts)
 
   const receiptTitle = receipt.name || `${t('receipt_number')} #${receipt.id}`
   const isPaid = !!receipt.paid
@@ -685,17 +694,27 @@ export default function BonDetail({ id, onBack }) {
           )
         })}
 
+        {(promoLines.length > 0 || receipt.discount_pct > 0) && (
+          <div className="items-row" style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>
+            <span style={{ gridColumn: '1 / 4' }}>{t('subtotal')}</span>
+            <span style={{ textAlign: 'right', fontWeight: 600 }}>{fmt(subtotal)}</span>
+          </div>
+        )}
+
+        {promoLines.map((line, idx) => (
+          <div key={idx} className="items-row" style={{ fontSize: '0.82rem', color: '#2E6B4E' }}>
+            <span style={{ gridColumn: '1 / 4', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Tag size={12} /> {line.name || t('promo')}
+            </span>
+            <span style={{ textAlign: 'right', fontWeight: 600 }}>−{fmt(line.amount)}</span>
+          </div>
+        ))}
+
         {receipt.discount_pct > 0 && (
-          <>
-            <div className="items-row" style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>
-              <span style={{ gridColumn: '1 / 4' }}>{t('original')}</span>
-              <span style={{ textAlign: 'right', fontWeight: 600 }}>{fmt(subtotal)}</span>
-            </div>
-            <div className="items-row" style={{ fontSize: '0.82rem', color: 'var(--danger)' }}>
-              <span style={{ gridColumn: '1 / 4' }}>{t('discount')} ({receipt.discount_pct}%)</span>
-              <span style={{ textAlign: 'right', fontWeight: 600 }}>−{fmt(discountAmt)}</span>
-            </div>
-          </>
+          <div className="items-row" style={{ fontSize: '0.82rem', color: 'var(--danger)' }}>
+            <span style={{ gridColumn: '1 / 4' }}>{t('discount')} ({receipt.discount_pct}%)</span>
+            <span style={{ textAlign: 'right', fontWeight: 600 }}>−{fmt(discountAmt)}</span>
+          </div>
         )}
 
         <div className="items-total">
@@ -979,7 +998,7 @@ export default function BonDetail({ id, onBack }) {
                   const { Icon } = cat
                   return (
                     <div key={cat.id} style={{ marginBottom: '0.9rem' }}>
-                      <SectionHead Icon={Icon} label={t(`cat_${cat.id}`)} color={cat.color} />
+                      <SectionHead Icon={Icon} label={cat.label} color={cat.color} />
                       <div className="product-grid">
                         {items.map(p => (
                           <div

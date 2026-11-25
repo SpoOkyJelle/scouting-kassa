@@ -4,37 +4,9 @@ import { useLang } from '../LangContext'
 import { updateSettings, changePin, fetchBackup, restoreBackup } from '../api'
 import { useToast } from './Toast'
 import { useConfirm } from './ConfirmModal'
-
-function SettingsCard({ Icon, label, color = 'var(--primary)', children }) {
-  return (
-    <div style={{
-      background: 'var(--surface)', border: '1px solid var(--border)',
-      borderRadius: 12, overflow: 'hidden',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-      marginBottom: '0.85rem',
-    }}>
-      {/* Card header */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 9,
-        padding: '0.75rem 1rem',
-        borderBottom: '1px solid var(--border)',
-        background: 'var(--s50)',
-      }}>
-        <div style={{
-          width: 28, height: 28, borderRadius: 7,
-          background: color + '18',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-        }}>
-          <Icon size={14} color={color} strokeWidth={2.3} />
-        </div>
-        <span style={{ fontWeight: 700, fontSize: '0.86rem', color: 'var(--s800)' }}>{label}</span>
-      </div>
-      <div style={{ padding: '1rem' }}>
-        {children}
-      </div>
-    </div>
-  )
-}
+import SettingsCard from './SettingsCard'
+import CategoryEditor from './CategoryEditor'
+import PromotionEditor from './PromotionEditor'
 
 export default function Instellingen({ settings, onSave, lang, setLang, darkMode, setDarkMode, role }) {
   const { t }     = useLang()
@@ -334,6 +306,16 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
             </button>
           </form>
         </SettingsCard>
+      )}
+
+      {/* ── Categorieën ─────────────────────────────────────────────────── */}
+      {role === 'admin' && (
+        <CategoryEditor settings={settings} onSave={onSave} />
+      )}
+
+      {/* ── Acties ──────────────────────────────────────────────────────── */}
+      {role === 'admin' && (
+        <PromotionEditor settings={settings} onSave={onSave} />
       )}
 
       {/* ── Backup & Herstel ────────────────────────────────────────────── */}

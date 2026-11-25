@@ -5,6 +5,7 @@ import { dirname, join } from 'path'
 import { randomUUID } from 'crypto'
 import { existsSync, readFileSync, renameSync } from 'fs'
 import Database from 'better-sqlite3'
+import { computePromotions } from './src/promotions.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const app  = express()
@@ -43,6 +44,8 @@ db.exec(`
     paid           INTEGER NOT NULL DEFAULT 0,
     discount_pct   REAL    NOT NULL DEFAULT 0,
     donation       REAL    NOT NULL DEFAULT 0,
+    promo_discount REAL    NOT NULL DEFAULT 0,
+    promo_lines    TEXT    NOT NULL DEFAULT '[]',
     payment_method TEXT,
     payments       TEXT    NOT NULL DEFAULT '[]',
     created_at     TEXT    NOT NULL
@@ -97,6 +100,17 @@ db.exec(`
     role  TEXT NOT NULL
   );
 `)
+
+// ─── Lightweight column migrations for existing databases ─────────────────────
+function ensureColumn(table, col, definition) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all()
+  if (!cols.some(c => c.name === col)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${definition}`)
+  }
+}
+// Promotions ("acties") snapshot, frozen per receipt when its items last changed.
+ensureColumn('receipts', 'promo_discount', 'REAL NOT NULL DEFAULT 0')
+ensureColumn('receipts', 'promo_lines',    "TEXT NOT NULL DEFAULT '[]'")
 
 // ─── Migrate from kassa.json (one-time) ──────────────────────────────────────
 {
@@ -207,7 +221,29 @@ function getReceiptWithItems(id) {
   if (!r) return null
   r.items    = db.prepare('SELECT * FROM receipt_items WHERE receipt_id = ? ORDER BY id').all(id)
   r.payments = JSON.parse(r.payments || '[]')
+  r.promo_lines = JSON.parse(r.promo_lines || '[]')
   return r
+}
+
+// Map product_id → category id, for category-scoped promotions.
+function getProductCatMap() {
+  return Object.fromEntries(
+    db.prepare('SELECT id, category FROM products').all().map(p => [p.id, p.category || 'overig'])
+  )
+}
+
+// Recompute and store the promotion snapshot for a receipt, from the CURRENT
+// promotion settings and the receipt's items. Called whenever the items change,
+// so the stored discount is frozen against later edits to the promotion config.
+function recomputePromo(receiptId) {
+  const items = db.prepare(
+    'SELECT product_id, product_name, product_price, quantity FROM receipt_items WHERE receipt_id = ?'
+  ).all(receiptId)
+  const promotions = getSettingsFromDb().promotions || []
+  const { discount, lines } = computePromotions(items, promotions, getProductCatMap())
+  db.prepare('UPDATE receipts SET promo_discount = ?, promo_lines = ? WHERE id = ?')
+    .run(discount, JSON.stringify(lines), receiptId)
+  return { promo_discount: discount, promo_lines: lines }
 }
 
 function getAllReceiptsWithItems() {
@@ -235,6 +271,18 @@ const sseClients = new Set()
 const SETTING_DEFAULTS = {
   paymentUrl:  'https://www.ing.nl/payreq/m/?trxid=aUZVw7cSEoc3M52nCif1fjGgLPCCcbnO',
   paymentName: 'Sint Martinus Explos\nPannenkoeken actie 2026',
+  // Product categories are configurable in Settings → Categories; these are the
+  // defaults used until an admin changes them. Kept in sync with
+  // DEFAULT_CATEGORIES in src/categories.js.
+  categories: [
+    { id: 'pannenkoeken', label: 'Pannenkoeken', icon: 'ChefHat', color: '#C77A1A' },
+    { id: 'beleg',        label: 'Beleg',        icon: 'Layers',  color: '#5C8A3C' },
+    { id: 'drinken',      label: 'Drinken',      icon: 'Coffee',  color: '#3C7A86' },
+    { id: 'overig',       label: 'Overig',       icon: 'Tag',     color: '#8A8374' },
+  ],
+  // Promotions / "acties" (e.g. "elke 5e gratis"). Configurable in Settings;
+  // empty by default. See src/promotions.js for the engine and shapes.
+  promotions: [],
 }
 
 function getDisplayPayload() {
@@ -264,9 +312,11 @@ function autoUpdateDisplay(receiptId) {
   if (!displayState.active || displayState.id !== receiptId) return
   const r   = getReceiptWithItems(receiptId)
   if (!r) return
-  const sub  = (r.items || []).reduce((s, i) => s + i.product_price * i.quantity, 0)
-  const disc = sub * (r.discount_pct || 0) / 100
-  const tot  = sub - disc
+  const sub        = (r.items || []).reduce((s, i) => s + i.product_price * i.quantity, 0)
+  const promo      = r.promo_discount || 0
+  const afterPromo = Math.max(0, sub - promo)
+  const disc = afterPromo * (r.discount_pct || 0) / 100
+  const tot  = afterPromo - disc
   const don  = r.donation || 0
   displayState = {
     ...displayState,
@@ -275,7 +325,9 @@ function autoUpdateDisplay(receiptId) {
       name: i.product_name, qty: i.quantity,
       price: i.product_price, subtotal: i.product_price * i.quantity,
     })),
-    subtotal:     sub, discount_pct: r.discount_pct || 0, discount_amt: disc,
+    subtotal:     sub,
+    promo_discount: promo, promo_lines: r.promo_lines || [],
+    discount_pct: r.discount_pct || 0, discount_amt: disc,
     total:        tot, donation: don, total_due: tot + don,
     paid:         !!r.paid,
     updatedAt:    new Date().toISOString(),
@@ -288,9 +340,10 @@ function getAdminPin()   { return getSettingsFromDb().adminPin   || ADMIN_PIN }
 function getCashierPin() { return getSettingsFromDb().cashierPin || CASHIER_PIN }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-function calcTotal(items, discount_pct) {
-  const base = (items || []).reduce((s, i) => s + i.product_price * i.quantity, 0)
-  return base * (1 - (discount_pct || 0) / 100)
+function calcTotal(items, discount_pct, promo_discount) {
+  const base       = (items || []).reduce((s, i) => s + i.product_price * i.quantity, 0)
+  const afterPromo = Math.max(0, base - (promo_discount || 0))
+  return afterPromo * (1 - (discount_pct || 0) / 100)
 }
 
 // ─── Middleware ────────────────────────────────────────────────────────────────
@@ -411,9 +464,11 @@ app.post('/api/restore', requireAdmin, (req, res) => {
       )
     }
     for (const r of (data.receipts || [])) {
-      db.prepare(`INSERT INTO receipts (id,name,note,paid,discount_pct,donation,payment_method,payments,created_at)
-                  VALUES (?,?,?,?,?,?,?,?,?)`).run(
+      db.prepare(`INSERT INTO receipts (id,name,note,paid,discount_pct,donation,promo_discount,promo_lines,payment_method,payments,created_at)
+                  VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run(
         r.id, r.name ?? null, r.note ?? null, r.paid ? 1 : 0, r.discount_pct || 0, r.donation || 0,
+        r.promo_discount || 0,
+        typeof r.promo_lines === 'string' ? r.promo_lines : JSON.stringify(r.promo_lines || []),
         r.payment_method ?? null, JSON.stringify(r.payments || []), r.created_at || new Date().toISOString(),
       )
       for (const i of (r.items || [])) {
@@ -529,8 +584,13 @@ app.get('/api/receipts', (_req, res) => {
   }).map(r => {
     const items = db.prepare('SELECT product_price, quantity FROM receipt_items WHERE receipt_id = ?').all(r.id)
     const sub   = items.reduce((s, i) => s + i.product_price * i.quantity, 0)
-    const row   = db.prepare('SELECT discount_pct, donation FROM receipts WHERE id = ?').get(r.id)
-    return { ...r, total: calcTotal(items, row?.discount_pct), donation: row?.donation || 0 }
+    const row   = db.prepare('SELECT discount_pct, donation, promo_discount FROM receipts WHERE id = ?').get(r.id)
+    return {
+      ...r,
+      total: calcTotal(items, row?.discount_pct, row?.promo_discount),
+      donation: row?.donation || 0,
+      promo_lines: JSON.parse(r.promo_lines || '[]'),
+    }
   }))
 })
 
@@ -548,8 +608,9 @@ app.post('/api/receipts', (req, res) => {
   db.transaction(() => {
     for (const i of (items || [])) stmt.run(rid, i.product_id, i.product_name, i.product_price, i.quantity)
   })()
+  recomputePromo(rid)
   const r = db.prepare('SELECT * FROM receipts WHERE id = ?').get(rid)
-  res.json({ ...r, payments: JSON.parse(r.payments || '[]') })
+  res.json({ ...r, payments: JSON.parse(r.payments || '[]'), promo_lines: JSON.parse(r.promo_lines || '[]') })
 })
 
 app.get('/api/receipts/:id', (req, res) => {
@@ -573,7 +634,7 @@ app.put('/api/receipts/:id', (req, res) => {
     .run(name, note, paid, discount_pct, donation, payment_method, payments, id)
   autoUpdateDisplay(id)
   const updated = db.prepare('SELECT * FROM receipts WHERE id = ?').get(id)
-  res.json({ ...updated, payments: JSON.parse(updated.payments || '[]') })
+  res.json({ ...updated, payments: JSON.parse(updated.payments || '[]'), promo_lines: JSON.parse(updated.promo_lines || '[]') })
 })
 
 app.delete('/api/receipts/:id', (req, res) => {
@@ -600,8 +661,9 @@ app.post('/api/receipts/:id/items', (req, res) => {
     VALUES (?,?,?,?,?)
   `).run(receiptId, product_id, product_name, product_price, quantity ?? 1)
   const item = db.prepare('SELECT * FROM receipt_items WHERE id = ?').get(info.lastInsertRowid)
+  const promo = recomputePromo(receiptId)
   autoUpdateDisplay(receiptId)
-  res.json(item)
+  res.json({ ...item, ...promo })
 })
 
 app.put('/api/receipts/:id/items/:itemId', (req, res) => {
@@ -611,16 +673,18 @@ app.put('/api/receipts/:id/items/:itemId', (req, res) => {
     .run(req.body.quantity, itemId, receiptId)
   const item = db.prepare('SELECT * FROM receipt_items WHERE id = ?').get(itemId)
   if (!item) return res.status(404).json({ error: 'Item not found' })
+  const promo = recomputePromo(receiptId)
   autoUpdateDisplay(receiptId)
-  res.json(item)
+  res.json({ ...item, ...promo })
 })
 
 app.delete('/api/receipts/:id/items/:itemId', (req, res) => {
   const receiptId = parseInt(req.params.id)
   const itemId    = parseInt(req.params.itemId)
   db.prepare('DELETE FROM receipt_items WHERE id = ? AND receipt_id = ?').run(itemId, receiptId)
+  const promo = recomputePromo(receiptId)
   autoUpdateDisplay(receiptId)
-  res.json({ ok: true })
+  res.json({ ok: true, ...promo })
 })
 
 // ─── Inkoop bonnetjes ─────────────────────────────────────────────────────────
@@ -792,7 +856,7 @@ app.get('/api/stats', (req, res) => {
   const todayPaymentBreakdown = { contant: 0, pin: 0, qr: 0, onbekend: 0 }
 
   receipts.forEach(r => {
-    const rTotal    = calcTotal(r.items, r.discount_pct)
+    const rTotal    = calcTotal(r.items, r.discount_pct, r.promo_discount)
     const rDonation = r.donation || 0
     totalRevenue   += rTotal + rDonation
     totalDonations += rDonation
@@ -895,7 +959,7 @@ app.get('/api/stats', (req, res) => {
   let yesterdayRevenue = 0
   allReceipts.forEach(r => {
     if (new Date(r.created_at).toDateString() === yesterdayStr)
-      yesterdayRevenue += calcTotal(r.items, r.discount_pct) + (r.donation || 0)
+      yesterdayRevenue += calcTotal(r.items, r.discount_pct, r.promo_discount) + (r.donation || 0)
   })
 
   // Losse donaties
