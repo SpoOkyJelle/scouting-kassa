@@ -6,15 +6,22 @@
     "dev": "concurrently \"nodemon --ignore kassa.db --ignore kassa.db-wal --ignore kassa.db-shm server.js\" \"wait-on tcp:3001 && vite\"",
     "build": "vite build",
     "start": "node server.js",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "migrate": "knex migrate:latest",
+    "migrate:rollback": "knex migrate:rollback",
+    "migrate:make": "knex migrate:make",
+    "import:sqlite": "node scripts/import-sqlite.js"
   },
   "dependencies": {
     "@fontsource/bricolage-grotesque": "^5.3.0",
     "@fontsource/inter": "^5.0.0",
+    "bcryptjs": "^2.4.3",
     "better-sqlite3": "^12.11.1",
     "dotenv": "^16.4.5",
     "express": "^4.18.2",
+    "knex": "^3.1.0",
     "lucide-react": "^0.395.0",
+    "pg": "^8.13.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "recharts": "^2.12.0"

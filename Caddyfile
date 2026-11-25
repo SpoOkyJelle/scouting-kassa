@@ -1,0 +1,9 @@
+# Reverse proxy with automatic HTTPS.
+# {$DOMAIN} comes from the environment (see docker-compose.yml / .env).
+# - DOMAIN=localhost  → Caddy serves plain HTTP on :80 for local testing.
+# - DOMAIN=pos.example.com → Caddy fetches a Let's Encrypt cert automatically.
+
+{$DOMAIN:localhost} {
+	encode gzip
+	reverse_proxy app:3001
+}

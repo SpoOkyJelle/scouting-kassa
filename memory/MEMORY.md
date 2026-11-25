@@ -1,1 +1,2 @@
 - [Generic app direction](generic-app-direction.md) — goal: turn the pancake POS into a configurable, multi-purpose register; categories already data-driven.
+- [Multi-tenant SaaS](multi-tenant-saas.md) — plan + Fase 0 scaffolding for a Postgres/Knex multi-tenant SaaS on the owner's VPS; cutover of server.js still to do.

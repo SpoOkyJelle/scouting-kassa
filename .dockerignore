@@ -1,0 +1,11 @@
+node_modules
+dist
+.git
+.env
+*.db
+*.db-wal
+*.db-shm
+kassa.json
+kassa.json.bak
+npm-debug.log
+.DS_Store
