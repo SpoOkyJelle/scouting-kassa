@@ -30,15 +30,17 @@ function useDisplayState() {
   const [data, setData] = useState(null)
 
   useEffect(() => {
+    const token = new URLSearchParams(window.location.search).get('token')
+    const qs = token ? `?token=${encodeURIComponent(token)}` : ''
     let es
 
     function connect() {
-      es = new EventSource('/display-events')
+      es = new EventSource(`/display-events${qs}`)
       es.onmessage = e => {
         try { setData(JSON.parse(e.data)) } catch {}
       }
       es.onerror = () => {
-        fetch('/display-data')
+        fetch(`/display-data${qs}`)
           .then(r => r.ok ? r.json() : null)
           .then(d => { if (d) setData(d) })
           .catch(() => {})

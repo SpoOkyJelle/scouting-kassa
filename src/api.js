@@ -33,9 +33,38 @@ export async function login(pin) {
   return res.json()   // { token, role }
 }
 
+// Account login with email + password.
+export async function loginPassword(email, password) {
+  const res = await fetch(`${BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  })
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}))
+    throw new Error(e.error || 'Login failed')
+  }
+  return res.json()   // { token, role }
+}
+
+// Register a new account (organisation) with an owner user.
+export async function register({ email, password, org, name }) {
+  const res = await fetch(`${BASE}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, org, name }),
+  })
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}))
+    throw new Error(e.error || 'Registration failed')
+  }
+  return res.json()   // { token, role, account }
+}
+
 export const changePin     = (data) => req('/auth/change-pin', { method: 'POST', body: JSON.stringify(data) })
 export const updateDisplay = (data) => req('/display', { method: 'PUT',  body: JSON.stringify(data) })
 export const clearDisplay  = ()     => req('/display', { method: 'DELETE' })
+export const fetchDisplayToken = ()  => req('/display-token')   // { token }
 
 export async function logout() {
   const token = localStorage.getItem('kassa_token')

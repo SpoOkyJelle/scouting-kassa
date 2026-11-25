@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { FileText, PlusCircle, Package, BarChart2, LogOut, WifiOff, QrCode, Settings, ShoppingCart, Heart, Monitor, Copy, Check, ExternalLink, X } from 'lucide-react'
 import { translations } from './i18n'
-import { logout as apiLogout, fetchSettings } from './api'
+import { logout as apiLogout, fetchSettings, fetchDisplayToken } from './api'
 import { LangContext } from './LangContext'
 import { SettingsContext } from './SettingsContext'
 import { CategoriesProvider } from './CategoriesContext'
@@ -63,6 +63,7 @@ export default function App() {
   const [showPayment, setShowPayment]   = useState(false)
   const [showDisplay, setShowDisplay]   = useState(false)
   const [displayCopied, setDisplayCopied] = useState(false)
+  const [displayToken, setDisplayToken] = useState(null)
   const [appSettings, setAppSettings] = useState({ paymentUrl: '', paymentName: '' })
 
   const t = key => translations[lang]?.[key] ?? key
@@ -95,6 +96,13 @@ export default function App() {
       fetchSettings().then(setAppSettings).catch(() => {})
     }
   }, [token])
+
+  // Fetch the account's display token when the share-display modal opens
+  useEffect(() => {
+    if (showDisplay && !displayToken) {
+      fetchDisplayToken().then(d => setDisplayToken(d.token)).catch(() => {})
+    }
+  }, [showDisplay, displayToken])
 
   // Update favicon when logo changes
   useEffect(() => {
@@ -179,6 +187,7 @@ export default function App() {
     setRole('admin')
     setTab('receipts')
     setDetailId(null)
+    setDisplayToken(null)
     history.replaceState({ tab: 'receipts', detailId: null }, '')
   }
 
@@ -193,7 +202,7 @@ export default function App() {
 
             {/* ── Display URL modal ───────────────────────────────────── */}
             {showDisplay && (() => {
-              const url = `${window.location.origin}/display`
+              const url = `${window.location.origin}/display${displayToken ? `?token=${displayToken}` : ''}`
               const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=12&data=${encodeURIComponent(url)}`
               async function copyUrl() {
                 try { await navigator.clipboard.writeText(url) } catch {

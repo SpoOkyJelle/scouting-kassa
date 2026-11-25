@@ -36,9 +36,13 @@ const SETTING_DEFAULTS = {
   promotions: [],
 }
 
-async function getSettings(accountId) {
+// Raw stored settings (no defaults merged) — use when persisting a delta.
+async function getRawSettings(accountId) {
   const row = await db('settings').where({ account_id: accountId }).first()
-  return { ...SETTING_DEFAULTS, ...(row?.data || {}) }
+  return row?.data || {}
+}
+async function getSettings(accountId) {
+  return { ...SETTING_DEFAULTS, ...(await getRawSettings(accountId)) }
 }
 // Store only the raw (non-default) object; defaults are merged on read.
 async function saveSettings(accountId, data) {
@@ -109,18 +113,42 @@ function calcTotal(items, discount_pct, promo_discount) {
   return afterPromo * (1 - (discount_pct || 0) / 100)
 }
 
-// ─── Customer display (single active display for now; keyed by account) ─────────
-// NOTE: the public /display page is not yet account-aware. Transitional: one
-// active display at a time, tagged with its accountId. Per-account displays with
-// a display token are Fase 1 work.
-let displayState = { active: false, updatedAt: null, accountId: null }
-const sseClients = new Set()
+// ─── Customer display (per account) ─────────────────────────────────────────────
+// Each account has its own live display state and SSE subscribers. The public
+// /display page identifies the account via an opaque display token (stored in the
+// account's settings) passed as ?token=… — no login needed on the display device.
+const displayStates = new Map()  // accountId → state
+const sseClients     = new Map()  // accountId → Set<res>
 
-async function getDisplayPayload() {
-  const data = { ...displayState }
+function getState(accountId) {
+  return displayStates.get(accountId) || { active: false, updatedAt: null }
+}
+function clientsFor(accountId) {
+  let set = sseClients.get(accountId)
+  if (!set) { set = new Set(); sseClients.set(accountId, set) }
+  return set
+}
+
+// Resolve a display token to its account id (token lives in settings.data.displayToken).
+async function accountForDisplayToken(token) {
+  if (!token) return null
+  const rows = await db('settings').whereRaw("data->>'displayToken' = ?", [token]).select('account_id')
+  return rows[0]?.account_id ?? null
+}
+
+// Get (or lazily create) the display token for an account.
+async function ensureDisplayToken(accountId) {
+  const raw = await getRawSettings(accountId)
+  if (raw.displayToken) return raw.displayToken
+  const token = randomUUID().replace(/-/g, '')
+  await saveSettings(accountId, { ...raw, displayToken: token })
+  return token
+}
+
+async function getDisplayPayload(accountId) {
+  const data = { ...getState(accountId) }
   if (data.updatedAt && Date.now() - new Date(data.updatedAt).getTime() > 10 * 60 * 1000) data.active = false
-  const acctId = data.accountId || (await firstAccountId())
-  const s = acctId ? await getSettings(acctId) : SETTING_DEFAULTS
+  const s = accountId ? await getSettings(accountId) : SETTING_DEFAULTS
   return {
     ...data,
     settings: {
@@ -131,15 +159,16 @@ async function getDisplayPayload() {
   }
 }
 
-async function broadcastDisplay() {
-  const payload = `data: ${JSON.stringify(await getDisplayPayload())}\n\n`
-  for (const client of sseClients) {
-    try { client.write(payload) } catch { sseClients.delete(client) }
+async function broadcastDisplay(accountId) {
+  const payload = `data: ${JSON.stringify(await getDisplayPayload(accountId))}\n\n`
+  for (const client of clientsFor(accountId)) {
+    try { client.write(payload) } catch { clientsFor(accountId).delete(client) }
   }
 }
 
 async function autoUpdateDisplay(accountId, receiptId) {
-  if (!displayState.active || displayState.accountId !== accountId || displayState.id !== receiptId) return
+  const state = getState(accountId)
+  if (!state.active || state.id !== receiptId) return
   const r = await getReceiptWithItems(accountId, receiptId)
   if (!r) return
   const sub        = (r.items || []).reduce((s, i) => s + i.product_price * i.quantity, 0)
@@ -148,40 +177,48 @@ async function autoUpdateDisplay(accountId, receiptId) {
   const disc = afterPromo * (r.discount_pct || 0) / 100
   const tot  = afterPromo - disc
   const don  = r.donation || 0
-  displayState = {
-    ...displayState,
+  displayStates.set(accountId, {
+    ...state,
     name: r.name,
     items: r.items.map((i) => ({ name: i.product_name, qty: i.quantity, price: i.product_price, subtotal: i.product_price * i.quantity })),
     subtotal: sub, promo_discount: promo, promo_lines: r.promo_lines || [],
     discount_pct: r.discount_pct || 0, discount_amt: disc,
     total: tot, donation: don, total_due: tot + don, paid: !!r.paid,
     updatedAt: new Date().toISOString(),
-  }
-  await broadcastDisplay()
+  })
+  await broadcastDisplay(accountId)
 }
 
 // ─── Middleware ────────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }))
 app.use(express.static(join(__dirname, 'dist')))
 
-// ─── Public display endpoints (no auth) ─────────────────────────────────────────
+// ─── Public display endpoints (no auth; account via ?token=) ─────────────────────
 app.get('/display-events', wrap(async (req, res) => {
+  const accountId = await accountForDisplayToken(req.query.token)
+  if (!accountId) return res.status(404).end()
+
   res.setHeader('Content-Type',  'text/event-stream')
   res.setHeader('Cache-Control', 'no-cache')
   res.setHeader('Connection',    'keep-alive')
   res.setHeader('X-Accel-Buffering', 'no')
   res.flushHeaders()
 
-  sseClients.add(res)
-  res.write(`data: ${JSON.stringify(await getDisplayPayload())}\n\n`)
+  const set = clientsFor(accountId)
+  set.add(res)
+  res.write(`data: ${JSON.stringify(await getDisplayPayload(accountId))}\n\n`)
 
   const ping = setInterval(() => {
-    try { res.write(': ping\n\n') } catch { clearInterval(ping); sseClients.delete(res) }
+    try { res.write(': ping\n\n') } catch { clearInterval(ping); set.delete(res) }
   }, 20000)
-  req.on('close', () => { clearInterval(ping); sseClients.delete(res) })
+  req.on('close', () => { clearInterval(ping); set.delete(res) })
 }))
 
-app.get('/display-data', wrap(async (_req, res) => res.json(await getDisplayPayload())))
+app.get('/display-data', wrap(async (req, res) => {
+  const accountId = await accountForDisplayToken(req.query.token)
+  if (!accountId) return res.status(404).json({ error: 'Onbekende display' })
+  res.json(await getDisplayPayload(accountId))
+}))
 
 // ─── Auth (public) ──────────────────────────────────────────────────────────────
 function slugify(s) {
@@ -265,15 +302,21 @@ function requireAdmin(req, res, next) {
 }
 
 // ─── Display (authed) ────────────────────────────────────────────────────────────
-app.put('/api/display', wrap(async (req, res) => {
-  displayState = { ...req.body, accountId: req.accountId, updatedAt: new Date().toISOString() }
-  await broadcastDisplay()
-  res.json(displayState)
+// The display token lets the account's display device subscribe without logging in.
+app.get('/api/display-token', wrap(async (req, res) => {
+  res.json({ token: await ensureDisplayToken(req.accountId) })
 }))
 
-app.delete('/api/display', wrap(async (_req, res) => {
-  displayState = { active: false, updatedAt: null, accountId: null }
-  await broadcastDisplay()
+app.put('/api/display', wrap(async (req, res) => {
+  const state = { ...req.body, updatedAt: new Date().toISOString() }
+  displayStates.set(req.accountId, state)
+  await broadcastDisplay(req.accountId)
+  res.json(state)
+}))
+
+app.delete('/api/display', wrap(async (req, res) => {
+  displayStates.set(req.accountId, { active: false, updatedAt: null })
+  await broadcastDisplay(req.accountId)
   res.json({ ok: true })
 }))
 
@@ -282,7 +325,7 @@ app.post('/api/auth/change-pin', requireAdmin, wrap(async (req, res) => {
   const { currentPin, newPin, target } = req.body
   if (currentPin !== (await getAdminPin(req.accountId))) return res.status(403).json({ error: 'Huidige PIN is onjuist' })
   if (!newPin || String(newPin).length < 4) return res.status(400).json({ error: 'PIN moet minimaal 4 tekens zijn' })
-  const s = await getSettings(req.accountId)
+  const s = await getRawSettings(req.accountId)
   if (target === 'cashier') s.cashierPin = String(newPin)
   else                      s.adminPin   = String(newPin)
   await saveSettings(req.accountId, s)
@@ -690,9 +733,9 @@ app.get('/api/settings', wrap(async (req, res) => {
 }))
 
 app.put('/api/settings', requireAdmin, wrap(async (req, res) => {
-  const s = { ...(await getSettings(req.accountId)), ...req.body }
-  await saveSettings(req.accountId, s)
-  res.json(s)
+  const merged = { ...(await getRawSettings(req.accountId)), ...req.body }
+  await saveSettings(req.accountId, merged)
+  res.json(await getSettings(req.accountId))
 }))
 
 // ─── Stats ────────────────────────────────────────────────────────────────────

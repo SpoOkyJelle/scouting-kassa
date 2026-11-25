@@ -37,12 +37,21 @@ Postgres (register → products → "elke 5e gratis" promo → receipt totals �
 delete confirms isolation). Dev: `docker compose up -d db` (now bound to 127.0.0.1:5432) + `npm run
 dev`; needs DATABASE_URL in .env matching POSTGRES_PASSWORD.
 
-**Known transitional gaps / next:**
-- Frontend still logs in with PIN only; no registration/login UI yet.
-- `displayState` is still a single global (last writer wins), tagged with accountId — NOT yet
-  per-account; public /display page not account-aware. Fase 1.
-- Sessions are in-memory (lost on restart). Harden later (persist; sessions table has NOT NULL
-  user_id → make nullable for PIN sessions).
-- Local Caddy can't bind :80 on Windows (http.sys); irrelevant on the Linux VPS.
-**Next — Fase 1:** registration/login UI (email+password + account switch), per-account displayState
-+ display token. Then Fase 2 setup wizard reusing Category/Promotion/Instellingen editors.
+**Fase 1 done — accounts in the frontend + per-account display.**
+- `LoginScreen.jsx` rewritten: "Account" tab (email+password login + register with org name) and
+  "Kassa-PIN" tab (quick till login). api.js: `loginPassword`, `register`, `fetchDisplayToken`.
+- Per-account customer display: server keeps `displayStates`/`sseClients` as Maps keyed by
+  accountId. Public `/display-events` & `/display-data` take `?token=` (opaque display token stored
+  in the account's `settings.data.displayToken`, created via `GET /api/display-token`).
+  `App.jsx` builds the display URL with the token; `KlantenschermDisplay.jsx` reads it from the URL.
+  Verified: two accounts get distinct tokens, one's push doesn't leak to the other, unknown token→404.
+- Settings writes now store only the raw delta (`getRawSettings`), not the merged defaults.
+
+**Known gaps / next:**
+- Single membership per login assumed (login picks first membership); no account-switch UI yet.
+- Sessions in-memory (lost on restart). Harden later (persist; sessions table has NOT NULL user_id
+  → make nullable for PIN sessions).
+- Local Caddy can't bind :80/:443 on Windows (http.sys) → runs only under the `prod` compose
+  profile; locally the app is published on 127.0.0.1:3001.
+**Next — Fase 2:** onboarding/setup wizard after registration (reuse Category/Promotion/Instellingen
+editors). Fase 3: invitations (real email provider), account-switch UI. Fase 4: billing, subdomains.

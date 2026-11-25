@@ -126,10 +126,23 @@ export const translations = {
 
     // Login
     login_heading:    'Welkom terug',
-    login_sub:        'Voer de PIN in om door te gaan',
+    login_sub:        'Log in om door te gaan',
     login_placeholder:'PIN',
     login_submit:     'Inloggen',
     login_error:      'Verkeerde PIN. Probeer opnieuw.',
+    login_mode_account: 'Account',
+    login_mode_pin:     'Kassa-PIN',
+    login_email:        'E-mailadres',
+    login_password:     'Wachtwoord',
+    login_org:          'Naam organisatie',
+    login_name_optional:'Je naam (optioneel)',
+    login_do_login:     'Inloggen',
+    login_do_register:  'Account aanmaken',
+    login_to_register:  'Nog geen account? Registreren',
+    login_to_login:     'Al een account? Inloggen',
+    login_account_error:'Onjuiste inloggegevens',
+    login_register_error:'Registreren mislukt',
+    login_pin_hint:     'Snel inloggen aan de kassa',
     logout:           'Uitloggen',
 
     // Categories
@@ -427,10 +440,23 @@ export const translations = {
 
     // Login
     login_heading:    'Welcome back',
-    login_sub:        'Enter the PIN to continue',
+    login_sub:        'Log in to continue',
     login_placeholder:'PIN',
     login_submit:     'Sign in',
     login_error:      'Wrong PIN. Please try again.',
+    login_mode_account: 'Account',
+    login_mode_pin:     'Till PIN',
+    login_email:        'Email address',
+    login_password:     'Password',
+    login_org:          'Organisation name',
+    login_name_optional:'Your name (optional)',
+    login_do_login:     'Sign in',
+    login_do_register:  'Create account',
+    login_to_register:  'No account yet? Register',
+    login_to_login:     'Already have an account? Sign in',
+    login_account_error:'Incorrect credentials',
+    login_register_error:'Registration failed',
+    login_pin_hint:     'Quick till login',
     logout:           'Sign out',
 
     // Categories
