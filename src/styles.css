@@ -132,7 +132,7 @@
   --shadow:    0 4px 10px -2px rgba(0,0,0,0.45);
   --shadow-md: 0 12px 22px -6px rgba(0,0,0,0.55);
 }
-[data-theme="dark"] .header        { background: #12100D; border-bottom-color: rgba(255,255,255,0.05); }
+[data-theme="dark"] .header        { background: #0C111B; border-bottom-color: rgba(255,255,255,0.05); }
 [data-theme="dark"] .tab-nav       { background: var(--surface); border-bottom-color: var(--border); }
 [data-theme="dark"] .lang-switcher { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); }
 [data-theme="dark"] .form-input    { background: var(--surface); color: var(--text); border-color: var(--border); }
@@ -157,7 +157,7 @@ body {
 
 /* ── Header ───────────────────────────────────────────────────────────────── */
 .header {
-  background: var(--s900);
+  background: #121826;
   height: var(--header-h);
   padding: 0 1.25rem;
   display: flex;
