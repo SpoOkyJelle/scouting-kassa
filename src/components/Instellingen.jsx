@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Globe, QrCode, ExternalLink, Moon, Shield, Save, KeyRound, HardDrive, Upload, Download, ImageIcon, Trash2 } from 'lucide-react'
+import { Globe, QrCode, ExternalLink, Moon, Shield, Save, KeyRound, HardDrive, Upload, Download, ImageIcon, Trash2, CreditCard } from 'lucide-react'
 import { useLang } from '../LangContext'
 import { updateSettings, changePin, fetchBackup, restoreBackup } from '../api'
 import { useToast } from './Toast'
@@ -30,7 +30,14 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
   const [paymentUrl,  setPaymentUrl]  = useState(settings.paymentUrl  ?? '')
   const [paymentName, setPaymentName] = useState(settings.paymentName ?? '')
   const [saving, setSaving] = useState(false)
+  const [sumupSaving, setSumupSaving] = useState(false)
   const [fontSize, setFontSizeState] = useState(() => localStorage.getItem('kassa_fontsize') || 'normal')
+
+  const sumupEnabled = settings.sumupEnabled ?? false
+  const [sumupMerchant, setSumupMerchant] = useState(settings.sumupMerchantCode ?? '')
+  const [sumupReader,   setSumupReader]   = useState(settings.sumupReaderId ?? '')
+  const [sumupApiKey,   setSumupApiKey]   = useState('')
+  const [sumupCfgSaving, setSumupCfgSaving] = useState(false)
 
   // PIN state
   const [pinTarget,  setPinTarget]  = useState('admin')
@@ -51,6 +58,11 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
     setPaymentName(settings.paymentName ?? '')
   }, [settings.paymentUrl, settings.paymentName])
 
+  useEffect(() => {
+    setSumupMerchant(settings.sumupMerchantCode ?? '')
+    setSumupReader(settings.sumupReaderId ?? '')
+  }, [settings.sumupMerchantCode, settings.sumupReaderId])
+
   async function handleSave(e) {
     e.preventDefault()
     setSaving(true)
@@ -62,6 +74,35 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
       showToast(t('toast_no_access'), 'error')
     }
     setSaving(false)
+  }
+
+  async function toggleSumup() {
+    const next = !sumupEnabled
+    setSumupSaving(true)
+    try {
+      const updated = await updateSettings({ sumupEnabled: next })
+      onSave(updated)
+      showToast(t('toast_saved'))
+    } catch {
+      showToast(t('toast_no_access'), 'error')
+    }
+    setSumupSaving(false)
+  }
+
+  async function handleSumupConfig(e) {
+    e.preventDefault()
+    setSumupCfgSaving(true)
+    try {
+      const payload = { sumupMerchantCode: sumupMerchant.trim(), sumupReaderId: sumupReader.trim() }
+      if (sumupApiKey.trim()) payload.sumupApiKey = sumupApiKey.trim()
+      const updated = await updateSettings(payload)
+      onSave(updated)
+      setSumupApiKey('')
+      showToast(t('toast_saved'))
+    } catch {
+      showToast(t('toast_no_access'), 'error')
+    }
+    setSumupCfgSaving(false)
   }
 
   async function handleChangePin(e) {
@@ -358,6 +399,74 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
               {saving ? t('loading') : t('save')}
             </button>
           </form>
+        </SettingsCard>
+      )}
+
+      {/* ── SumUp Cloud ─────────────────────────────────────────────────── */}
+      {role === 'admin' && (
+        <SettingsCard Icon={CreditCard} label={t('settings_sumup_section')} color="#0070F3">
+          <p style={{ fontSize: '0.78rem', color: 'var(--muted)', marginBottom: '0.85rem', lineHeight: 1.5 }}>
+            {t('settings_sumup_hint')}
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '0.87rem', color: 'var(--s800)' }}>
+                {t('settings_sumup_toggle')}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 2 }}>
+                {sumupEnabled ? t('settings_sumup_on') : t('settings_sumup_off')}
+              </div>
+            </div>
+            <button
+              className={`toggle-switch${sumupEnabled ? ' on' : ''}`}
+              onClick={toggleSumup}
+              disabled={sumupSaving}
+              aria-label={t('settings_sumup_toggle')}
+            >
+              <span className="toggle-knob" />
+            </button>
+          </div>
+
+          {sumupEnabled && (
+            <form onSubmit={handleSumupConfig} style={{ marginTop: '0.9rem', borderTop: '1px solid var(--border)', paddingTop: '0.9rem' }}>
+              <div className="form-group">
+                <label className="form-label">{t('settings_sumup_merchant')}</label>
+                <input
+                  className="form-input"
+                  placeholder="MXXXXXXX"
+                  value={sumupMerchant}
+                  onChange={e => setSumupMerchant(e.target.value)}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">{t('settings_sumup_reader')}</label>
+                <input
+                  className="form-input"
+                  placeholder="rdr_XXXXXXXXXXXX"
+                  value={sumupReader}
+                  onChange={e => setSumupReader(e.target.value)}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">{t('settings_sumup_apikey')}</label>
+                <input
+                  className="form-input"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder={settings.sumupApiKeySet ? '•••••••• ' + t('settings_sumup_key_set') : 'sup_sk_...'}
+                  value={sumupApiKey}
+                  onChange={e => setSumupApiKey(e.target.value)}
+                />
+                <p style={{ fontSize: '0.72rem', color: 'var(--muted)', marginTop: 4, lineHeight: 1.4 }}>
+                  {t('settings_sumup_apikey_hint')}
+                </p>
+              </div>
+              <button type="submit" className="btn btn-primary" disabled={sumupCfgSaving} style={{ gap: 6 }}>
+                <Save size={14} />
+                {sumupCfgSaving ? t('loading') : t('save')}
+              </button>
+            </form>
+          )}
         </SettingsCard>
       )}
 

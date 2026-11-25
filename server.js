@@ -7,6 +7,7 @@ import bcrypt from 'bcryptjs'
 import { computePromotions } from './src/promotions.js'
 import { sendInviteEmail, mailerConfigured } from './src/mailer.js'
 import { PLAN_IDS, DEFAULT_PLAN } from './src/plans.js'
+import { createReaderCheckout } from './src/sumup.js'
 import { db, scoped } from './db/index.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -85,6 +86,10 @@ async function deleteSession(token) {
 const SETTING_DEFAULTS = {
   paymentUrl:  'https://www.ing.nl/payreq/m/?trxid=aUZVw7cSEoc3M52nCif1fjGgLPCCcbnO',
   paymentName: 'Sint Martinus Explos\nPannenkoeken actie 2026',
+  sumupEnabled: false,
+  sumupMerchantCode: '',
+  sumupReaderId: '',
+  sumupApiKey: '',   // secret — stripped from client responses by safeSettings
   categories: [
     { id: 'pannenkoeken', label: 'Pannenkoeken', icon: 'ChefHat', color: '#C77A1A' },
     { id: 'beleg',        label: 'Beleg',        icon: 'Layers',  color: '#5C8A3C' },
@@ -104,7 +109,9 @@ async function getSettings(accountId) {
 }
 // Strip secrets before sending settings to the client (any session can read them).
 function safeSettings(s) {
-  const { adminPin, cashierPin, adminPinHash, cashierPinHash, displayToken, ...safe } = s
+  const { adminPin, cashierPin, adminPinHash, cashierPinHash, displayToken, sumupApiKey, ...safe } = s
+  // Expose whether a SumUp API key is configured, without leaking the key itself.
+  safe.sumupApiKeySet = !!sumupApiKey
   return safe
 }
 // Store only the raw (non-default) object; defaults are merged on read.
@@ -992,9 +999,41 @@ app.put('/api/settings', requireAdmin, wrap(async (req, res) => {
   if (body.adminPin)   { body.adminPinHash   = bcrypt.hashSync(String(body.adminPin), 10) }
   if (body.cashierPin) { body.cashierPinHash = bcrypt.hashSync(String(body.cashierPin), 10) }
   delete body.adminPin; delete body.cashierPin
+  // An empty sumupApiKey means "leave the stored key unchanged" (the client never
+  // receives the key back, so it can't echo it). Only overwrite when a value is given.
+  if (body.sumupApiKey === '' || body.sumupApiKey === undefined) delete body.sumupApiKey
+  delete body.sumupApiKeySet
   const merged = { ...(await getRawSettings(req.accountId)), ...body }
   await saveSettings(req.accountId, merged)
   res.json(safeSettings(await getSettings(req.accountId)))
+}))
+
+// Start a card payment on the paired SumUp reader for a given receipt. Pushes the
+// outstanding amount to the terminal; the cashier confirms completion afterwards.
+app.post('/api/sumup/checkout', wrap(async (req, res) => {
+  const s = await getSettings(req.accountId)
+  if (!s.sumupEnabled) return res.status(400).json({ error: 'SumUp staat uit' })
+  if (!s.sumupApiKey || !s.sumupMerchantCode || !s.sumupReaderId) {
+    return res.status(400).json({ error: 'SumUp is niet volledig geconfigureerd' })
+  }
+
+  const receiptId = parseInt(req.body.receiptId)
+  const r = await getReceiptWithItems(req.accountId, receiptId)
+  if (!r) return res.status(404).json({ error: 'Bon niet gevonden' })
+  if (r.paid) return res.status(400).json({ error: 'Bon is al betaald' })
+
+  try {
+    const result = await createReaderCheckout({
+      apiKey:       s.sumupApiKey,
+      merchantCode: s.sumupMerchantCode,
+      readerId:     s.sumupReaderId,
+      amount:       r.total_due,
+      description:  `Bon #${receiptId}${r.name ? ` — ${r.name}` : ''}`,
+    })
+    res.json({ ok: true, clientTransactionId: result.clientTransactionId, amount: r.total_due })
+  } catch (err) {
+    res.status(502).json({ error: err.message })
+  }
 }))
 
 // ─── Stats ────────────────────────────────────────────────────────────────────

@@ -17,7 +17,10 @@ async function req(path, options = {}) {
     throw new Error('Unauthorized')
   }
   if (res.status === 403) throw new Error('Geen toegang')
-  if (!res.ok) throw new Error(`API error: ${res.status}`)
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}))
+    throw new Error(e.error || `API error: ${res.status}`)
+  }
   return res.json()
 }
 
@@ -145,6 +148,10 @@ export const restoreBackup  = (data) => req('/restore', { method: 'POST', body: 
 
 export const fetchSettings  = ()     => req('/settings')
 export const updateSettings = (data) => req('/settings', { method: 'PUT', body: JSON.stringify(data) })
+
+// ─── SumUp Cloud ────────────────────────────────────────────────────────────
+// Push a card payment for a receipt to the paired SumUp reader.
+export const sumupCheckout = (receiptId) => req('/sumup/checkout', { method: 'POST', body: JSON.stringify({ receiptId }) })
 
 // ─── Stats ────────────────────────────────────────────────────────────────
 

@@ -13,7 +13,7 @@ import { useLang } from '../LangContext'
 import {
   fetchReceipt, fetchProducts, updateReceipt, deleteReceipt,
   addReceiptItem, updateReceiptItem, deleteReceiptItem,
-  updateDisplay, clearDisplay,
+  updateDisplay, clearDisplay, sumupCheckout,
 } from '../api'
 import { useSettings } from '../SettingsContext'
 import { useCategories } from '../CategoriesContext'
@@ -66,6 +66,9 @@ export default function BonDetail({ id, onBack }) {
   const [editingNote, setEditingNote]       = useState(false)
   const [noteInput, setNoteInput]           = useState('')
   const [addSearch, setAddSearch]           = useState('')
+  const [sumupState, setSumupState]         = useState('idle') // idle | sending | onterminal
+
+  const sumupAvailable = !!settings.sumupEnabled && !!settings.sumupApiKeySet
 
   // Ref zodat de heartbeat altijd de meest recente receipt heeft
   const receiptRef          = useRef(null)
@@ -163,6 +166,24 @@ export default function BonDetail({ id, onBack }) {
     const rec = { ...receipt, ...updated }
     setReceiptAndRef(rec); maybePushToDisplay(rec)
     showToast(t('toast_marked_paid'))
+  }
+
+  // Push the outstanding amount to the paired SumUp reader, then wait for the
+  // cashier to confirm the card payment completed on the terminal.
+  async function startSumup() {
+    setSumupState('sending')
+    try {
+      await sumupCheckout(id)
+      setSumupState('onterminal')
+    } catch (err) {
+      setSumupState('idle')
+      showToast(err.message || 'SumUp fout', 'error')
+    }
+  }
+
+  async function confirmSumupPaid() {
+    await markPaid('pin')
+    setSumupState('idle')
   }
 
   async function markUnpaid() {
@@ -445,6 +466,19 @@ export default function BonDetail({ id, onBack }) {
                   >
                     <Layers size={13} /> {t('split_pay_btn')}
                   </button>
+                  {sumupAvailable && (
+                    <button
+                      className="btn btn-sm no-print"
+                      onClick={startSumup}
+                      disabled={sumupState !== 'idle'}
+                      style={{
+                        background: sumupState !== 'idle' ? '#0070F3' : 'rgba(0,112,243,0.85)',
+                        color: '#fff', border: '1px solid rgba(255,255,255,0.35)', gap: 5,
+                      }}
+                    >
+                      <CreditCard size={13} /> {sumupState === 'sending' ? t('sumup_sending') : t('sumup_pay')}
+                    </button>
+                  )}
                 </>
               )}
               {isPaid && (
@@ -482,6 +516,33 @@ export default function BonDetail({ id, onBack }) {
           </div>
         </div>
       </div>
+
+      {/* ── SumUp terminal paneel ───────────────────────────────────────── */}
+      {!isPaid && sumupState === 'onterminal' && (
+        <div className="no-print" style={{
+          background: 'var(--surface)', border: '2px solid #0070F3',
+          borderRadius: 12, padding: '1rem',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.5rem' }}>
+            <CreditCard size={16} color="#0070F3" strokeWidth={2.3} />
+            <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--s800)' }}>
+              {t('sumup_on_terminal')} — {fmt(totalDue)}
+            </span>
+          </div>
+          <p style={{ fontSize: '0.8rem', color: 'var(--muted)', marginBottom: '0.85rem', lineHeight: 1.5 }}>
+            {t('sumup_waiting_hint')}
+          </p>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-primary" onClick={confirmSumupPaid} style={{ gap: 6, flex: 1, background: '#0070F3' }}>
+              <Check size={14} /> {t('sumup_confirm_paid')}
+            </button>
+            <button className="btn btn-ghost" onClick={() => setSumupState('idle')}>
+              {t('sumup_cancel')}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Split betaling paneel ───────────────────────────────────────── */}
       {!isPaid && showSplitPay && (() => {
