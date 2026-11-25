@@ -17,6 +17,7 @@ import Overzicht   from './components/Overzicht'
 import Instellingen  from './components/Instellingen'
 import InkoopBonnen from './components/InkoopBonnen'
 import Donaties      from './components/Donaties'
+import OnboardingWizard from './components/OnboardingWizard'
 
 export { LangContext }
 export { useLang } from './LangContext'
@@ -64,6 +65,8 @@ export default function App() {
   const [showDisplay, setShowDisplay]   = useState(false)
   const [displayCopied, setDisplayCopied] = useState(false)
   const [displayToken, setDisplayToken] = useState(null)
+  const [settingsLoaded, setSettingsLoaded] = useState(false)
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false)
   const [appSettings, setAppSettings] = useState({ paymentUrl: '', paymentName: '' })
 
   const t = key => translations[lang]?.[key] ?? key
@@ -93,7 +96,11 @@ export default function App() {
   // Load settings when logged in
   useEffect(() => {
     if (token) {
-      fetchSettings().then(setAppSettings).catch(() => {})
+      fetchSettings()
+        .then(s => { setAppSettings(s); setSettingsLoaded(true) })
+        .catch(() => setSettingsLoaded(true))
+    } else {
+      setSettingsLoaded(false)
     }
   }, [token])
 
@@ -188,8 +195,15 @@ export default function App() {
     setTab('receipts')
     setDetailId(null)
     setDisplayToken(null)
+    setSettingsLoaded(false)
+    setOnboardingDismissed(false)
     history.replaceState({ tab: 'receipts', detailId: null }, '')
   }
+
+  // Show the setup wizard once for a fresh account (admin, not yet onboarded)
+  const needsOnboarding =
+    token && role === 'admin' && settingsLoaded &&
+    !onboardingDismissed && appSettings.onboarded !== true
 
   return (
     <LangContext.Provider value={{ t, lang }}>
@@ -241,6 +255,12 @@ export default function App() {
             {/* ── Login gate ────────────────────────────────────────────── */}
             {!token ? (
               <LoginScreen onLogin={handleLogin} lang={lang} setLang={setLang} />
+            ) : needsOnboarding ? (
+              <OnboardingWizard
+                settings={appSettings}
+                onSave={setAppSettings}
+                onFinish={() => setOnboardingDismissed(true)}
+              />
             ) : (
               <>
                 {/* ── Header ──────────────────────────────────────────────── */}

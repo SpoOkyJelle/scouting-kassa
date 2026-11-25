@@ -44,6 +44,11 @@ async function getRawSettings(accountId) {
 async function getSettings(accountId) {
   return { ...SETTING_DEFAULTS, ...(await getRawSettings(accountId)) }
 }
+// Strip secrets before sending settings to the client (any session can read them).
+function safeSettings(s) {
+  const { adminPin, cashierPin, displayToken, ...safe } = s
+  return safe
+}
 // Store only the raw (non-default) object; defaults are merged on read.
 async function saveSettings(accountId, data) {
   await db('settings')
@@ -729,13 +734,13 @@ app.delete('/api/kas/:id/correcties/:cid', requireAdmin, wrap(async (req, res) =
 
 // ─── Settings ─────────────────────────────────────────────────────────────────
 app.get('/api/settings', wrap(async (req, res) => {
-  res.json(await getSettings(req.accountId))
+  res.json(safeSettings(await getSettings(req.accountId)))
 }))
 
 app.put('/api/settings', requireAdmin, wrap(async (req, res) => {
   const merged = { ...(await getRawSettings(req.accountId)), ...req.body }
   await saveSettings(req.accountId, merged)
-  res.json(await getSettings(req.accountId))
+  res.json(safeSettings(await getSettings(req.accountId)))
 }))
 
 // ─── Stats ────────────────────────────────────────────────────────────────────

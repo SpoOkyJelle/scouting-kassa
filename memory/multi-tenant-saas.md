@@ -47,11 +47,28 @@ dev`; needs DATABASE_URL in .env matching POSTGRES_PASSWORD.
   Verified: two accounts get distinct tokens, one's push doesn't leak to the other, unknown token→404.
 - Settings writes now store only the raw delta (`getRawSettings`), not the merged defaults.
 
+**Fase 2 done — onboarding/setup wizard + settings secret-redaction.**
+- `OnboardingWizard.jsx`: 4-step stepper (Welkom/naam → Categorieën → Producten → Afronden
+  payment+PIN), reusing `CategoryEditor` and `Producten` directly. Shown once per account via
+  `App.jsx` gate `needsOnboarding = token && role==='admin' && settingsLoaded && !dismissed &&
+  settings.onboarded !== true`. Finish/Skip persists `{onboarded:true}` via `updateSettings`.
+  Wizard sets cashier/admin PIN by sending `{cashierPin,adminPin}` through PUT /api/settings
+  (admin-only) — no current-PIN dance needed for a fresh account.
+- **Security fix:** `GET/PUT /api/settings` now run through `safeSettings()` which strips
+  `adminPin`, `cashierPin`, `displayToken` from the response (previously any session could read the
+  admin PIN). Verified: fresh account has no onboarded flag, secrets never appear in GET/PUT, flag
+  persists.
+- Account 1 and account 5 ("Codeio", user's own test account) are NOT onboarded → both show the
+  wizard on next login (intended live demo). PIN login → account 1 → wizard; click "Overslaan" to
+  skip.
+
 **Known gaps / next:**
+- `SETTING_DEFAULTS` still holds the pannenkoeken org's paymentUrl/paymentName/categories; new
+  accounts inherit them until the wizard overrides. Genericize the seed defaults later (careful:
+  account 1 relies on them since its stored settings are `{}`).
 - Single membership per login assumed (login picks first membership); no account-switch UI yet.
 - Sessions in-memory (lost on restart). Harden later (persist; sessions table has NOT NULL user_id
   → make nullable for PIN sessions).
-- Local Caddy can't bind :80/:443 on Windows (http.sys) → runs only under the `prod` compose
-  profile; locally the app is published on 127.0.0.1:3001.
-**Next — Fase 2:** onboarding/setup wizard after registration (reuse Category/Promotion/Instellingen
-editors). Fase 3: invitations (real email provider), account-switch UI. Fase 4: billing, subdomains.
+- Local Caddy only under the `prod` compose profile; locally the app is on 127.0.0.1:3001.
+**Next — Fase 3:** team invitations (real email provider: Resend/Postmark), account-switch UI.
+Fase 4: billing, subdomains, PIN hashing + argon2 for passwords + rate limiting.
