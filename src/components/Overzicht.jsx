@@ -6,9 +6,10 @@ import {
   TrendingUp, TrendingDown, CalendarDays, CheckCircle2, Clock,
   FileText, Divide, BarChart2, Trophy, Download, FileBarChart,
   ShoppingCart, RefreshCw, ArrowUpRight, Heart, Wallet,
-  Banknote, CreditCard, Smartphone,
+  Banknote, CreditCard, Smartphone, Layers,
 } from 'lucide-react'
 import { useLang } from '../LangContext'
+import { useCategories } from '../CategoriesContext'
 import { fetchStats, fetchReceipts } from '../api'
 import DagRapport from './DagRapport'
 import KasAfsluiting from './KasAfsluiting'
@@ -115,6 +116,7 @@ const PAYMENT_LABELS = { contant: 'Contant', pin: 'Pin', qr: 'QR / Tikkie', onbe
 // ── Hoofd component ───────────────────────────────────────────────────────────
 export default function Overzicht({ role }) {
   const { t } = useLang()
+  const { getCat } = useCategories()
   const [stats, setStats]                   = useState(null)
   const [loading, setLoading]               = useState(true)
   const [period, setPeriod]                 = useState('today')
@@ -167,7 +169,7 @@ export default function Overzicht({ role }) {
   const {
     totalRevenue = 0, paidRevenue = 0, unpaidRevenue = 0, todayRevenue = 0,
     receiptCount = 0, paidCount = 0, unpaidCount = 0, avgReceiptValue = 0,
-    topProducts = [], revenueByHour = [], revenueByDay = [], multiDay = false,
+    topProducts = [], categoryStats = [], revenueByHour = [], revenueByDay = [], multiDay = false,
     totalCosts = 0, profit = 0, totalDonations = 0,
     paymentBreakdown = {}, todayPaymentBreakdown = {},
     estimatedCosts = 0, estimatedProfit = 0,
@@ -686,6 +688,39 @@ export default function Overzicht({ role }) {
               </div>
             )}
           </div>
+
+          {/* ── Omzet per categorie ──────────────────────────────────────────── */}
+          {categoryStats.length > 0 && (() => {
+            const maxCatRev = categoryStats[0].revenue || 0
+            return (
+              <div>
+                <SectionHead Icon={Layers} label={t('stats_by_category')} color="#3C7A86" />
+                <div style={{
+                  background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12,
+                  padding: '1rem 1.1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                  display: 'flex', flexDirection: 'column', gap: '0.85rem',
+                }}>
+                  {categoryStats.map(c => {
+                    const cat  = getCat(c.cat)
+                    const barW = maxCatRev > 0 ? (c.revenue / maxCatRev) * 100 : 0
+                    return (
+                      <div key={c.cat}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
+                          <cat.Icon size={13} color={cat.color} strokeWidth={2.3} />
+                          <span style={{ flex: 1, fontSize: '0.82rem', fontWeight: 500, color: 'var(--s800)' }}>{cat.label}</span>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>{c.quantity}×</span>
+                          <span style={{ fontWeight: 700, fontSize: '0.84rem', color: cat.color, minWidth: 64, textAlign: 'right' }}>{fmt(c.revenue)}</span>
+                        </div>
+                        <div style={{ height: 7, borderRadius: 4, background: 'var(--s100)', overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${barW}%`, background: cat.color, borderRadius: 4, transition: 'width 0.6s ease' }} />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })()}
 
           {/* ── Kasafsluiting (admin only) ────────────────────────────────────── */}
           {isAdmin && (
