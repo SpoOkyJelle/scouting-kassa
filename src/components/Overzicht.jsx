@@ -6,7 +6,7 @@ import {
   TrendingUp, TrendingDown, CalendarDays, CheckCircle2, Clock,
   FileText, Divide, BarChart2, Trophy, Download, FileBarChart,
   ShoppingCart, RefreshCw, ArrowUpRight, Heart, Wallet,
-  Banknote, CreditCard, Smartphone, Layers,
+  Banknote, CreditCard, Smartphone, Layers, Sparkles,
 } from 'lucide-react'
 import { useLang } from '../LangContext'
 import { useCategories } from '../CategoriesContext'
@@ -183,6 +183,54 @@ export default function Overzicht({ role }) {
 
   const paidPct = totalRevenue > 0 ? Math.round((paidRevenue / totalRevenue) * 100) : 0
   const hasInkoop = totalCosts > 0
+
+  // ── Inzichten: automatisch de opvallendste bevindingen samenvatten ───────────
+  const insights = (() => {
+    const out = []
+    // Drukste uur
+    if (revenueByHour.length) {
+      const peak  = revenueByHour.reduce((a, b) => (a.revenue > b.revenue ? a : b))
+      const nextH = String(parseInt(peak.hour) + 1).padStart(2, '0')
+      out.push({ Icon: Clock, accent: '#C77A1A', accentBg: '#FBF1DE',
+        value: `${peak.hour.slice(0, 2)}–${nextH}`, label: t('ins_peak_hour'), sub: fmt(peak.revenue) })
+    }
+    // Best verkochte product (op aantal)
+    if (topProducts.length) {
+      const best = [...topProducts].sort((a, b) => b.quantity - a.quantity)[0]
+      out.push({ Icon: Trophy, accent: '#F59E0B', accentBg: '#FEF3DA',
+        value: `${best.quantity}×`, label: t('ins_best_seller'), sub: best.name })
+    }
+    // Grootste categorie (aandeel in omzet)
+    const catTotal = categoryStats.reduce((s, c) => s + c.revenue, 0)
+    if (categoryStats.length && catTotal > 0) {
+      const top = categoryStats[0]
+      out.push({ Icon: Layers, accent: '#3C7A86', accentBg: '#E6F0F1',
+        value: getCat(top.cat).label, label: t('ins_top_category'),
+        sub: `${Math.round((top.revenue / catTotal) * 100)}% ${t('ins_of_revenue')}` })
+    }
+    // Gemiddeld aantal items per bon
+    const totalUnits = topProducts.reduce((s, p) => s + p.quantity, 0)
+    if (receiptCount > 0 && totalUnits > 0) {
+      out.push({ Icon: ShoppingCart, accent: '#8A6D9B', accentBg: '#EFEAF2',
+        value: (totalUnits / receiptCount).toFixed(1), label: t('ins_avg_items') })
+    }
+    // Meest gebruikte betaalmethode
+    const methods = Object.entries(paymentBreakdown).filter(([, v]) => v > 0)
+    const methodTotal = methods.reduce((s, [, v]) => s + v, 0)
+    if (methods.length && methodTotal > 0) {
+      const [key, amt] = methods.reduce((a, b) => (a[1] > b[1] ? a : b))
+      out.push({ Icon: CreditCard, accent: '#2E6B4E', accentBg: '#EDF4EF',
+        value: t(`payment_method_${key}`), label: t('ins_top_method'),
+        sub: `${Math.round((amt / methodTotal) * 100)}%` })
+    }
+    // Beste dag (alleen bij meerdere dagen)
+    if (multiDay && revenueByDay.length) {
+      const best = revenueByDay.reduce((a, b) => (a.revenue > b.revenue ? a : b))
+      out.push({ Icon: CalendarDays, accent: PURPLE, accentBg: '#EFEAF2',
+        value: best.day, label: t('ins_best_day'), sub: fmt(best.revenue) })
+    }
+    return out
+  })()
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
@@ -475,6 +523,25 @@ export default function Overzicht({ role }) {
                     accent="#8A6D9B" accentBg="#EFEAF2"
                   />
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* ── Inzichten ─────────────────────────────────────────────────────── */}
+          {insights.length > 0 && (
+            <div>
+              <SectionHead Icon={Sparkles} label={t('ins_section')} color="#F59E0B" />
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(148px, 1fr))',
+                gap: '0.6rem',
+              }}>
+                {insights.map((ins, i) => (
+                  <KpiCard
+                    key={i} Icon={ins.Icon} label={ins.label} value={ins.value}
+                    sub={ins.sub} accent={ins.accent} accentBg={ins.accentBg}
+                  />
+                ))}
               </div>
             </div>
           )}
