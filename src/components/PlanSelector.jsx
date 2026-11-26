@@ -31,14 +31,14 @@ export default function PlanSelector({ account, onChange }) {
         {t('plan_hint')}
       </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10 }}>
         {PLANS.map(p => {
           const active = p.id === currentId
           return (
             <div key={p.id} style={{
               border: active ? '2px solid var(--primary, #2E6B4E)' : '1px solid var(--border)',
               borderRadius: 12, padding: '14px 13px', background: active ? 'var(--s50)' : 'var(--surface)',
-              display: 'flex', flexDirection: 'column', position: 'relative',
+              display: 'flex', flexDirection: 'column', position: 'relative', minWidth: 0,
             }}>
               {p.highlight && !active && (
                 <span style={{
@@ -62,11 +62,11 @@ export default function PlanSelector({ account, onChange }) {
               </ul>
 
               {active ? (
-                <div className="btn btn-outline btn-sm btn-full" style={{ gap: 6, cursor: 'default' }}>
+                <div className="btn btn-outline btn-full" style={{ gap: 6, cursor: 'default', padding: '10px 14px', whiteSpace: 'normal', textAlign: 'center' }}>
                   <Check size={14} /> {t('plan_current')}
                 </div>
               ) : (
-                <button className="btn btn-primary btn-sm btn-full" onClick={() => choose(p.id)} disabled={busy === p.id}>
+                <button className="btn btn-primary btn-full" onClick={() => choose(p.id)} disabled={busy === p.id} style={{ padding: '10px 14px', whiteSpace: 'normal', textAlign: 'center' }}>
                   {busy === p.id ? t('loading') : t('plan_choose')}
                 </button>
               )}
