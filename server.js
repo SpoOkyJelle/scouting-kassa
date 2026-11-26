@@ -7,7 +7,7 @@ import bcrypt from 'bcryptjs'
 import { computePromotions } from './src/promotions.js'
 import { sendInviteEmail, mailerConfigured } from './src/mailer.js'
 import { PLAN_IDS, DEFAULT_PLAN } from './src/plans.js'
-import { createReaderCheckout } from './src/sumup.js'
+import { createReaderCheckout, getReaderCheckout } from './src/sumup.js'
 import { db, scoped } from './db/index.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -1035,7 +1035,27 @@ app.post('/api/sumup/checkout', wrap(async (req, res) => {
       amount:       totalDue,
       description:  `Bon #${receiptId}${r.name ? ` — ${r.name}` : ''}`,
     })
-    res.json({ ok: true, clientTransactionId: result.clientTransactionId, amount: totalDue })
+    res.json({ ok: true, clientTransactionId: result.clientTransactionId, checkoutId: result.checkoutId, amount: totalDue })
+  } catch (err) {
+    res.status(502).json({ error: err.message })
+  }
+}))
+
+// Poll the status of a reader checkout so the kassa can auto-detect when the card
+// payment finished. Returns { status: pending|successful|failed|cancelled }.
+app.get('/api/sumup/checkout/:checkoutId/status', wrap(async (req, res) => {
+  const s = await getSettings(req.accountId)
+  if (!s.sumupApiKey || !s.sumupMerchantCode || !s.sumupReaderId) {
+    return res.status(400).json({ error: 'SumUp is niet volledig geconfigureerd' })
+  }
+  try {
+    const result = await getReaderCheckout({
+      apiKey:       s.sumupApiKey,
+      merchantCode: s.sumupMerchantCode,
+      readerId:     s.sumupReaderId,
+      checkoutId:   req.params.checkoutId,
+    })
+    res.json({ status: result.status, failureReason: result.failureReason })
   } catch (err) {
     res.status(502).json({ error: err.message })
   }

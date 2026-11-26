@@ -13,7 +13,7 @@ import { useLang } from '../LangContext'
 import {
   fetchReceipt, fetchProducts, updateReceipt, deleteReceipt,
   addReceiptItem, updateReceiptItem, deleteReceiptItem,
-  updateDisplay, clearDisplay, sumupCheckout,
+  updateDisplay, clearDisplay, sumupCheckout, sumupStatus,
 } from '../api'
 import { useSettings } from '../SettingsContext'
 import { useCategories } from '../CategoriesContext'
@@ -67,6 +67,7 @@ export default function BonDetail({ id, onBack }) {
   const [noteInput, setNoteInput]           = useState('')
   const [addSearch, setAddSearch]           = useState('')
   const [sumupState, setSumupState]         = useState('idle') // idle | sending | onterminal
+  const sumupPollRef = useRef(null)  // interval id for auto-detecting payment
 
   const sumupAvailable = !!settings.sumupEnabled && !!settings.sumupApiKeySet
 
@@ -88,6 +89,11 @@ export default function BonDetail({ id, onBack }) {
       setNoteInput(rec.note || '')
       setLoading(false)
     })
+  }, [id])
+
+  // Stop de SumUp-poller bij unmount of als we naar een andere bon gaan.
+  useEffect(() => () => {
+    if (sumupPollRef.current) { clearInterval(sumupPollRef.current); sumupPollRef.current = null }
   }, [id])
 
   // Wis klantenscherm bij echte unmount (pijltje terug, ander menu-item).
@@ -168,13 +174,43 @@ export default function BonDetail({ id, onBack }) {
     showToast(t('toast_marked_paid'))
   }
 
-  // Push the outstanding amount to the paired SumUp reader, then wait for the
-  // cashier to confirm the card payment completed on the terminal.
+  function stopSumupPoll() {
+    if (sumupPollRef.current) { clearInterval(sumupPollRef.current); sumupPollRef.current = null }
+  }
+
+  // Poll the reader checkout until SumUp reports a final result. On 'successful'
+  // the receipt is marked paid; 'failed'/'cancelled' resets so the cashier can
+  // retry. The manual confirm button stays as a fallback.
+  function startSumupPoll(checkoutId) {
+    stopSumupPoll()
+    if (!checkoutId) return  // no id to poll → rely on manual confirm
+    const startedAt = Date.now()
+    sumupPollRef.current = setInterval(async () => {
+      // Give up polling after 3 minutes; the manual button still works.
+      if (Date.now() - startedAt > 180000) { stopSumupPoll(); return }
+      let res
+      try { res = await sumupStatus(checkoutId) } catch { return } // transient → keep trying
+      if (res.status === 'successful') {
+        stopSumupPoll()
+        showPaidCelebration()      // force the "Betaald!" + confetti screen on the customer display
+        await markPaid('pin')      // marks the receipt paid (pushes paid state to display)
+        setSumupState('idle')
+      } else if (res.status === 'failed' || res.status === 'cancelled') {
+        stopSumupPoll()
+        setSumupState('idle')
+        showToast(res.status === 'cancelled' ? 'Pinbetaling geannuleerd' : 'Pinbetaling mislukt', 'error')
+      }
+    }, 2500)
+  }
+
+  // Push the outstanding amount to the paired SumUp reader, then poll for the
+  // result so the kassa auto-detects when the card payment completes.
   async function startSumup() {
     setSumupState('sending')
     try {
-      await sumupCheckout(id)
+      const { checkoutId } = await sumupCheckout(id)
       setSumupState('onterminal')
+      startSumupPoll(checkoutId)
     } catch (err) {
       setSumupState('idle')
       showToast(err.message || 'SumUp fout', 'error')
@@ -182,8 +218,19 @@ export default function BonDetail({ id, onBack }) {
   }
 
   async function confirmSumupPaid() {
+    stopSumupPoll()
+    showPaidCelebration()
     await markPaid('pin')
     setSumupState('idle')
+  }
+
+  // Make sure the customer display is active so the paid "Betaald!" + confetti
+  // screen shows after a card payment, even if the bon wasn't already on screen.
+  function showPaidCelebration() {
+    if (!showOnDisplayRef.current) {
+      showOnDisplayRef.current = true
+      setShowOnDisplay(true)
+    }
   }
 
   async function markUnpaid() {
@@ -537,7 +584,7 @@ export default function BonDetail({ id, onBack }) {
             <button className="btn btn-primary" onClick={confirmSumupPaid} style={{ gap: 6, flex: 1, background: '#0070F3' }}>
               <Check size={14} /> {t('sumup_confirm_paid')}
             </button>
-            <button className="btn btn-ghost" onClick={() => setSumupState('idle')}>
+            <button className="btn btn-ghost" onClick={() => { stopSumupPoll(); setSumupState('idle') }}>
               {t('sumup_cancel')}
             </button>
           </div>

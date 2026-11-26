@@ -151,7 +151,11 @@ export const updateSettings = (data) => req('/settings', { method: 'PUT', body: 
 
 // ─── SumUp Cloud ────────────────────────────────────────────────────────────
 // Push a card payment for a receipt to the paired SumUp reader.
+// Returns { ok, clientTransactionId, checkoutId, amount }.
 export const sumupCheckout = (receiptId) => req('/sumup/checkout', { method: 'POST', body: JSON.stringify({ receiptId }) })
+
+// Poll a reader checkout's status: { status: pending|successful|failed|cancelled }.
+export const sumupStatus = (checkoutId) => req(`/sumup/checkout/${encodeURIComponent(checkoutId)}/status`)
 
 // ─── Stats ────────────────────────────────────────────────────────────────
 

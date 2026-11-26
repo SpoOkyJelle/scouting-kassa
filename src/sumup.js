@@ -48,9 +48,42 @@ export async function createReaderCheckout({ apiKey, merchantCode, readerId, amo
     throw new Error(msg)
   }
 
-  // SumUp returns { data: { client_transaction_id } } on success.
+  // SumUp returns { data: { client_transaction_id, checkout_id } } on success.
+  const data = body?.data || body
   return {
-    clientTransactionId: body?.data?.client_transaction_id || body?.client_transaction_id || null,
+    clientTransactionId: data?.client_transaction_id || null,
+    checkoutId: data?.checkout_id || null,
+    raw: body,
+  }
+}
+
+// Poll a reader checkout's status. Returns one of: pending | successful |
+// failed | cancelled (lowercase, as SumUp reports for reader checkouts).
+// Throws on transport/HTTP errors so the caller can surface them.
+export async function getReaderCheckout({ apiKey, merchantCode, readerId, checkoutId }) {
+  if (!apiKey || !merchantCode || !readerId || !checkoutId) {
+    throw new Error('SumUp status: ontbrekende gegevens')
+  }
+  const url = `${SUMUP_API}/v0.1/merchants/${encodeURIComponent(merchantCode)}/readers/${encodeURIComponent(readerId)}/checkout/${encodeURIComponent(checkoutId)}`
+
+  let res
+  try {
+    res = await fetch(url, { headers: { Authorization: `Bearer ${apiKey}` } })
+  } catch (err) {
+    throw new Error(`Kan SumUp niet bereiken: ${err.message}`)
+  }
+
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    const msg = body?.message || body?.error_message || body?.error || `SumUp gaf status ${res.status}`
+    throw new Error(msg)
+  }
+
+  const data = body?.data || body
+  return {
+    status: (data?.status || 'pending').toLowerCase(),
+    paymentStatus: data?.payment_status || null,
+    failureReason: data?.payment_failure_reason || null,
     raw: body,
   }
 }
