@@ -355,7 +355,7 @@ export default function App() {
                 <main className="main-content">
                   <div key={tab} className={`tab-panel tab-panel--${slideDir}`}>
                     {tab === 'receipts'  && <Bonnen    onOpenDetail={openDetail} />}
-                    {tab === 'new'       && <NieuweBon onCreated={() => {}} />}
+                    {tab === 'new'       && <NieuweBon onCreated={rec => { if (rec?.id) openDetail(rec.id) }} />}
                     {tab === 'overview'  && <Overzicht role={role} />}
                     {tab === 'inkoop'    && <InkoopBonnen />}
                     {tab === 'donaties'  && <Donaties />}

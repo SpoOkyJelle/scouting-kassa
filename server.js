@@ -108,6 +108,15 @@ async function getRawSettings(accountId) {
 async function getSettings(accountId) {
   return { ...SETTING_DEFAULTS, ...(await getRawSettings(accountId)) }
 }
+// Settings fields that may be overwritten by a restored backup. Everything else
+// (sumupApiKey, adminPinHash, cashierPinHash, displayToken, …) is preserved from
+// the account's current settings so a backup file can't inject or wipe secrets.
+const SAFE_SETTING_KEYS = [
+  'paymentUrl', 'paymentName', 'categories', 'promotions',
+  'logoDataUrl', 'faviconDataUrl', 'sumupEnabled', 'sumupMerchantCode', 'sumupReaderId',
+  'onboarded',
+]
+
 // Strip secrets before sending settings to the client (any session can read them).
 function safeSettings(s) {
   const { adminPin, cashierPin, adminPinHash, cashierPinHash, displayToken, sumupApiKey, ...safe } = s
@@ -627,7 +636,9 @@ app.get('/api/backup', requireAdmin, wrap(async (req, res) => {
     k.correcties = await scoped(a).table('kas_correcties').where({ kas_id: k.id }).orderBy('id')
     kas.push(k)
   }
-  res.json({ products, receipts, inkoop, donaties, kas, settings: await getSettings(a) })
+  // safeSettings strips the SumUp API key, PIN hashes and display token so the
+  // downloaded backup file never carries live secrets.
+  res.json({ products, receipts, inkoop, donaties, kas, settings: safeSettings(await getSettings(a)) })
 }))
 
 app.post('/api/restore', requireAdmin, wrap(async (req, res) => {
@@ -691,7 +702,15 @@ app.post('/api/restore', requireAdmin, wrap(async (req, res) => {
       }
     }
   })
-  if (data.settings) await saveSettings(a, data.settings)
+  // Only restore whitelisted settings; keep the account's own secrets, PIN hashes
+  // and display token, and never let a backup enable SumUp above the plan.
+  if (data.settings && typeof data.settings === 'object') {
+    const incoming = {}
+    for (const k of SAFE_SETTING_KEYS) if (data.settings[k] !== undefined) incoming[k] = data.settings[k]
+    if (incoming.sumupEnabled === true && !(await accountHasCapability(a, 'sumup'))) incoming.sumupEnabled = false
+    const current = await getRawSettings(a)
+    await saveSettings(a, { ...current, ...incoming })
+  }
   res.json({ ok: true })
 }))
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ShoppingCart, Package, Zap, Search, X, PlusCircle, ChevronDown, ChevronUp, Tag } from 'lucide-react'
+import { ShoppingCart, Package, Zap, Search, X, PlusCircle, ChevronDown, ChevronUp, Tag, CreditCard } from 'lucide-react'
 import { useLang } from '../LangContext'
 import { fetchProducts, fetchPopularProducts, createReceipt } from '../api'
 import { useCategories } from '../CategoriesContext'
@@ -74,15 +74,15 @@ export default function NieuweBon({ onCreated }) {
     computePromotions(promoItems, settings.promotions || [], productCatMap)
   const total = Math.max(0, subtotal - promoDiscount)
 
-  async function handleCreate() {
+  async function handleCreate(checkout = false) {
     if (!orderItems.length) return
     setSaving(true)
-    await createReceipt(name || null, orderItems.map(({ product, quantity }) => ({
+    const created = await createReceipt(name || null, orderItems.map(({ product, quantity }) => ({
       product_id: product.id, product_name: product.name,
       product_price: product.price, quantity,
     })), note.trim() || null)
     setOrder({}); setName(''); setNote(''); setSaving(false)
-    onCreated()
+    onCreated(checkout ? created : null)
   }
 
   const available = products.filter(p => p.available !== false)
@@ -345,8 +345,17 @@ export default function NieuweBon({ onCreated }) {
             <button
               className="btn btn-primary btn-full btn-lg"
               disabled={!orderItems.length || saving}
-              onClick={handleCreate}
+              onClick={() => handleCreate(true)}
               style={{ gap: 7 }}
+            >
+              <CreditCard size={15} />
+              {saving ? t('loading') : t('create_and_checkout')}
+            </button>
+            <button
+              className="btn btn-outline btn-full"
+              disabled={!orderItems.length || saving}
+              onClick={() => handleCreate(false)}
+              style={{ gap: 7, marginTop: 8 }}
             >
               <PlusCircle size={15} />
               {saving ? t('loading') : t('create_receipt')}
@@ -366,15 +375,26 @@ export default function NieuweBon({ onCreated }) {
               {fmt(total)}
             </span>
           </div>
-          <button
-            className="btn btn-primary btn-sm"
-            disabled={saving}
-            onClick={handleCreate}
-            style={{ gap: 6, background: '#2E6B4E', flexShrink: 0 }}
-          >
-            <PlusCircle size={14} />
-            {saving ? t('loading') : t('create_receipt')}
-          </button>
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+            <button
+              className="btn btn-sm"
+              disabled={saving}
+              onClick={() => handleCreate(false)}
+              title={t('create_receipt')}
+              style={{ gap: 6, background: 'rgba(255,255,255,0.18)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', flexShrink: 0 }}
+            >
+              <PlusCircle size={14} />
+            </button>
+            <button
+              className="btn btn-primary btn-sm"
+              disabled={saving}
+              onClick={() => handleCreate(true)}
+              style={{ gap: 6, background: '#2E6B4E', flexShrink: 0 }}
+            >
+              <CreditCard size={14} />
+              {saving ? t('loading') : t('create_and_checkout')}
+            </button>
+          </div>
         </div>
       )}
     </div>

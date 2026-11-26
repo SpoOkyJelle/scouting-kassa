@@ -69,6 +69,7 @@ export const translations = {
     order_summary:            'Bestelling',
     no_items_selected:        'Nog geen producten geselecteerd',
     create_receipt:           'Bon aanmaken',
+    create_and_checkout:      'Aanmaken & afrekenen',
     no_products_hint:         'Geen producten beschikbaar. Voeg eerst producten toe.',
     quick_select:             'Snelkeuze',
 
@@ -469,6 +470,7 @@ export const translations = {
     order_summary:            'Order',
     no_items_selected:        'No products selected yet',
     create_receipt:           'Create receipt',
+    create_and_checkout:      'Create & check out',
     no_products_hint:         'No products available. Add products first.',
     quick_select:             'Quick select',
 
