@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FileText, PlusCircle, Package, BarChart2, LogOut, WifiOff, QrCode, ShoppingCart, Heart, Monitor, Copy, Check, ExternalLink, X } from 'lucide-react'
+import { FileText, PlusCircle, Package, BarChart2, LayoutDashboard, LogOut, WifiOff, QrCode, ShoppingCart, Heart, Monitor, Copy, Check, ExternalLink, X } from 'lucide-react'
 import { translations } from './i18n'
 import { logout as apiLogout, fetchSettings, fetchDisplayToken, fetchAccounts, switchAccount, fetchAccount } from './api'
 import { getPlan } from './plans'
@@ -14,6 +14,7 @@ import NieuweBon   from './components/NieuweBon'
 import Producten   from './components/Producten'
 import BonDetail   from './components/BonDetail'
 import Overzicht   from './components/Overzicht'
+import Dashboard   from './components/Dashboard'
 import Instellingen  from './components/Instellingen'
 import InkoopBonnen from './components/InkoopBonnen'
 import Donaties      from './components/Donaties'
@@ -26,6 +27,7 @@ export { useLang } from './LangContext'
 const TABS = [
   { id: 'receipts',  Icon: FileText,      labelKey: 'receipts',    roles: ['admin','cashier'] },
   { id: 'new',       Icon: PlusCircle,    labelKey: 'new_receipt', roles: ['admin','cashier'] },
+  { id: 'dashboard', Icon: LayoutDashboard, labelKey: 'dashboard_tab', roles: ['admin','cashier'] },
   { id: 'overview',  Icon: BarChart2,     labelKey: 'overview',    roles: ['admin','cashier'] },
   { id: 'inkoop',    Icon: ShoppingCart,  labelKey: 'inkoop_tab',    roles: ['admin'], capability: 'inkoop' },
   { id: 'donaties',  Icon: Heart,         labelKey: 'donaties_tab',  roles: ['admin', 'cashier'] },
@@ -358,6 +360,7 @@ export default function App() {
                   <div key={tab} className={`tab-panel tab-panel--${slideDir}`}>
                     {tab === 'receipts'  && <Bonnen    onOpenDetail={openDetail} />}
                     {tab === 'new'       && <NieuweBon onCreated={rec => { if (rec?.id) openDetail(rec.id) }} />}
+                    {tab === 'dashboard' && <Dashboard />}
                     {tab === 'overview'  && <Overzicht role={role} />}
                     {tab === 'inkoop'    && <InkoopBonnen />}
                     {tab === 'donaties'  && <Donaties />}
