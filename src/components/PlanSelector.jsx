@@ -62,11 +62,11 @@ export default function PlanSelector({ account, onChange }) {
               </ul>
 
               {active ? (
-                <div className="btn btn-outline btn-sm" style={{ gap: 6, cursor: 'default', justifyContent: 'center' }}>
+                <div className="btn btn-outline btn-sm btn-full" style={{ gap: 6, cursor: 'default' }}>
                   <Check size={14} /> {t('plan_current')}
                 </div>
               ) : (
-                <button className="btn btn-primary btn-sm" onClick={() => choose(p.id)} disabled={busy === p.id} style={{ justifyContent: 'center' }}>
+                <button className="btn btn-primary btn-sm btn-full" onClick={() => choose(p.id)} disabled={busy === p.id}>
                   {busy === p.id ? t('loading') : t('plan_choose')}
                 </button>
               )}

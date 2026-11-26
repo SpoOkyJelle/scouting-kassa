@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { Globe, QrCode, ExternalLink, Moon, Shield, Save, KeyRound, HardDrive, Upload, Download, ImageIcon, Trash2, CreditCard } from 'lucide-react'
+import { Globe, QrCode, ExternalLink, Moon, Save, KeyRound, HardDrive, Upload, Download, ImageIcon, Trash2, CreditCard, Lock, Sparkles } from 'lucide-react'
 import { useLang } from '../LangContext'
+import { planHasCapability } from '../plans'
 import { updateSettings, changePin, fetchBackup, restoreBackup } from '../api'
 import { useToast } from './Toast'
 import { useConfirm } from './ConfirmModal'
@@ -31,6 +32,8 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
     : [{ id: 'display', labelKey: 'settings_group_display' }]
 
   const [activeTab, setActiveTab] = useState(tabs[0].id)
+
+  const canSumup = planHasCapability(account?.plan, 'sumup')
 
   const [paymentUrl,  setPaymentUrl]  = useState(settings.paymentUrl  ?? '')
   const [paymentName, setPaymentName] = useState(settings.paymentName ?? '')
@@ -215,6 +218,8 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
         ))}
       </div>
 
+      <div className="settings-panel" key={activeTab}>
+
       {/* ── Account & abonnement ───────────────────────────────────────── */}
       {isAdmin && activeTab === 'account' && (
         <>
@@ -334,6 +339,29 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
             <p style={{ fontSize: '0.78rem', color: 'var(--muted)', marginBottom: '0.85rem', lineHeight: 1.5 }}>
               {t('settings_sumup_hint')}
             </p>
+
+            {!canSumup ? (
+              <div style={{
+                background: 'var(--s50)', border: '1px solid var(--border)', borderRadius: 10,
+                padding: '0.9rem', display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-start',
+              }}>
+                <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 7, background: 'var(--accent-lt)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}>
+                    <Lock size={14} color="var(--accent)" strokeWidth={2.3} />
+                  </div>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--s700)', lineHeight: 1.5, margin: 0 }}>
+                    {t('settings_sumup_locked')}
+                  </p>
+                </div>
+                <button className="btn btn-primary btn-sm" onClick={() => setActiveTab('account')} style={{ gap: 6 }}>
+                  <Sparkles size={14} /> {t('settings_feature_upgrade')}
+                </button>
+              </div>
+            ) : (
+            <>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ fontWeight: 600, fontSize: '0.87rem', color: 'var(--s800)' }}>
@@ -392,6 +420,8 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
                   {sumupCfgSaving ? t('loading') : t('save')}
                 </button>
               </form>
+            )}
+            </>
             )}
           </SettingsCard>
         </>
@@ -539,6 +569,7 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
           </SettingsCard>
         </>
       )}
+      </div>
     </div>
   )
 }

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { FileText, PlusCircle, Package, BarChart2, LogOut, WifiOff, QrCode, ShoppingCart, Heart, Monitor, Copy, Check, ExternalLink, X } from 'lucide-react'
 import { translations } from './i18n'
 import { logout as apiLogout, fetchSettings, fetchDisplayToken, fetchAccounts, switchAccount, fetchAccount } from './api'
+import { getPlan } from './plans'
 import { LangContext } from './LangContext'
 import { SettingsContext } from './SettingsContext'
 import { CategoriesProvider } from './CategoriesContext'
@@ -27,7 +28,7 @@ const TABS = [
   { id: 'receipts',  Icon: FileText,      labelKey: 'receipts',    roles: ['admin','cashier'] },
   { id: 'new',       Icon: PlusCircle,    labelKey: 'new_receipt', roles: ['admin','cashier'] },
   { id: 'overview',  Icon: BarChart2,     labelKey: 'overview',    roles: ['admin','cashier'] },
-  { id: 'inkoop',    Icon: ShoppingCart,  labelKey: 'inkoop_tab',    roles: ['admin'] },
+  { id: 'inkoop',    Icon: ShoppingCart,  labelKey: 'inkoop_tab',    roles: ['admin'], capability: 'inkoop' },
   { id: 'donaties',  Icon: Heart,         labelKey: 'donaties_tab',  roles: ['admin', 'cashier'] },
   { id: 'products',  Icon: Package,       labelKey: 'products',    roles: ['admin'] },
 ]
@@ -182,7 +183,10 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPopState)
   }, [])
 
-  const visibleTabs = TABS.filter(tab => tab.roles.includes(role))
+  const planCaps = getPlan(account?.plan).capabilities
+  const visibleTabs = TABS.filter(tab =>
+    tab.roles.includes(role) && (!tab.capability || planCaps.includes(tab.capability))
+  )
 
   function navigateTo(newTab, newDetailId = null) {
     history.pushState({ tab: newTab, detailId: newDetailId }, '')
