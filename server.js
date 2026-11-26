@@ -6,7 +6,7 @@ import { randomUUID } from 'crypto'
 import bcrypt from 'bcryptjs'
 import { computePromotions } from './src/promotions.js'
 import { sendInviteEmail, mailerConfigured } from './src/mailer.js'
-import { PLAN_IDS, DEFAULT_PLAN } from './src/plans.js'
+import { PLAN_IDS, DEFAULT_PLAN, planHasCapability } from './src/plans.js'
 import { createReaderCheckout, getReaderCheckout } from './src/sumup.js'
 import { db, scoped } from './db/index.js'
 
@@ -84,8 +84,9 @@ async function deleteSession(token) {
 
 // ─── Settings (per account) ────────────────────────────────────────────────────
 const SETTING_DEFAULTS = {
-  paymentUrl:  'https://www.ing.nl/payreq/m/?trxid=aUZVw7cSEoc3M52nCif1fjGgLPCCcbnO',
-  paymentName: 'Sint Martinus Explos\nPannenkoeken actie 2026',
+  // Betaalverzoek is leeg tot een account zelf een betaallink instelt.
+  paymentUrl:  '',
+  paymentName: '',
   sumupEnabled: false,
   sumupMerchantCode: '',
   sumupReaderId: '',
@@ -245,8 +246,8 @@ async function getDisplayPayload(accountId) {
     ...data,
     settings: {
       logoDataUrl: s.logoDataUrl || null,
-      paymentUrl:  s.paymentUrl  || SETTING_DEFAULTS.paymentUrl,
-      paymentName: s.paymentName || SETTING_DEFAULTS.paymentName,
+      paymentUrl:  s.paymentUrl  || '',
+      paymentName: s.paymentName || '',
     },
   }
 }
@@ -441,6 +442,21 @@ function requireAdmin(req, res, next) {
   next()
 }
 
+// Resolve the account's current plan, then check whether it unlocks a capability.
+async function accountHasCapability(accountId, cap) {
+  const acc = await db('accounts').where({ id: accountId }).first()
+  return planHasCapability(acc?.plan || DEFAULT_PLAN, cap)
+}
+
+// Route guard: 403 unless the account's plan includes `cap` (e.g. 'inkoop', 'sumup').
+function requireCapability(cap) {
+  return wrap(async (req, res, next) => {
+    if (!(await accountHasCapability(req.accountId, cap)))
+      return res.status(403).json({ error: 'Niet beschikbaar in je huidige abonnement' })
+    next()
+  })
+}
+
 // ─── Display (authed) ────────────────────────────────────────────────────────────
 // The display token lets the account's display device subscribe without logging in.
 app.get('/api/display-token', wrap(async (req, res) => {
@@ -514,6 +530,12 @@ app.put('/api/account/plan', requireAdmin, wrap(async (req, res) => {
   const plan = String(req.body.plan || '')
   if (!PLAN_IDS.includes(plan)) return res.status(400).json({ error: 'Onbekend abonnement' })
   await db('accounts').where({ id: req.accountId }).update({ plan })
+  // Downgrade: zet SumUp uit als het nieuwe plan pinbetalingen niet meer toestaat,
+  // zodat er geen verouderde "aan"-staat blijft hangen.
+  if (!planHasCapability(plan, 'sumup')) {
+    const raw = await getRawSettings(req.accountId)
+    if (raw.sumupEnabled) await saveSettings(req.accountId, { ...raw, sumupEnabled: false })
+  }
   const acc = await db('accounts').where({ id: req.accountId }).first()
   res.json({ id: acc.id, name: acc.name, plan: acc.plan })
 }))
@@ -854,11 +876,11 @@ app.delete('/api/receipts/:id/items/:itemId', wrap(async (req, res) => {
 }))
 
 // ─── Inkoop bonnetjes ─────────────────────────────────────────────────────────
-app.get('/api/inkoop', requireAdmin, wrap(async (req, res) => {
+app.get('/api/inkoop', requireAdmin, requireCapability('inkoop'), wrap(async (req, res) => {
   res.json(await scoped(req.accountId).table('inkoop').orderBy('created_at', 'desc'))
 }))
 
-app.post('/api/inkoop', requireAdmin, wrap(async (req, res) => {
+app.post('/api/inkoop', requireAdmin, requireCapability('inkoop'), wrap(async (req, res) => {
   const { description, amount, date, note, submitted_by } = req.body
   if (!description || amount === undefined) return res.status(400).json({ error: 'description and amount required' })
   const [row] = await scoped(req.accountId).insert('inkoop', {
@@ -868,7 +890,7 @@ app.post('/api/inkoop', requireAdmin, wrap(async (req, res) => {
   res.json(row)
 }))
 
-app.put('/api/inkoop/:id', requireAdmin, wrap(async (req, res) => {
+app.put('/api/inkoop/:id', requireAdmin, requireCapability('inkoop'), wrap(async (req, res) => {
   const a = req.accountId
   const id = parseInt(req.params.id)
   const bon = await scoped(a).table('inkoop').where({ id }).first()
@@ -883,7 +905,7 @@ app.put('/api/inkoop/:id', requireAdmin, wrap(async (req, res) => {
   res.json(await scoped(a).table('inkoop').where({ id }).first())
 }))
 
-app.delete('/api/inkoop/:id', requireAdmin, wrap(async (req, res) => {
+app.delete('/api/inkoop/:id', requireAdmin, requireCapability('inkoop'), wrap(async (req, res) => {
   await scoped(req.accountId).table('inkoop').where({ id: parseInt(req.params.id) }).del()
   res.json({ ok: true })
 }))
@@ -1003,6 +1025,9 @@ app.put('/api/settings', requireAdmin, wrap(async (req, res) => {
   // receives the key back, so it can't echo it). Only overwrite when a value is given.
   if (body.sumupApiKey === '' || body.sumupApiKey === undefined) delete body.sumupApiKey
   delete body.sumupApiKeySet
+  // SumUp can only be switched on when the plan unlocks it (Business).
+  if (body.sumupEnabled === true && !(await accountHasCapability(req.accountId, 'sumup')))
+    return res.status(403).json({ error: 'SumUp is onderdeel van het Business-abonnement' })
   const merged = { ...(await getRawSettings(req.accountId)), ...body }
   await saveSettings(req.accountId, merged)
   res.json(safeSettings(await getSettings(req.accountId)))
@@ -1010,7 +1035,7 @@ app.put('/api/settings', requireAdmin, wrap(async (req, res) => {
 
 // Start a card payment on the paired SumUp reader for a given receipt. Pushes the
 // outstanding amount to the terminal; the cashier confirms completion afterwards.
-app.post('/api/sumup/checkout', wrap(async (req, res) => {
+app.post('/api/sumup/checkout', requireCapability('sumup'), wrap(async (req, res) => {
   const s = await getSettings(req.accountId)
   if (!s.sumupEnabled) return res.status(400).json({ error: 'SumUp staat uit' })
   if (!s.sumupApiKey || !s.sumupMerchantCode || !s.sumupReaderId) {
@@ -1043,7 +1068,7 @@ app.post('/api/sumup/checkout', wrap(async (req, res) => {
 
 // Poll the status of a reader checkout so the kassa can auto-detect when the card
 // payment finished. Returns { status: pending|successful|failed|cancelled }.
-app.get('/api/sumup/checkout/:checkoutId/status', wrap(async (req, res) => {
+app.get('/api/sumup/checkout/:checkoutId/status', requireCapability('sumup'), wrap(async (req, res) => {
   const s = await getSettings(req.accountId)
   if (!s.sumupApiKey || !s.sumupMerchantCode || !s.sumupReaderId) {
     return res.status(400).json({ error: 'SumUp is niet volledig geconfigureerd' })

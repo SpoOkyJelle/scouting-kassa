@@ -11,7 +11,7 @@ import PromotionEditor from './PromotionEditor'
 import TeamManager from './TeamManager'
 import PlanSelector from './PlanSelector'
 
-export default function Instellingen({ settings, onSave, lang, setLang, darkMode, setDarkMode, role, account, onAccountChange }) {
+export default function Instellingen({ settings, onSave, initialTab, lang, setLang, darkMode, setDarkMode, role, account, onAccountChange }) {
   const { t }     = useLang()
   const showToast = useToast()
   const confirm   = useConfirm()
@@ -31,7 +31,23 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
       ]
     : [{ id: 'display', labelKey: 'settings_group_display' }]
 
-  const [activeTab, setActiveTab] = useState(tabs[0].id)
+  const validIds = tabs.map(tb => tb.id)
+  const [activeTab, setActiveTab] = useState(() => {
+    if (initialTab && validIds.includes(initialTab)) return initialTab
+    let stored = null
+    try { stored = localStorage.getItem('kassa_settings_tab') } catch { /* ignore */ }
+    return validIds.includes(stored) ? stored : tabs[0].id
+  })
+
+  // Honour a deep-link into a specific tab (e.g. "Abonnement beheren" → Account).
+  useEffect(() => {
+    if (initialTab && validIds.includes(initialTab)) setActiveTab(initialTab)
+  }, [initialTab]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Remember the last-opened tab for next time.
+  useEffect(() => {
+    try { localStorage.setItem('kassa_settings_tab', activeTab) } catch { /* ignore */ }
+  }, [activeTab])
 
   const canSumup = planHasCapability(account?.plan, 'sumup')
 

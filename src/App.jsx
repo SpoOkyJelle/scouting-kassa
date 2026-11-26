@@ -8,7 +8,6 @@ import { SettingsContext } from './SettingsContext'
 import { CategoriesProvider } from './CategoriesContext'
 import { ToastProvider } from './components/Toast'
 import { ConfirmProvider } from './components/ConfirmModal'
-import PaymentModal from './components/PaymentModal'
 import LoginScreen from './components/LoginScreen'
 import Bonnen      from './components/Bonnen'
 import NieuweBon   from './components/NieuweBon'
@@ -60,9 +59,9 @@ export default function App() {
   const [role, setRole]               = useState(() => localStorage.getItem('kassa_role') || 'admin')
   const [darkMode, setDarkModeRaw]    = useState(() => localStorage.getItem('kassa_theme') === 'dark')
   const [tab, setTab]                 = useState('receipts')
+  const [settingsTab, setSettingsTab] = useState(null)   // which settings sub-tab to open
   const [slideDir, setSlideDir]       = useState('left')
   const [detailId, setDetailId]       = useState(null)
-  const [showPayment, setShowPayment]   = useState(false)
   const [showDisplay, setShowDisplay]   = useState(false)
   const [displayCopied, setDisplayCopied] = useState(false)
   const [displayToken, setDisplayToken] = useState(null)
@@ -188,6 +187,13 @@ export default function App() {
     tab.roles.includes(role) && (!tab.capability || planCaps.includes(tab.capability))
   )
 
+  // If the current tab is no longer available (e.g. plan downgrade hides Inkoop),
+  // fall back to the receipts tab. 'settings'/'detail' live outside the tab bar.
+  useEffect(() => {
+    const ok = new Set([...visibleTabs.map(x => x.id), 'settings', 'detail'])
+    if (!ok.has(tab)) { setTab('receipts'); setDetailId(null) }
+  }, [tab, role, account?.plan]) // eslint-disable-line react-hooks/exhaustive-deps
+
   function navigateTo(newTab, newDetailId = null) {
     history.pushState({ tab: newTab, detailId: newDetailId }, '')
     setTab(newTab)
@@ -235,7 +241,6 @@ export default function App() {
         <ToastProvider>
           <ConfirmProvider>
             <OfflineBanner t={t} />
-            {showPayment && <PaymentModal onClose={() => setShowPayment(false)} />}
 
             {/* ── Display URL modal ───────────────────────────────────── */}
             {showDisplay && (() => {
@@ -326,8 +331,8 @@ export default function App() {
                       role={role}
                       onSwitch={handleSwitchAccount}
                       onLogout={handleLogout}
-                      onOpenSettings={role === 'admin' ? () => navigateTo('settings') : null}
-                      onManagePlan={role === 'admin' ? () => navigateTo('settings') : null}
+                      onOpenSettings={role === 'admin' ? () => { setSettingsTab(null); navigateTo('settings') } : null}
+                      onManagePlan={role === 'admin' ? () => { setSettingsTab('account'); navigateTo('settings') } : null}
                     />
                   </div>
                 </header>
@@ -359,6 +364,7 @@ export default function App() {
                       <Instellingen
                         settings={appSettings}
                         onSave={setAppSettings}
+                        initialTab={settingsTab}
                         lang={lang}
                         setLang={setLang}
                         darkMode={darkMode}
