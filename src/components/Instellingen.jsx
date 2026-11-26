@@ -201,7 +201,7 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
   }
 
   return (
-    <div style={{ maxWidth: 560, margin: '0 auto' }}>
+    <div style={{ maxWidth: 820, margin: '0 auto' }}>
 
       {/* ── Tab bar (echoes the main menu bar, underline-active) ─────────── */}
       <div className="settings-tabs no-print" role="tablist">

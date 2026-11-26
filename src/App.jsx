@@ -230,7 +230,7 @@ export default function App() {
 
   return (
     <LangContext.Provider value={{ t, lang }}>
-      <SettingsContext.Provider value={appSettings}>
+      <SettingsContext.Provider value={{ ...appSettings, plan: account?.plan }}>
        <CategoriesProvider categories={appSettings.categories}>
         <ToastProvider>
           <ConfirmProvider>

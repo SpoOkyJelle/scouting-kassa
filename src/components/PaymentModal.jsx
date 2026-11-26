@@ -2,16 +2,15 @@ import { useState } from 'react'
 import { ExternalLink, Copy, Check, X } from 'lucide-react'
 import { useLang } from '../LangContext'
 import { useSettings } from '../SettingsContext'
-import { PAYMENT_URL, PAYMENT_NAME } from '../paymentConfig'
 
 export default function PaymentModal({ onClose }) {
   const { t } = useLang()
   const settings = useSettings()
   const [copied, setCopied] = useState(false)
 
-  // Use saved settings, fall back to config defaults
-  const url  = settings.paymentUrl  || PAYMENT_URL
-  const name = settings.paymentName || PAYMENT_NAME
+  // Only the account's own configured payment link — empty until set up.
+  const url  = settings.paymentUrl  || ''
+  const name = settings.paymentName || ''
 
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=12&data=${encodeURIComponent(url)}`
 

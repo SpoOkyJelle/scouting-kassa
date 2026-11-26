@@ -16,6 +16,7 @@ import {
   updateDisplay, clearDisplay, sumupCheckout, sumupStatus,
 } from '../api'
 import { useSettings } from '../SettingsContext'
+import { planHasCapability } from '../plans'
 import { useCategories } from '../CategoriesContext'
 import { useToast } from './Toast'
 import { useConfirm } from './ConfirmModal'
@@ -69,7 +70,11 @@ export default function BonDetail({ id, onBack }) {
   const [sumupState, setSumupState]         = useState('idle') // idle | sending | onterminal
   const sumupPollRef = useRef(null)  // interval id for auto-detecting payment
 
-  const sumupAvailable = !!settings.sumupEnabled && !!settings.sumupApiKeySet
+  // SumUp is pas een betaaloptie als het abonnement het toestaat (Business) én het is ingesteld.
+  const sumupAvailable = planHasCapability(settings.plan, 'sumup') && !!settings.sumupEnabled && !!settings.sumupApiKeySet
+  // Betaalverzoek (betaallink/QR) is pas een betaaloptie zodra er een link is ingesteld.
+  // Tot die tijd is contant de enige methode.
+  const qrAvailable = !!(settings.paymentUrl && settings.paymentUrl.trim())
 
   // Ref zodat de heartbeat altijd de meest recente receipt heeft
   const receiptRef          = useRef(null)
@@ -491,18 +496,20 @@ export default function BonDetail({ id, onBack }) {
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               {!isPaid && (
                 <>
-                  <button
-                    className="btn btn-sm no-print"
-                    onClick={togglePayOnDisplay}
-                    style={{
-                      background: showPayOnDisplay ? '#2E6B4E' : 'rgba(255,255,255,0.2)',
-                      color: '#fff',
-                      border: `1px solid ${showPayOnDisplay ? '#2E6B4E' : 'rgba(255,255,255,0.35)'}`,
-                      gap: 5,
-                    }}
-                  >
-                    <QrCode size={13} /> Toon betaalverzoek
-                  </button>
+                  {qrAvailable && (
+                    <button
+                      className="btn btn-sm no-print"
+                      onClick={togglePayOnDisplay}
+                      style={{
+                        background: showPayOnDisplay ? '#2E6B4E' : 'rgba(255,255,255,0.2)',
+                        color: '#fff',
+                        border: `1px solid ${showPayOnDisplay ? '#2E6B4E' : 'rgba(255,255,255,0.35)'}`,
+                        gap: 5,
+                      }}
+                    >
+                      <QrCode size={13} /> Toon betaalverzoek
+                    </button>
+                  )}
                   <button
                     className="btn btn-sm no-print"
                     onClick={() => setShowSplitPay(v => !v)}
@@ -595,7 +602,7 @@ export default function BonDetail({ id, onBack }) {
       {!isPaid && showSplitPay && (() => {
         const METHODS = [
           { key: 'contant', Icon: Banknote,   label: t('payment_method_contant') },
-          { key: 'qr',      Icon: Smartphone, label: t('payment_method_qr') },
+          ...(qrAvailable ? [{ key: 'qr', Icon: Smartphone, label: t('payment_method_qr') }] : []),
         ]
         const entered   = METHODS.reduce((s, m) => s + (parseFloat(splitAmounts[m.key]) || 0), 0)
         const remaining = Math.round((totalDue - entered) * 100) / 100
@@ -875,7 +882,8 @@ export default function BonDetail({ id, onBack }) {
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {[
                 { key: 'contant', Icon: Banknote,   label: t('payment_method_contant') },
-                { key: 'qr',      Icon: Smartphone, label: t('payment_method_qr') },
+                ...(qrAvailable    ? [{ key: 'qr',  Icon: Smartphone,  label: t('payment_method_qr') }]  : []),
+                ...(sumupAvailable ? [{ key: 'pin', Icon: CreditCard,  label: t('payment_method_pin') }] : []),
               ].map(({ key, Icon, label }) => (
                 <button
                   key={key}

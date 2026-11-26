@@ -2,15 +2,15 @@ import { useEffect } from 'react'
 import { X } from 'lucide-react'
 import { useLang } from '../LangContext'
 import { useSettings } from '../SettingsContext'
-import { PAYMENT_URL, PAYMENT_NAME } from '../paymentConfig'
 
 const fmt = n => `€ ${parseFloat(n ?? 0).toFixed(2)}`
 
 export default function KioskScreen({ total, name, onClose }) {
   const { t } = useLang()
   const settings  = useSettings()
-  const payUrl    = settings.paymentUrl  || PAYMENT_URL
-  const payName   = settings.paymentName || PAYMENT_NAME
+  // Betaalverzoek blijft leeg tot er zelf een betaallink is ingesteld.
+  const payUrl    = settings.paymentUrl  || ''
+  const payName   = settings.paymentName || ''
   const qrSrc     = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=14&data=${encodeURIComponent(payUrl)}`
 
   // Allow Escape to close
