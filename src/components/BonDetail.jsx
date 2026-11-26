@@ -20,7 +20,6 @@ import { planHasCapability } from '../plans'
 import { useCategories } from '../CategoriesContext'
 import { useToast } from './Toast'
 import { useConfirm } from './ConfirmModal'
-import KioskScreen from './KioskScreen'
 
 const fmt = p => `€ ${parseFloat(p).toFixed(2)}`
 
@@ -58,7 +57,6 @@ export default function BonDetail({ id, onBack }) {
   const [savingPayment, setSavingPayment]   = useState(false)
   const [editingName, setEditingName]       = useState(false)
   const [nameInput, setNameInput]           = useState('')
-  const [showKiosk, setShowKiosk]           = useState(false)
   const [received, setReceived]             = useState('')
   const [discountInput, setDiscountInput]   = useState('0')
   const [savingDiscount, setSavingDiscount] = useState(false)
@@ -388,7 +386,6 @@ export default function BonDetail({ id, onBack }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-      {showKiosk && <KioskScreen total={total} name={receiptTitle} onClose={() => setShowKiosk(false)} />}
 
       {/* Back */}
       <button className="btn btn-ghost btn-sm no-print" onClick={onBack} style={{ alignSelf: 'flex-start' }}>
@@ -556,9 +553,6 @@ export default function BonDetail({ id, onBack }) {
                 }}
               >
                 <Monitor size={12} /> {showOnDisplay ? 'Op scherm' : 'Toon op scherm'}
-              </button>
-              <button className="btn btn-ghost btn-sm no-print" onClick={() => setShowKiosk(true)} style={{ color: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.08)', fontSize: '0.72rem' }}>
-                <Monitor size={12} /> {t('kiosk_mode')}
               </button>
               <button className="btn btn-ghost btn-sm no-print" onClick={() => window.print()} style={{ color: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.08)' }}>
                 <Printer size={12} />
