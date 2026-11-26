@@ -10,20 +10,6 @@ import PromotionEditor from './PromotionEditor'
 import TeamManager from './TeamManager'
 import PlanSelector from './PlanSelector'
 
-// Height of the sticky header + main tab-nav (see styles.css: --header-h + --nav-h),
-// plus the settings chip bar itself. Used to offset scroll + scroll-spy.
-const STICKY_OFFSET = 108 + 54
-
-// Small uppercase group heading to structure a settings section.
-function Group({ children }) {
-  return (
-    <div style={{
-      fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-      color: 'var(--muted)', margin: '0.2rem 0 0.7rem', paddingLeft: 2,
-    }}>{children}</div>
-  )
-}
-
 export default function Instellingen({ settings, onSave, lang, setLang, darkMode, setDarkMode, role, account, onAccountChange }) {
   const { t }     = useLang()
   const showToast = useToast()
@@ -31,9 +17,9 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
   const fileRef   = useRef()
   const logoRef   = useRef()
 
-  // ── Section navigation (anchor chips + scroll-spy) ──────────────────────
+  // ── Tab navigation ──────────────────────────────────────────────────────
   const isAdmin = role === 'admin'
-  const sections = isAdmin
+  const tabs = isAdmin
     ? [
         { id: 'account',    labelKey: 'settings_group_account' },
         { id: 'branding',   labelKey: 'settings_group_branding' },
@@ -44,34 +30,7 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
       ]
     : [{ id: 'display', labelKey: 'settings_group_display' }]
 
-  const sectionRefs = useRef({})
-  const [activeSection, setActiveSection] = useState(sections[0].id)
-
-  // Highlight the chip of whichever section is currently in view.
-  useEffect(() => {
-    const els = sections.map(s => sectionRefs.current[s.id]).filter(Boolean)
-    if (els.length < 2) return
-    const observer = new IntersectionObserver(
-      entries => {
-        // Pick the top-most section that is intersecting the viewport.
-        const visible = entries
-          .filter(e => e.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
-        if (visible[0]) setActiveSection(visible[0].target.dataset.section)
-      },
-      { rootMargin: `-${STICKY_OFFSET}px 0px -55% 0px`, threshold: 0 }
-    )
-    els.forEach(el => observer.observe(el))
-    return () => observer.disconnect()
-  }, [sections.length]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  function scrollToSection(id) {
-    const el = sectionRefs.current[id]
-    if (!el) return
-    const y = el.getBoundingClientRect().top + window.scrollY - STICKY_OFFSET
-    window.scrollTo({ top: Math.max(y, 0), behavior: 'smooth' })
-    setActiveSection(id)
-  }
+  const [activeTab, setActiveTab] = useState(tabs[0].id)
 
   const [paymentUrl,  setPaymentUrl]  = useState(settings.paymentUrl  ?? '')
   const [paymentName, setPaymentName] = useState(settings.paymentName ?? '')
@@ -238,118 +197,81 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
     e.target.value = ''
   }
 
-  // Helper to register a section node for scroll-spy + anchor scrolling.
-  const registerSection = id => el => { sectionRefs.current[id] = el }
-
   return (
     <div style={{ maxWidth: 560, margin: '0 auto' }}>
 
-      {/* ── Anchor chip bar (sticky, echoes the main menu bar) ───────────── */}
-      <div
-        className="settings-chipbar no-print"
-        style={{
-          position: 'sticky',
-          top: 'calc(var(--header-h) + var(--nav-h))',
-          zIndex: 120,
-          display: 'flex',
-          gap: 6,
-          flexWrap: 'nowrap',
-          overflowX: 'auto',
-          padding: '0.6rem 0',
-          marginBottom: '0.6rem',
-          background: 'var(--bg)',
-          WebkitOverflowScrolling: 'touch',
-          scrollbarWidth: 'none',
-        }}
-      >
-        {sections.map(({ id, labelKey }) => {
-          const active = activeSection === id
-          return (
-            <button
-              key={id}
-              onClick={() => scrollToSection(id)}
-              className="btn btn-sm"
-              aria-current={active ? 'true' : undefined}
-              style={{
-                flex: '0 0 auto',
-                borderRadius: 999,
-                fontWeight: 600,
-                border: active ? '1px solid var(--primary)' : '1px solid var(--border)',
-                background: active ? 'var(--primary)' : 'var(--surface)',
-                color: active ? '#fff' : 'var(--s700)',
-                transition: 'background .12s, color .12s, border-color .12s',
-              }}
-            >
-              {t(labelKey)}
-            </button>
-          )
-        })}
+      {/* ── Tab bar (echoes the main menu bar, underline-active) ─────────── */}
+      <div className="settings-tabs no-print" role="tablist">
+        {tabs.map(({ id, labelKey }) => (
+          <button
+            key={id}
+            role="tab"
+            aria-selected={activeTab === id}
+            className={`settings-tab${activeTab === id ? ' active' : ''}`}
+            onClick={() => setActiveTab(id)}
+          >
+            {t(labelKey)}
+          </button>
+        ))}
       </div>
 
       {/* ── Account & abonnement ───────────────────────────────────────── */}
-      {isAdmin && (
-        <section data-section="account" ref={registerSection('account')} style={{ scrollMarginTop: STICKY_OFFSET }}>
-          <Group>{t('settings_group_account')}</Group>
+      {isAdmin && activeTab === 'account' && (
+        <>
           <PlanSelector account={account} onChange={onAccountChange} />
           <TeamManager />
-        </section>
+        </>
       )}
 
       {/* ── Huisstijl ───────────────────────────────────────────────────── */}
-      {isAdmin && (
-        <section data-section="branding" ref={registerSection('branding')} style={{ scrollMarginTop: STICKY_OFFSET }}>
-          <Group>{t('settings_group_branding')}</Group>
-          <SettingsCard Icon={ImageIcon} label={t('settings_logo_section')} color="#F59E0B">
-            <p style={{ fontSize: '0.78rem', color: 'var(--muted)', marginBottom: '0.85rem', lineHeight: 1.5 }}>
-              {t('settings_logo_hint')}
-            </p>
+      {isAdmin && activeTab === 'branding' && (
+        <SettingsCard Icon={ImageIcon} label={t('settings_logo_section')} color="#F59E0B">
+          <p style={{ fontSize: '0.78rem', color: 'var(--muted)', marginBottom: '0.85rem', lineHeight: 1.5 }}>
+            {t('settings_logo_hint')}
+          </p>
 
-            {settings.logoDataUrl ? (
-              <div style={{ marginBottom: '0.85rem' }}>
-                <div style={{
-                  background: 'var(--s50)', border: '1px solid var(--border)',
-                  borderRadius: 8, padding: '0.75rem', display: 'flex',
-                  alignItems: 'center', justifyContent: 'center',
-                  minHeight: 60, marginBottom: 8,
-                }}>
-                  <img
-                    src={settings.logoDataUrl}
-                    alt="Logo preview"
-                    style={{ maxHeight: 52, maxWidth: '100%', objectFit: 'contain' }}
-                  />
-                </div>
+          {settings.logoDataUrl ? (
+            <div style={{ marginBottom: '0.85rem' }}>
+              <div style={{
+                background: 'var(--s50)', border: '1px solid var(--border)',
+                borderRadius: 8, padding: '0.75rem', display: 'flex',
+                alignItems: 'center', justifyContent: 'center',
+                minHeight: 60, marginBottom: 8,
+              }}>
+                <img
+                  src={settings.logoDataUrl}
+                  alt="Logo preview"
+                  style={{ maxHeight: 52, maxWidth: '100%', objectFit: 'contain' }}
+                />
               </div>
-            ) : null}
-
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button className="btn btn-outline" onClick={() => logoRef.current?.click()} style={{ gap: 6, flex: '1 1 auto' }}>
-                <Upload size={14} /> {t('settings_logo_upload')}
-              </button>
-              {settings.logoDataUrl && (
-                <button className="btn btn-ghost" onClick={handleLogoRemove} style={{ gap: 6, color: 'var(--danger)' }}>
-                  <Trash2 size={14} /> {t('settings_logo_remove')}
-                </button>
-              )}
-              <input ref={logoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleLogoFile} />
             </div>
-          </SettingsCard>
-        </section>
+          ) : null}
+
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button className="btn btn-outline" onClick={() => logoRef.current?.click()} style={{ gap: 6, flex: '1 1 auto' }}>
+              <Upload size={14} /> {t('settings_logo_upload')}
+            </button>
+            {settings.logoDataUrl && (
+              <button className="btn btn-ghost" onClick={handleLogoRemove} style={{ gap: 6, color: 'var(--danger)' }}>
+                <Trash2 size={14} /> {t('settings_logo_remove')}
+              </button>
+            )}
+            <input ref={logoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleLogoFile} />
+          </div>
+        </SettingsCard>
       )}
 
       {/* ── Assortiment ─────────────────────────────────────────────────── */}
-      {isAdmin && (
-        <section data-section="assortment" ref={registerSection('assortment')} style={{ scrollMarginTop: STICKY_OFFSET }}>
-          <Group>{t('settings_group_assortment')}</Group>
+      {isAdmin && activeTab === 'assortment' && (
+        <>
           <CategoryEditor settings={settings} onSave={onSave} />
           <PromotionEditor settings={settings} onSave={onSave} />
-        </section>
+        </>
       )}
 
       {/* ── Betalingen ──────────────────────────────────────────────────── */}
-      {isAdmin && (
-        <section data-section="payments" ref={registerSection('payments')} style={{ scrollMarginTop: STICKY_OFFSET }}>
-          <Group>{t('settings_group_payments')}</Group>
-
+      {isAdmin && activeTab === 'payments' && (
+        <>
           {/* Betaalverzoek */}
           <SettingsCard Icon={QrCode} label={t('settings_payment_section')} color="#2E6B4E">
             <form onSubmit={handleSave}>
@@ -472,14 +394,12 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
               </form>
             )}
           </SettingsCard>
-        </section>
+        </>
       )}
 
       {/* ── Beveiliging & data ──────────────────────────────────────────── */}
-      {isAdmin && (
-        <section data-section="security" ref={registerSection('security')} style={{ scrollMarginTop: STICKY_OFFSET }}>
-          <Group>{t('settings_group_security')}</Group>
-
+      {isAdmin && activeTab === 'security' && (
+        <>
           {/* PIN wijzigen */}
           <SettingsCard Icon={KeyRound} label={t('settings_pin_section')} color="#DC2626">
             <div style={{
@@ -562,63 +482,63 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
               />
             </div>
           </SettingsCard>
-        </section>
+        </>
       )}
 
       {/* ── Weergave & taal (alle rollen) ──────────────────────────────── */}
-      <section data-section="display" ref={registerSection('display')} style={{ scrollMarginTop: STICKY_OFFSET }}>
-        <Group>{t('settings_group_display')}</Group>
-
-        <SettingsCard Icon={Globe} label={t('settings_language')} color="#3C7A86">
-          <div style={{ display: 'flex', gap: 8 }}>
-            {['nl', 'en'].map(code => (
-              <button
-                key={code}
-                className={`btn ${lang === code ? 'btn-primary' : 'btn-outline'}`}
-                style={{ minWidth: 90, gap: 6 }}
-                onClick={() => setLang(code)}
-              >
-                {code === 'nl' ? '🇳🇱  Nederlands' : '🇬🇧  English'}
-              </button>
-            ))}
-          </div>
-        </SettingsCard>
-
-        <SettingsCard Icon={Moon} label={t('settings_appearance')} color="#8A6D9B">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: '0.87rem', color: 'var(--s800)' }}>
-                {t('dark_mode')}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 2 }}>
-                {darkMode ? 'Donkere modus actief' : 'Lichte modus actief'}
-              </div>
-            </div>
-            <button
-              className={`toggle-switch${darkMode ? ' on' : ''}`}
-              onClick={() => setDarkMode(d => !d)}
-              aria-label={t('dark_mode')}
-            >
-              <span className="toggle-knob" />
-            </button>
-          </div>
-          <div style={{ height: 1, background: 'var(--border)', margin: '0.75rem 0' }} />
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ fontWeight: 600, fontSize: '0.87rem', color: 'var(--s800)' }}>Tekstgrootte</div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {[{ key: 'small', label: 'Klein' }, { key: 'normal', label: 'Normaal' }, { key: 'large', label: 'Groot' }].map(({ key, label }) => (
+      {activeTab === 'display' && (
+        <>
+          <SettingsCard Icon={Globe} label={t('settings_language')} color="#3C7A86">
+            <div style={{ display: 'flex', gap: 8 }}>
+              {['nl', 'en'].map(code => (
                 <button
-                  key={key}
-                  className={`btn btn-sm ${fontSize === key ? 'btn-primary' : 'btn-outline'}`}
-                  onClick={() => applyFontSize(key)}
+                  key={code}
+                  className={`btn ${lang === code ? 'btn-primary' : 'btn-outline'}`}
+                  style={{ minWidth: 90, gap: 6 }}
+                  onClick={() => setLang(code)}
                 >
-                  {label}
+                  {code === 'nl' ? '🇳🇱  Nederlands' : '🇬🇧  English'}
                 </button>
               ))}
             </div>
-          </div>
-        </SettingsCard>
-      </section>
+          </SettingsCard>
+
+          <SettingsCard Icon={Moon} label={t('settings_appearance')} color="#8A6D9B">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: '0.87rem', color: 'var(--s800)' }}>
+                  {t('dark_mode')}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 2 }}>
+                  {darkMode ? 'Donkere modus actief' : 'Lichte modus actief'}
+                </div>
+              </div>
+              <button
+                className={`toggle-switch${darkMode ? ' on' : ''}`}
+                onClick={() => setDarkMode(d => !d)}
+                aria-label={t('dark_mode')}
+              >
+                <span className="toggle-knob" />
+              </button>
+            </div>
+            <div style={{ height: 1, background: 'var(--border)', margin: '0.75rem 0' }} />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontWeight: 600, fontSize: '0.87rem', color: 'var(--s800)' }}>Tekstgrootte</div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {[{ key: 'small', label: 'Klein' }, { key: 'normal', label: 'Normaal' }, { key: 'large', label: 'Groot' }].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    className={`btn btn-sm ${fontSize === key ? 'btn-primary' : 'btn-outline'}`}
+                    onClick={() => applyFontSize(key)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </SettingsCard>
+        </>
+      )}
     </div>
   )
 }

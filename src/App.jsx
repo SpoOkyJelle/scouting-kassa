@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FileText, PlusCircle, Package, BarChart2, LogOut, WifiOff, QrCode, Settings, ShoppingCart, Heart, Monitor, Copy, Check, ExternalLink, X } from 'lucide-react'
+import { FileText, PlusCircle, Package, BarChart2, LogOut, WifiOff, QrCode, ShoppingCart, Heart, Monitor, Copy, Check, ExternalLink, X } from 'lucide-react'
 import { translations } from './i18n'
 import { logout as apiLogout, fetchSettings, fetchDisplayToken, fetchAccounts, switchAccount, fetchAccount } from './api'
 import { LangContext } from './LangContext'
@@ -30,7 +30,6 @@ const TABS = [
   { id: 'inkoop',    Icon: ShoppingCart,  labelKey: 'inkoop_tab',    roles: ['admin'] },
   { id: 'donaties',  Icon: Heart,         labelKey: 'donaties_tab',  roles: ['admin', 'cashier'] },
   { id: 'products',  Icon: Package,       labelKey: 'products',    roles: ['admin'] },
-  { id: 'settings',  Icon: Settings,      labelKey: 'settings',    roles: ['admin'] },
 ]
 
 function OfflineBanner({ t }) {
@@ -323,6 +322,7 @@ export default function App() {
                       role={role}
                       onSwitch={handleSwitchAccount}
                       onLogout={handleLogout}
+                      onOpenSettings={role === 'admin' ? () => navigateTo('settings') : null}
                       onManagePlan={role === 'admin' ? () => navigateTo('settings') : null}
                     />
                   </div>

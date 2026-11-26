@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
-import { ChevronDown, LogOut, Check, Building2, Sparkles } from 'lucide-react'
+import { ChevronDown, LogOut, Check, Building2, Sparkles, Settings } from 'lucide-react'
 import { useLang } from '../LangContext'
 import { getPlan } from '../plans'
 
-export default function AccountMenu({ accounts, account, role, onSwitch, onLogout, onManagePlan }) {
+export default function AccountMenu({ accounts, account, role, onSwitch, onLogout, onManagePlan, onOpenSettings }) {
   const { t, lang } = useLang()
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
@@ -71,6 +71,14 @@ export default function AccountMenu({ accounts, account, role, onSwitch, onLogou
 
           {/* Actions */}
           <div style={{ padding: '6px' }}>
+            {onOpenSettings && (
+              <button onClick={() => { setOpen(false); onOpenSettings() }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '8px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 8, color: 'var(--s800)', fontSize: '0.86rem' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--s50)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                <Settings size={15} color="var(--muted)" /> {t('settings')}
+              </button>
+            )}
             {onManagePlan && (
               <button onClick={() => { setOpen(false); onManagePlan() }}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '8px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 8, color: 'var(--s800)', fontSize: '0.86rem' }}

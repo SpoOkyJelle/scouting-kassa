@@ -265,10 +265,37 @@ body {
 .tab-btn:hover { color: var(--s700); background: var(--s50); }
 .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
 
-/* ── Settings anchor chip bar ───────────────────────────────────────────────── */
-.settings-chipbar::-webkit-scrollbar { display: none; }
-/* Fade the sticky chip bar into the page edges so cards scroll cleanly beneath it */
-.settings-chipbar { box-shadow: 0 6px 6px -6px var(--bg); }
+/* ── Settings sub-tabs ──────────────────────────────────────────────────────── */
+.settings-tabs {
+  position: sticky;
+  top: calc(var(--header-h) + var(--nav-h));
+  z-index: 120;
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.1rem;
+  scrollbar-width: none;
+}
+.settings-tabs::-webkit-scrollbar { display: none; }
+.settings-tab {
+  flex: 0 0 auto;
+  padding: 0.62rem 0.95rem;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.12s, border-color 0.12s;
+}
+.settings-tab:hover   { color: var(--s700); }
+.settings-tab.active  { color: var(--primary); border-bottom-color: var(--primary); }
 
 /* ── Main content ─────────────────────────────────────────────────────────── */
 .main-content {
