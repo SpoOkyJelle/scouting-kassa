@@ -897,6 +897,8 @@ hr.divider {
   padding: 1.75rem 1.5rem 1.5rem;
   width: 100%;
   max-width: 340px;
+  max-height: 90vh;
+  overflow-y: auto;
   box-shadow: var(--shadow-md);
   animation: modal-in 0.2s ease;
 }
@@ -1318,6 +1320,12 @@ hr.divider {
   display: none;
 }
 @media (max-width: 639px) {
+  /* Icon-only navigation + tighter chrome so the menu never overflows on phones */
+  .tab-label { display: none; }
+  .header   { padding: 0 0.85rem; }
+  .tab-nav  { padding: 0 0.25rem; }
+  .tab-btn  { padding: 0 6px; gap: 0; }
+
   .mobile-order-bar {
     display: flex;
     align-items: center;
@@ -1406,7 +1414,6 @@ hr.divider {
     font-size: 0.77rem;
   }
   .main-content { padding: 0.85rem 0.75rem 2rem; }
-  .tab-btn .tab-label { display: none; }
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
 
   /* Bigger tap targets on mobile */

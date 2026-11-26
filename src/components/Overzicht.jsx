@@ -83,7 +83,7 @@ function KpiCard({ Icon, label, value, sub, accent = '#8A8374', accentBg = 'var(
         <Icon size={16} color={accent} strokeWidth={2.3} />
       </div>
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--s900)', letterSpacing: '-0.4px', lineHeight: 1.1 }}>
+        <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--s900)', letterSpacing: '-0.5px', lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {value}
         </div>
         {sub && <div style={{ fontSize: '0.72rem', color: accent, fontWeight: 600, marginTop: 1 }}>{sub}</div>}
@@ -323,7 +323,7 @@ export default function Overzicht({ role }) {
       {loading ? <div className="spinner" /> : (
         <div key={contentKey} className="stats-enter" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {/* ── Hero cards ──────────────────────────────────────────────────── */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '0.75rem' }}>
 
             {/* Omzet hero */}
             <div style={{
@@ -652,7 +652,7 @@ export default function Overzicht({ role }) {
           {/* ── Populairste producten + Omzet per dag side-by-side ─────────── */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: multiDay && revenueByDay?.length > 0 ? '1fr 1fr' : '1fr',
+            gridTemplateColumns: multiDay && revenueByDay?.length > 0 ? 'repeat(auto-fit, minmax(280px, 1fr))' : '1fr',
             gap: '0.75rem',
             alignItems: 'start',
           }}>

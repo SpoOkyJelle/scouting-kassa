@@ -36,7 +36,9 @@ export default function AccountMenu({ accounts, account, role, onSwitch, onLogou
         <div style={{
           position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 50,
           background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12,
-          boxShadow: '0 18px 40px -14px rgba(12,30,20,0.4)', minWidth: 240, overflow: 'hidden',
+          boxShadow: '0 18px 40px -14px rgba(12,30,20,0.4)',
+          minWidth: 240, maxWidth: 'calc(100vw - 1.5rem)',
+          maxHeight: 'calc(100vh - var(--header-h) - 1rem)', overflowY: 'auto',
         }}>
           {/* Current account summary */}
           <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)' }}>
