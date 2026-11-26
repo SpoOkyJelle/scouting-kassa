@@ -1257,6 +1257,16 @@ app.get('/api/stats', wrap(async (req, res) => {
   })
 }))
 
+// ─── Health check (used by Docker/Caddy to know the app is ready) ──────────────
+app.get('/healthz', wrap(async (_req, res) => {
+  try {
+    await db.raw('select 1')
+    res.json({ status: 'ok' })
+  } catch {
+    res.status(503).json({ status: 'db_unavailable' })
+  }
+}))
+
 // ─── SPA fallback ─────────────────────────────────────────────────────────────
 app.get('*', (_req, res) => {
   res.sendFile(join(__dirname, 'dist', 'index.html'))
