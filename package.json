@@ -9,14 +9,12 @@
     "preview": "vite preview",
     "migrate": "knex migrate:latest",
     "migrate:rollback": "knex migrate:rollback",
-    "migrate:make": "knex migrate:make",
-    "import:sqlite": "node scripts/import-sqlite.js"
+    "migrate:make": "knex migrate:make"
   },
   "dependencies": {
     "@fontsource/bricolage-grotesque": "^5.3.0",
     "@fontsource/inter": "^5.0.0",
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^12.11.1",
     "dotenv": "^16.4.5",
     "express": "^4.18.2",
     "knex": "^3.1.0",

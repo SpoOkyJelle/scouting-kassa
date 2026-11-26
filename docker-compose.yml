@@ -28,7 +28,6 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_URL: postgres://kassa:${POSTGRES_PASSWORD:-kassa}@db:5432/kassa
-      SESSION_SECRET: ${SESSION_SECRET}
       PIN: ${PIN}
       CASHIER_PIN: ${CASHIER_PIN:-}
     # Published on localhost so you can reach the app directly during local
