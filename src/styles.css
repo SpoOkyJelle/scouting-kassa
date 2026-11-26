@@ -265,6 +265,11 @@ body {
 .tab-btn:hover { color: var(--s700); background: var(--s50); }
 .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
 
+/* ── Settings anchor chip bar ───────────────────────────────────────────────── */
+.settings-chipbar::-webkit-scrollbar { display: none; }
+/* Fade the sticky chip bar into the page edges so cards scroll cleanly beneath it */
+.settings-chipbar { box-shadow: 0 6px 6px -6px var(--bg); }
+
 /* ── Main content ─────────────────────────────────────────────────────────── */
 .main-content {
   max-width: 960px;

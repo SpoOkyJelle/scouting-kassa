@@ -10,12 +10,16 @@ import PromotionEditor from './PromotionEditor'
 import TeamManager from './TeamManager'
 import PlanSelector from './PlanSelector'
 
-// Small uppercase group heading to structure the settings page.
+// Height of the sticky header + main tab-nav (see styles.css: --header-h + --nav-h),
+// plus the settings chip bar itself. Used to offset scroll + scroll-spy.
+const STICKY_OFFSET = 108 + 54
+
+// Small uppercase group heading to structure a settings section.
 function Group({ children }) {
   return (
     <div style={{
       fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-      color: 'var(--muted)', margin: '1.4rem 0 0.6rem', paddingLeft: 2,
+      color: 'var(--muted)', margin: '0.2rem 0 0.7rem', paddingLeft: 2,
     }}>{children}</div>
   )
 }
@@ -26,6 +30,48 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
   const confirm   = useConfirm()
   const fileRef   = useRef()
   const logoRef   = useRef()
+
+  // ── Section navigation (anchor chips + scroll-spy) ──────────────────────
+  const isAdmin = role === 'admin'
+  const sections = isAdmin
+    ? [
+        { id: 'account',    labelKey: 'settings_group_account' },
+        { id: 'branding',   labelKey: 'settings_group_branding' },
+        { id: 'assortment', labelKey: 'settings_group_assortment' },
+        { id: 'payments',   labelKey: 'settings_group_payments' },
+        { id: 'security',   labelKey: 'settings_group_security' },
+        { id: 'display',    labelKey: 'settings_group_display' },
+      ]
+    : [{ id: 'display', labelKey: 'settings_group_display' }]
+
+  const sectionRefs = useRef({})
+  const [activeSection, setActiveSection] = useState(sections[0].id)
+
+  // Highlight the chip of whichever section is currently in view.
+  useEffect(() => {
+    const els = sections.map(s => sectionRefs.current[s.id]).filter(Boolean)
+    if (els.length < 2) return
+    const observer = new IntersectionObserver(
+      entries => {
+        // Pick the top-most section that is intersecting the viewport.
+        const visible = entries
+          .filter(e => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
+        if (visible[0]) setActiveSection(visible[0].target.dataset.section)
+      },
+      { rootMargin: `-${STICKY_OFFSET}px 0px -55% 0px`, threshold: 0 }
+    )
+    els.forEach(el => observer.observe(el))
+    return () => observer.disconnect()
+  }, [sections.length]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function scrollToSection(id) {
+    const el = sectionRefs.current[id]
+    if (!el) return
+    const y = el.getBoundingClientRect().top + window.scrollY - STICKY_OFFSET
+    window.scrollTo({ top: Math.max(y, 0), behavior: 'smooth' })
+    setActiveSection(id)
+  }
 
   const [paymentUrl,  setPaymentUrl]  = useState(settings.paymentUrl  ?? '')
   const [paymentName, setPaymentName] = useState(settings.paymentName ?? '')
@@ -192,336 +238,387 @@ export default function Instellingen({ settings, onSave, lang, setLang, darkMode
     e.target.value = ''
   }
 
+  // Helper to register a section node for scroll-spy + anchor scrolling.
+  const registerSection = id => el => { sectionRefs.current[id] = el }
+
   return (
-    <div style={{ maxWidth: 560 }}>
+    <div style={{ maxWidth: 560, margin: '0 auto' }}>
+
+      {/* ── Anchor chip bar (sticky, echoes the main menu bar) ───────────── */}
+      <div
+        className="settings-chipbar no-print"
+        style={{
+          position: 'sticky',
+          top: 'calc(var(--header-h) + var(--nav-h))',
+          zIndex: 120,
+          display: 'flex',
+          gap: 6,
+          flexWrap: 'nowrap',
+          overflowX: 'auto',
+          padding: '0.6rem 0',
+          marginBottom: '0.6rem',
+          background: 'var(--bg)',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none',
+        }}
+      >
+        {sections.map(({ id, labelKey }) => {
+          const active = activeSection === id
+          return (
+            <button
+              key={id}
+              onClick={() => scrollToSection(id)}
+              className="btn btn-sm"
+              aria-current={active ? 'true' : undefined}
+              style={{
+                flex: '0 0 auto',
+                borderRadius: 999,
+                fontWeight: 600,
+                border: active ? '1px solid var(--primary)' : '1px solid var(--border)',
+                background: active ? 'var(--primary)' : 'var(--surface)',
+                color: active ? '#fff' : 'var(--s700)',
+                transition: 'background .12s, color .12s, border-color .12s',
+              }}
+            >
+              {t(labelKey)}
+            </button>
+          )
+        })}
+      </div>
 
       {/* ── Account & abonnement ───────────────────────────────────────── */}
-      {role === 'admin' && (
-        <>
+      {isAdmin && (
+        <section data-section="account" ref={registerSection('account')} style={{ scrollMarginTop: STICKY_OFFSET }}>
           <Group>{t('settings_group_account')}</Group>
           <PlanSelector account={account} onChange={onAccountChange} />
-        </>
+          <TeamManager />
+        </section>
       )}
 
-      {role === 'admin' && <Group>{t('settings_group_manage')}</Group>}
+      {/* ── Huisstijl ───────────────────────────────────────────────────── */}
+      {isAdmin && (
+        <section data-section="branding" ref={registerSection('branding')} style={{ scrollMarginTop: STICKY_OFFSET }}>
+          <Group>{t('settings_group_branding')}</Group>
+          <SettingsCard Icon={ImageIcon} label={t('settings_logo_section')} color="#F59E0B">
+            <p style={{ fontSize: '0.78rem', color: 'var(--muted)', marginBottom: '0.85rem', lineHeight: 1.5 }}>
+              {t('settings_logo_hint')}
+            </p>
 
-      {/* ── Logo ────────────────────────────────────────────────────────── */}
-      {role === 'admin' && (
-        <SettingsCard Icon={ImageIcon} label={t('settings_logo_section')} color="#F59E0B">
-          <p style={{ fontSize: '0.78rem', color: 'var(--muted)', marginBottom: '0.85rem', lineHeight: 1.5 }}>
-            {t('settings_logo_hint')}
-          </p>
+            {settings.logoDataUrl ? (
+              <div style={{ marginBottom: '0.85rem' }}>
+                <div style={{
+                  background: 'var(--s50)', border: '1px solid var(--border)',
+                  borderRadius: 8, padding: '0.75rem', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center',
+                  minHeight: 60, marginBottom: 8,
+                }}>
+                  <img
+                    src={settings.logoDataUrl}
+                    alt="Logo preview"
+                    style={{ maxHeight: 52, maxWidth: '100%', objectFit: 'contain' }}
+                  />
+                </div>
+              </div>
+            ) : null}
 
-          {settings.logoDataUrl ? (
-            <div style={{ marginBottom: '0.85rem' }}>
-              <div style={{
-                background: 'var(--s50)', border: '1px solid var(--border)',
-                borderRadius: 8, padding: '0.75rem', display: 'flex',
-                alignItems: 'center', justifyContent: 'center',
-                minHeight: 60, marginBottom: 8,
-              }}>
-                <img
-                  src={settings.logoDataUrl}
-                  alt="Logo preview"
-                  style={{ maxHeight: 52, maxWidth: '100%', objectFit: 'contain' }}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button className="btn btn-outline" onClick={() => logoRef.current?.click()} style={{ gap: 6, flex: '1 1 auto' }}>
+                <Upload size={14} /> {t('settings_logo_upload')}
+              </button>
+              {settings.logoDataUrl && (
+                <button className="btn btn-ghost" onClick={handleLogoRemove} style={{ gap: 6, color: 'var(--danger)' }}>
+                  <Trash2 size={14} /> {t('settings_logo_remove')}
+                </button>
+              )}
+              <input ref={logoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleLogoFile} />
+            </div>
+          </SettingsCard>
+        </section>
+      )}
+
+      {/* ── Assortiment ─────────────────────────────────────────────────── */}
+      {isAdmin && (
+        <section data-section="assortment" ref={registerSection('assortment')} style={{ scrollMarginTop: STICKY_OFFSET }}>
+          <Group>{t('settings_group_assortment')}</Group>
+          <CategoryEditor settings={settings} onSave={onSave} />
+          <PromotionEditor settings={settings} onSave={onSave} />
+        </section>
+      )}
+
+      {/* ── Betalingen ──────────────────────────────────────────────────── */}
+      {isAdmin && (
+        <section data-section="payments" ref={registerSection('payments')} style={{ scrollMarginTop: STICKY_OFFSET }}>
+          <Group>{t('settings_group_payments')}</Group>
+
+          {/* Betaalverzoek */}
+          <SettingsCard Icon={QrCode} label={t('settings_payment_section')} color="#2E6B4E">
+            <form onSubmit={handleSave}>
+              <div className="form-group">
+                <label className="form-label">{t('settings_payment_url')}</label>
+                <input
+                  className="form-input"
+                  type="url"
+                  placeholder={t('settings_payment_url_ph')}
+                  value={paymentUrl}
+                  onChange={e => setPaymentUrl(e.target.value)}
                 />
               </div>
-            </div>
-          ) : null}
 
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button className="btn btn-outline" onClick={() => logoRef.current?.click()} style={{ gap: 6, flex: '1 1 auto' }}>
-              <Upload size={14} /> {t('settings_logo_upload')}
-            </button>
-            {settings.logoDataUrl && (
-              <button className="btn btn-ghost" onClick={handleLogoRemove} style={{ gap: 6, color: 'var(--danger)' }}>
-                <Trash2 size={14} /> {t('settings_logo_remove')}
+              <div className="form-group">
+                <label className="form-label">{t('settings_payment_name')}</label>
+                <textarea
+                  className="form-input"
+                  placeholder={t('settings_payment_name_ph')}
+                  value={paymentName}
+                  onChange={e => setPaymentName(e.target.value)}
+                  rows={2}
+                  style={{ resize: 'vertical', minHeight: 60 }}
+                />
+              </div>
+
+              {paymentUrl && (
+                <div style={{
+                  background: 'var(--s50)', border: '1px solid var(--border)',
+                  borderRadius: 8, padding: '8px 10px', marginBottom: '0.85rem',
+                }}>
+                  <span className="form-label" style={{ display: 'block', marginBottom: 5 }}>
+                    {t('settings_payment_preview')}
+                  </span>
+                  <a
+                    href={paymentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                      fontSize: '0.76rem', color: 'var(--primary)', textDecoration: 'none',
+                      wordBreak: 'break-all',
+                    }}
+                  >
+                    <ExternalLink size={12} />
+                    {paymentUrl.length > 60 ? paymentUrl.slice(0, 60) + '…' : paymentUrl}
+                  </a>
+                </div>
+              )}
+
+              <button type="submit" className="btn btn-primary" disabled={saving} style={{ gap: 6 }}>
+                <Save size={14} />
+                {saving ? t('loading') : t('save')}
               </button>
+            </form>
+          </SettingsCard>
+
+          {/* SumUp Cloud */}
+          <SettingsCard Icon={CreditCard} label={t('settings_sumup_section')} color="#0070F3">
+            <p style={{ fontSize: '0.78rem', color: 'var(--muted)', marginBottom: '0.85rem', lineHeight: 1.5 }}>
+              {t('settings_sumup_hint')}
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: '0.87rem', color: 'var(--s800)' }}>
+                  {t('settings_sumup_toggle')}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 2 }}>
+                  {sumupEnabled ? t('settings_sumup_on') : t('settings_sumup_off')}
+                </div>
+              </div>
+              <button
+                className={`toggle-switch${sumupEnabled ? ' on' : ''}`}
+                onClick={toggleSumup}
+                disabled={sumupSaving}
+                aria-label={t('settings_sumup_toggle')}
+              >
+                <span className="toggle-knob" />
+              </button>
+            </div>
+
+            {sumupEnabled && (
+              <form onSubmit={handleSumupConfig} style={{ marginTop: '0.9rem', borderTop: '1px solid var(--border)', paddingTop: '0.9rem' }}>
+                <div className="form-group">
+                  <label className="form-label">{t('settings_sumup_merchant')}</label>
+                  <input
+                    className="form-input"
+                    placeholder="MXXXXXXX"
+                    value={sumupMerchant}
+                    onChange={e => setSumupMerchant(e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">{t('settings_sumup_reader')}</label>
+                  <input
+                    className="form-input"
+                    placeholder="rdr_XXXXXXXXXXXX"
+                    value={sumupReader}
+                    onChange={e => setSumupReader(e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">{t('settings_sumup_apikey')}</label>
+                  <input
+                    className="form-input"
+                    type="password"
+                    autoComplete="new-password"
+                    placeholder={settings.sumupApiKeySet ? '•••••••• ' + t('settings_sumup_key_set') : 'sup_sk_...'}
+                    value={sumupApiKey}
+                    onChange={e => setSumupApiKey(e.target.value)}
+                  />
+                  <p style={{ fontSize: '0.72rem', color: 'var(--muted)', marginTop: 4, lineHeight: 1.4 }}>
+                    {t('settings_sumup_apikey_hint')}
+                  </p>
+                </div>
+                <button type="submit" className="btn btn-primary" disabled={sumupCfgSaving} style={{ gap: 6 }}>
+                  <Save size={14} />
+                  {sumupCfgSaving ? t('loading') : t('save')}
+                </button>
+              </form>
             )}
-            <input ref={logoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleLogoFile} />
-          </div>
-        </SettingsCard>
+          </SettingsCard>
+        </section>
       )}
 
-      {/* ── PIN wijzigen ────────────────────────────────────────────────── */}
-      {role === 'admin' && (
-        <SettingsCard Icon={KeyRound} label={t('settings_pin_section')} color="#DC2626">
-          <div style={{
-            background: 'var(--s50)', border: '1px solid var(--border)',
-            borderRadius: 8, padding: '8px 10px', marginBottom: '0.85rem',
-            fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.6,
-          }}>
-            {t('cashier_pin_hint')}
-          </div>
-          {/* Kies PIN type */}
-          <div style={{ display: 'flex', gap: 6, marginBottom: '0.85rem' }}>
-            {[
-              { key: 'admin',   label: t('settings_pin_admin') },
-              { key: 'cashier', label: t('settings_pin_cashier') },
-            ].map(({ key, label }) => (
+      {/* ── Beveiliging & data ──────────────────────────────────────────── */}
+      {isAdmin && (
+        <section data-section="security" ref={registerSection('security')} style={{ scrollMarginTop: STICKY_OFFSET }}>
+          <Group>{t('settings_group_security')}</Group>
+
+          {/* PIN wijzigen */}
+          <SettingsCard Icon={KeyRound} label={t('settings_pin_section')} color="#DC2626">
+            <div style={{
+              background: 'var(--s50)', border: '1px solid var(--border)',
+              borderRadius: 8, padding: '8px 10px', marginBottom: '0.85rem',
+              fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.6,
+            }}>
+              {t('cashier_pin_hint')}
+            </div>
+            {/* Kies PIN type */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: '0.85rem' }}>
+              {[
+                { key: 'admin',   label: t('settings_pin_admin') },
+                { key: 'cashier', label: t('settings_pin_cashier') },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  className={`btn btn-sm ${pinTarget === key ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => setPinTarget(key)}
+                  style={{ flex: 1 }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <form onSubmit={handleChangePin} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <input
+                className="form-input"
+                type="password"
+                inputMode="numeric"
+                placeholder={t('settings_pin_current')}
+                value={currentPin}
+                onChange={e => setCurrentPin(e.target.value)}
+                required
+              />
+              <input
+                className="form-input"
+                type="password"
+                inputMode="numeric"
+                placeholder={t('settings_pin_new')}
+                value={newPin}
+                onChange={e => setNewPin(e.target.value)}
+                minLength={4}
+                required
+              />
+              <input
+                className="form-input"
+                type="password"
+                inputMode="numeric"
+                placeholder={t('settings_pin_confirm')}
+                value={confirmPin}
+                onChange={e => setConfirmPin(e.target.value)}
+                required
+              />
+              <button type="submit" className="btn btn-primary" disabled={pinSaving} style={{ gap: 6 }}>
+                <KeyRound size={14} />
+                {pinSaving ? t('loading') : t('save')}
+              </button>
+            </form>
+          </SettingsCard>
+
+          {/* Backup & Herstel */}
+          <SettingsCard Icon={HardDrive} label={t('settings_backup_section')} color="#8A6D9B">
+            <p style={{ fontSize: '0.78rem', color: 'var(--muted)', marginBottom: '0.85rem', lineHeight: 1.5 }}>
+              {t('settings_backup_hint')}
+            </p>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button className="btn btn-outline" onClick={handleBackupDownload} style={{ gap: 6, flex: '1 1 auto' }}>
+                <Download size={14} /> {t('settings_backup_download')}
+              </button>
+              <button className="btn btn-outline" onClick={() => fileRef.current?.click()} style={{ gap: 6, flex: '1 1 auto' }}>
+                <Upload size={14} /> {t('settings_backup_restore')}
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".json"
+                style={{ display: 'none' }}
+                onChange={handleRestoreFile}
+              />
+            </div>
+          </SettingsCard>
+        </section>
+      )}
+
+      {/* ── Weergave & taal (alle rollen) ──────────────────────────────── */}
+      <section data-section="display" ref={registerSection('display')} style={{ scrollMarginTop: STICKY_OFFSET }}>
+        <Group>{t('settings_group_display')}</Group>
+
+        <SettingsCard Icon={Globe} label={t('settings_language')} color="#3C7A86">
+          <div style={{ display: 'flex', gap: 8 }}>
+            {['nl', 'en'].map(code => (
               <button
-                key={key}
-                className={`btn btn-sm ${pinTarget === key ? 'btn-primary' : 'btn-outline'}`}
-                onClick={() => setPinTarget(key)}
-                style={{ flex: 1 }}
+                key={code}
+                className={`btn ${lang === code ? 'btn-primary' : 'btn-outline'}`}
+                style={{ minWidth: 90, gap: 6 }}
+                onClick={() => setLang(code)}
               >
-                {label}
+                {code === 'nl' ? '🇳🇱  Nederlands' : '🇬🇧  English'}
               </button>
             ))}
           </div>
-          <form onSubmit={handleChangePin} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <input
-              className="form-input"
-              type="password"
-              inputMode="numeric"
-              placeholder={t('settings_pin_current')}
-              value={currentPin}
-              onChange={e => setCurrentPin(e.target.value)}
-              required
-            />
-            <input
-              className="form-input"
-              type="password"
-              inputMode="numeric"
-              placeholder={t('settings_pin_new')}
-              value={newPin}
-              onChange={e => setNewPin(e.target.value)}
-              minLength={4}
-              required
-            />
-            <input
-              className="form-input"
-              type="password"
-              inputMode="numeric"
-              placeholder={t('settings_pin_confirm')}
-              value={confirmPin}
-              onChange={e => setConfirmPin(e.target.value)}
-              required
-            />
-            <button type="submit" className="btn btn-primary" disabled={pinSaving} style={{ gap: 6 }}>
-              <KeyRound size={14} />
-              {pinSaving ? t('loading') : t('save')}
-            </button>
-          </form>
         </SettingsCard>
-      )}
 
-      {/* ── Categorieën ─────────────────────────────────────────────────── */}
-      {role === 'admin' && (
-        <CategoryEditor settings={settings} onSave={onSave} />
-      )}
-
-      {/* ── Acties ──────────────────────────────────────────────────────── */}
-      {role === 'admin' && (
-        <PromotionEditor settings={settings} onSave={onSave} />
-      )}
-
-      {/* ── Team ────────────────────────────────────────────────────────── */}
-      {role === 'admin' && <TeamManager />}
-
-      {/* ── Backup & Herstel ────────────────────────────────────────────── */}
-      {role === 'admin' && (
-        <SettingsCard Icon={HardDrive} label={t('settings_backup_section')} color="#8A6D9B">
-          <p style={{ fontSize: '0.78rem', color: 'var(--muted)', marginBottom: '0.85rem', lineHeight: 1.5 }}>
-            {t('settings_backup_hint')}
-          </p>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button className="btn btn-outline" onClick={handleBackupDownload} style={{ gap: 6, flex: '1 1 auto' }}>
-              <Download size={14} /> {t('settings_backup_download')}
-            </button>
-            <button className="btn btn-outline" onClick={() => fileRef.current?.click()} style={{ gap: 6, flex: '1 1 auto' }}>
-              <Upload size={14} /> {t('settings_backup_restore')}
-            </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".json"
-              style={{ display: 'none' }}
-              onChange={handleRestoreFile}
-            />
-          </div>
-        </SettingsCard>
-      )}
-
-      {/* ── Betaalverzoek ───────────────────────────────────────────────── */}
-      {role === 'admin' && (
-        <SettingsCard Icon={QrCode} label={t('settings_payment_section')} color="#2E6B4E">
-          <form onSubmit={handleSave}>
-            <div className="form-group">
-              <label className="form-label">{t('settings_payment_url')}</label>
-              <input
-                className="form-input"
-                type="url"
-                placeholder={t('settings_payment_url_ph')}
-                value={paymentUrl}
-                onChange={e => setPaymentUrl(e.target.value)}
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">{t('settings_payment_name')}</label>
-              <textarea
-                className="form-input"
-                placeholder={t('settings_payment_name_ph')}
-                value={paymentName}
-                onChange={e => setPaymentName(e.target.value)}
-                rows={2}
-                style={{ resize: 'vertical', minHeight: 60 }}
-              />
-            </div>
-
-            {paymentUrl && (
-              <div style={{
-                background: 'var(--s50)', border: '1px solid var(--border)',
-                borderRadius: 8, padding: '8px 10px', marginBottom: '0.85rem',
-              }}>
-                <span className="form-label" style={{ display: 'block', marginBottom: 5 }}>
-                  {t('settings_payment_preview')}
-                </span>
-                <a
-                  href={paymentUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 5,
-                    fontSize: '0.76rem', color: 'var(--primary)', textDecoration: 'none',
-                    wordBreak: 'break-all',
-                  }}
-                >
-                  <ExternalLink size={12} />
-                  {paymentUrl.length > 60 ? paymentUrl.slice(0, 60) + '…' : paymentUrl}
-                </a>
-              </div>
-            )}
-
-            <button type="submit" className="btn btn-primary" disabled={saving} style={{ gap: 6 }}>
-              <Save size={14} />
-              {saving ? t('loading') : t('save')}
-            </button>
-          </form>
-        </SettingsCard>
-      )}
-
-      {/* ── SumUp Cloud ─────────────────────────────────────────────────── */}
-      {role === 'admin' && (
-        <SettingsCard Icon={CreditCard} label={t('settings_sumup_section')} color="#0070F3">
-          <p style={{ fontSize: '0.78rem', color: 'var(--muted)', marginBottom: '0.85rem', lineHeight: 1.5 }}>
-            {t('settings_sumup_hint')}
-          </p>
+        <SettingsCard Icon={Moon} label={t('settings_appearance')} color="#8A6D9B">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <div style={{ fontWeight: 600, fontSize: '0.87rem', color: 'var(--s800)' }}>
-                {t('settings_sumup_toggle')}
+                {t('dark_mode')}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 2 }}>
-                {sumupEnabled ? t('settings_sumup_on') : t('settings_sumup_off')}
+                {darkMode ? 'Donkere modus actief' : 'Lichte modus actief'}
               </div>
             </div>
             <button
-              className={`toggle-switch${sumupEnabled ? ' on' : ''}`}
-              onClick={toggleSumup}
-              disabled={sumupSaving}
-              aria-label={t('settings_sumup_toggle')}
+              className={`toggle-switch${darkMode ? ' on' : ''}`}
+              onClick={() => setDarkMode(d => !d)}
+              aria-label={t('dark_mode')}
             >
               <span className="toggle-knob" />
             </button>
           </div>
-
-          {sumupEnabled && (
-            <form onSubmit={handleSumupConfig} style={{ marginTop: '0.9rem', borderTop: '1px solid var(--border)', paddingTop: '0.9rem' }}>
-              <div className="form-group">
-                <label className="form-label">{t('settings_sumup_merchant')}</label>
-                <input
-                  className="form-input"
-                  placeholder="MXXXXXXX"
-                  value={sumupMerchant}
-                  onChange={e => setSumupMerchant(e.target.value)}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">{t('settings_sumup_reader')}</label>
-                <input
-                  className="form-input"
-                  placeholder="rdr_XXXXXXXXXXXX"
-                  value={sumupReader}
-                  onChange={e => setSumupReader(e.target.value)}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">{t('settings_sumup_apikey')}</label>
-                <input
-                  className="form-input"
-                  type="password"
-                  autoComplete="new-password"
-                  placeholder={settings.sumupApiKeySet ? '•••••••• ' + t('settings_sumup_key_set') : 'sup_sk_...'}
-                  value={sumupApiKey}
-                  onChange={e => setSumupApiKey(e.target.value)}
-                />
-                <p style={{ fontSize: '0.72rem', color: 'var(--muted)', marginTop: 4, lineHeight: 1.4 }}>
-                  {t('settings_sumup_apikey_hint')}
-                </p>
-              </div>
-              <button type="submit" className="btn btn-primary" disabled={sumupCfgSaving} style={{ gap: 6 }}>
-                <Save size={14} />
-                {sumupCfgSaving ? t('loading') : t('save')}
-              </button>
-            </form>
-          )}
+          <div style={{ height: 1, background: 'var(--border)', margin: '0.75rem 0' }} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ fontWeight: 600, fontSize: '0.87rem', color: 'var(--s800)' }}>Tekstgrootte</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {[{ key: 'small', label: 'Klein' }, { key: 'normal', label: 'Normaal' }, { key: 'large', label: 'Groot' }].map(({ key, label }) => (
+                <button
+                  key={key}
+                  className={`btn btn-sm ${fontSize === key ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => applyFontSize(key)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
         </SettingsCard>
-      )}
-
-      {/* ── Weergave & taal (alle rollen) ──────────────────────────────── */}
-      <Group>{t('settings_group_display')}</Group>
-
-      <SettingsCard Icon={Globe} label={t('settings_language')} color="#3C7A86">
-        <div style={{ display: 'flex', gap: 8 }}>
-          {['nl', 'en'].map(code => (
-            <button
-              key={code}
-              className={`btn ${lang === code ? 'btn-primary' : 'btn-outline'}`}
-              style={{ minWidth: 90, gap: 6 }}
-              onClick={() => setLang(code)}
-            >
-              {code === 'nl' ? '🇳🇱  Nederlands' : '🇬🇧  English'}
-            </button>
-          ))}
-        </div>
-      </SettingsCard>
-
-      <SettingsCard Icon={Moon} label={t('settings_appearance')} color="#8A6D9B">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontWeight: 600, fontSize: '0.87rem', color: 'var(--s800)' }}>
-              {t('dark_mode')}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 2 }}>
-              {darkMode ? 'Donkere modus actief' : 'Lichte modus actief'}
-            </div>
-          </div>
-          <button
-            className={`toggle-switch${darkMode ? ' on' : ''}`}
-            onClick={() => setDarkMode(d => !d)}
-            aria-label={t('dark_mode')}
-          >
-            <span className="toggle-knob" />
-          </button>
-        </div>
-        <div style={{ height: 1, background: 'var(--border)', margin: '0.75rem 0' }} />
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontWeight: 600, fontSize: '0.87rem', color: 'var(--s800)' }}>Tekstgrootte</div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {[{ key: 'small', label: 'Klein' }, { key: 'normal', label: 'Normaal' }, { key: 'large', label: 'Groot' }].map(({ key, label }) => (
-              <button
-                key={key}
-                className={`btn btn-sm ${fontSize === key ? 'btn-primary' : 'btn-outline'}`}
-                onClick={() => applyFontSize(key)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </SettingsCard>
+      </section>
     </div>
   )
 }
