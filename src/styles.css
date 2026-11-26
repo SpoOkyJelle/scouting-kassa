@@ -1346,6 +1346,44 @@ hr.divider {
   .qty-wrap { display: none !important; }
 }
 
+/* ── Onboarding wizard ────────────────────────────────────────────────────── */
+.onb-wrap  { min-height: 100vh; background: var(--app-bg, var(--s50)); padding: 1.25rem 0 3rem; }
+.onb-inner { max-width: 680px; margin: 0 auto; padding: 0 1rem; }
+
+/* Stepper with a continuous progress line running behind the nodes */
+.onb-stepper { position: relative; display: flex; margin-bottom: 1.5rem; }
+.onb-track {
+  position: absolute; top: 17px; height: 3px;
+  background: var(--s200); border-radius: 2px; overflow: hidden;
+}
+.onb-track-fill {
+  position: absolute; inset: 0 auto 0 0; height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  border-radius: 2px;
+  transition: width 450ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.onb-node {
+  position: relative; z-index: 1; flex: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+}
+.onb-dot {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--s200); color: var(--s500);
+  border: 3px solid var(--app-bg, var(--s50));
+  transition: background 320ms ease, color 320ms ease,
+              transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 320ms ease;
+}
+.onb-dot.done   { background: var(--primary); color: #fff; }
+.onb-dot.active { background: var(--accent);  color: #fff; transform: scale(1.14); box-shadow: 0 0 0 4px var(--accent-lt); }
+.onb-dot .onb-check { animation: onb-pop 320ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+.onb-label { font-size: 0.68rem; font-weight: 600; color: var(--muted); text-align: center; transition: color 320ms ease; }
+.onb-label.active { color: var(--s900); }
+
+@keyframes onb-pop     { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes onb-step-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.onb-step { animation: onb-step-in 320ms cubic-bezier(0.4, 0, 0.2, 1); }
+
 /* ── Reduced motion ───────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

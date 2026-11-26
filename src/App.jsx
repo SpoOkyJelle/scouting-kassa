@@ -287,6 +287,8 @@ export default function App() {
               <OnboardingWizard
                 settings={appSettings}
                 onSave={setAppSettings}
+                account={account}
+                onAccountChange={setAccount}
                 onFinish={() => setOnboardingDismissed(true)}
               />
             ) : (
