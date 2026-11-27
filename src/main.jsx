@@ -12,12 +12,14 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import KlantenschermDisplay from './components/KlantenschermDisplay'
 import AcceptInvite from './components/AcceptInvite'
+import LandingPage from './components/LandingPage'
 import './styles.css'
 
 const path = window.location.pathname
 const route = path === '/display' ? <KlantenschermDisplay />
             : path === '/invite'  ? <AcceptInvite />
-            : <App />
+            : path === '/app'     ? <App />
+            : <LandingPage />   // '/' and anything else → the public welcome page
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

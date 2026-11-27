@@ -128,6 +128,7 @@ export const translations = {
     // Login
     login_heading:    'Welkom terug',
     login_sub:        'Log in om door te gaan',
+    login_what_is:    'Wat is Tappy?',
     login_placeholder:'PIN',
     login_submit:     'Inloggen',
     login_error:      'Verkeerde PIN. Probeer opnieuw.',
@@ -531,6 +532,7 @@ export const translations = {
     // Login
     login_heading:    'Welcome back',
     login_sub:        'Log in to continue',
+    login_what_is:    'What is Tappy?',
     login_placeholder:'PIN',
     login_submit:     'Sign in',
     login_error:      'Wrong PIN. Please try again.',

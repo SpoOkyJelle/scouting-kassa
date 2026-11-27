@@ -12,8 +12,11 @@ const Spinner = () => (
 
 export default function LoginScreen({ onLogin, lang, setLang }) {
   const { t } = useLang()
+  // Deep-links from the landing page: /?register=1 opens the sign-up form,
+  // /?login=1 opens the account login.
+  const startRegister = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('register')
   const [mode, setMode]     = useState('account')   // 'account' | 'pin'
-  const [auth, setAuth]     = useState('login')      // 'login' | 'register'
+  const [auth, setAuth]     = useState(startRegister ? 'register' : 'login')  // 'login' | 'register'
   const [loading, setLoading] = useState(false)
   const [error, setError]   = useState('')
 
@@ -190,6 +193,14 @@ export default function LoginScreen({ onLogin, lang, setLang }) {
           </form>
         )}
       </div>
+
+      <a href="/" style={{
+        position: 'relative', zIndex: 2, marginTop: '1.1rem',
+        color: 'rgba(255,255,255,0.78)', fontSize: '0.82rem', fontWeight: 500,
+        textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6,
+      }}>
+        {t('login_what_is')}
+      </a>
     </div>
   )
 }

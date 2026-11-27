@@ -1,0 +1,340 @@
+/* ── Tappy landing ("Veldkassa" marketing front door) ──────────────────────
+   Scoped under .lp so nothing here touches the app's own classes. Extends the
+   app's pine / honey / oat identity: dark pine hero + footer, warm oat body,
+   the kassabon as the hero artifact. */
+
+.lp {
+  --pine-900: #163A2B;
+  --pine-700: #1E4D39;
+  --pine-600: #2E6B4E;
+  --pine-500: #3C8A64;
+  --honey:    #C77A1A;
+  --honey-lt: #F6E9CE;
+  --ink:      #26231E;
+  --ink-soft: #554F45;
+  --oat:      #F3F1EC;
+  --oat-2:    #ECE8DF;
+  --paper:    #FBFAF6;
+  --line:     #E3DED3;
+
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--ink);
+  background: var(--oat);
+  min-height: 100vh;
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+.lp *, .lp *::before, .lp *::after { box-sizing: border-box; }
+
+.lp-display { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; }
+
+.lp-wrap { width: 100%; max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+
+/* ── Links & buttons ─────────────────────────────────────────────────────── */
+/* Reset plain links only — :not(.lp-btn) keeps this off the button anchors so
+   it can't out-specify their own colour rules. */
+.lp a { text-decoration: none; }
+.lp a:not(.lp-btn) { color: inherit; }
+
+.lp-btn {
+  display: inline-flex; align-items: center; gap: 9px;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-weight: 600; font-size: 1rem; line-height: 1;
+  padding: 14px 22px; border-radius: 12px;
+  border: 1.5px solid transparent; cursor: pointer;
+  transition: transform .14s ease, background .16s ease, box-shadow .16s ease, border-color .16s ease;
+  white-space: nowrap;
+}
+.lp-btn:active { transform: translateY(1px); }
+.lp-btn-primary { background: var(--honey); color: #fff; box-shadow: 0 8px 20px -8px rgba(199,122,26,.7); }
+.lp-btn-primary:hover { background: #B06514; box-shadow: 0 12px 26px -8px rgba(199,122,26,.75); }
+.lp-btn-pine { background: var(--pine-600); color: #fff; }
+.lp-btn-pine:hover { background: var(--pine-700); }
+.lp-btn-ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.lp-btn-ghost:hover { border-color: var(--ink); }
+.lp-btn-onpine { background: rgba(255,255,255,.1); color: #fff; border-color: rgba(255,255,255,.28); }
+.lp-btn-onpine:hover { background: rgba(255,255,255,.18); }
+.lp-btn-sm { padding: 10px 16px; font-size: .92rem; border-radius: 10px; }
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.lp-header {
+  position: sticky; top: 0; z-index: 20;
+  background: rgba(251,250,246,.86);
+  backdrop-filter: saturate(140%) blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.lp-header-in { display: flex; align-items: center; justify-content: space-between; height: 68px; }
+.lp-logo { height: 30px; width: auto; display: block; }
+.lp-nav { display: flex; align-items: center; gap: 28px; }
+.lp-nav a:not(.lp-btn) { font-weight: 500; font-size: .95rem; color: var(--ink-soft); transition: color .15s; }
+.lp-nav a:not(.lp-btn):hover { color: var(--ink); }
+.lp-nav-links { display: flex; gap: 28px; }
+.lp-langswitch { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.lp-langswitch button {
+  font: inherit; font-size: .8rem; font-weight: 600; padding: 5px 9px;
+  background: transparent; border: 0; cursor: pointer; color: var(--ink-soft);
+}
+.lp-langswitch button.on { background: var(--pine-600); color: #fff; }
+
+/* ── Hero ────────────────────────────────────────────────────────────────── */
+.lp-hero {
+  position: relative; overflow: hidden;
+  background: radial-gradient(125% 90% at 15% -10%, #2E6B4E 0%, #1E4D39 48%, #163A2B 100%);
+  color: #F4F2EA;
+}
+.lp-hero::before { /* honey glow */
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(38% 42% at 82% 18%, rgba(199,122,26,.26) 0%, rgba(199,122,26,0) 70%);
+}
+.lp-hero-in {
+  position: relative; z-index: 1;
+  display: grid; grid-template-columns: 1.05fr .95fr; gap: 56px; align-items: center;
+  padding: 84px 0 96px;
+}
+.lp-kicker {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: .9rem; font-weight: 500; color: #CFE3D6;
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
+  padding: 6px 13px; border-radius: 999px; margin-bottom: 22px;
+}
+.lp-h1 {
+  font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800;
+  font-size: clamp(2.5rem, 5.4vw, 3.9rem); line-height: 1.02;
+  letter-spacing: -.02em; margin: 0 0 20px; color: #fff;
+}
+.lp-h1 .soft { color: #A8CDB4; }
+.lp-lead { font-size: 1.14rem; line-height: 1.6; color: #D4E2D8; max-width: 33ch; margin: 0 0 30px; }
+.lp-cta-row { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 26px; }
+.lp-ticks { display: flex; flex-wrap: wrap; gap: 8px 22px; }
+.lp-tick { display: inline-flex; align-items: center; gap: 8px; font-size: .92rem; color: #BFD6C7; }
+.lp-tick svg { color: var(--honey); flex: none; }
+
+/* ── Kassabon (hero artifact) ────────────────────────────────────────────── */
+.lp-bon-stage { display: flex; justify-content: center; perspective: 1200px; }
+.lp-bon {
+  position: relative; width: 340px; max-width: 100%;
+  background: var(--paper); color: var(--ink);
+  padding: 30px 28px 26px;
+  box-shadow: 0 40px 70px -24px rgba(8,22,14,.6), 0 12px 24px -12px rgba(8,22,14,.45);
+  transform: rotate(-2.3deg);
+  font-family: 'Inter', sans-serif;
+}
+/* perforated top & bottom edges */
+.lp-bon::before, .lp-bon::after {
+  content: ''; position: absolute; left: -2px; right: -2px; height: 12px;
+  background: radial-gradient(circle at 6px 0, transparent 0 6px, var(--paper) 6.5px) repeat-x;
+  background-size: 14px 12px;
+}
+.lp-bon::before { top: -10px; transform: scaleY(-1); }
+.lp-bon::after { bottom: -10px; }
+.lp-bon-head { text-align: center; padding-bottom: 14px; border-bottom: 1.5px dashed var(--line); margin-bottom: 14px; }
+.lp-bon-org { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 1.12rem; letter-spacing: -.01em; }
+.lp-bon-sub { font-size: .78rem; color: var(--ink-soft); margin-top: 2px; letter-spacing: .02em; }
+.lp-bon-row { display: flex; justify-content: space-between; align-items: baseline; font-size: .92rem; padding: 5px 0; }
+.lp-bon-row .q { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.lp-bon-row .nm { flex: 1; padding: 0 4px 0 10px; }
+.lp-bon-row .amt { font-variant-numeric: tabular-nums; font-weight: 500; }
+.lp-bon-promo { color: var(--pine-600); font-weight: 600; }
+.lp-bon-rule { border: 0; border-top: 1.5px dashed var(--line); margin: 12px 0; }
+.lp-bon-total { display: flex; justify-content: space-between; align-items: baseline; }
+.lp-bon-total .lab { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 1.05rem; }
+.lp-bon-total .val { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 1.5rem; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.lp-bon-foot { text-align: center; font-size: .72rem; color: var(--ink-soft); margin-top: 16px; letter-spacing: .04em; }
+.lp-stamp {
+  position: absolute; left: 22px; bottom: 30px;
+  font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 1.02rem;
+  letter-spacing: .06em; color: var(--pine-600);
+  border: 2.5px solid var(--pine-600); border-radius: 7px; padding: 4px 11px;
+  transform: rotate(-11deg); opacity: .9;
+}
+
+/* ── Section scaffolding ─────────────────────────────────────────────────── */
+.lp-section { padding: 88px 0; }
+.lp-section-tight { padding: 68px 0; }
+.lp-eyebrow { font-size: .92rem; font-weight: 600; color: var(--honey); margin: 0 0 12px; }
+.lp-h2 {
+  font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800;
+  font-size: clamp(1.9rem, 3.4vw, 2.6rem); line-height: 1.07; letter-spacing: -.02em;
+  margin: 0 0 16px; max-width: 18ch;
+}
+.lp-h2-sub { font-size: 1.08rem; color: var(--ink-soft); max-width: 54ch; margin: 0; }
+.lp-sec-head { margin-bottom: 52px; }
+
+/* ── Features as ledger entries ──────────────────────────────────────────── */
+.lp-features { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px 56px; }
+.lp-feat {
+  display: grid; grid-template-columns: auto 1fr; gap: 18px;
+  padding: 26px 0; border-top: 1px solid var(--line);
+}
+.lp-feat-ico {
+  width: 44px; height: 44px; border-radius: 11px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  background: #E4EFE8; color: var(--pine-700);
+}
+.lp-feat-h { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 1.12rem; letter-spacing: -.01em; margin: 2px 0 5px; }
+.lp-feat-p { font-size: .98rem; color: var(--ink-soft); margin: 0; max-width: 40ch; }
+
+/* ── Steps (real sequence) ───────────────────────────────────────────────── */
+.lp-steps-band { background: var(--pine-900); color: #EAF1EC; }
+.lp-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 36px; counter-reset: step; }
+.lp-step { position: relative; padding-top: 18px; }
+.lp-step-n {
+  font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 2.3rem;
+  color: var(--honey); line-height: 1; margin-bottom: 14px; display: block;
+}
+.lp-step-h { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 1.22rem; margin: 0 0 8px; color: #fff; }
+.lp-step-p { font-size: 1rem; color: #B9CEC0; margin: 0; max-width: 32ch; }
+.lp-steps-band .lp-h2 { color: #fff; }
+.lp-steps-band .lp-eyebrow { color: var(--honey); }
+
+/* ── Pricing ─────────────────────────────────────────────────────────────── */
+.lp-prices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; align-items: stretch; }
+.lp-price {
+  display: flex; flex-direction: column;
+  background: var(--paper); border: 1px solid var(--line); border-radius: 18px;
+  padding: 28px 26px;
+}
+.lp-price-hot {
+  border-color: var(--pine-600); box-shadow: 0 24px 44px -24px rgba(30,77,57,.5);
+  position: relative;
+}
+.lp-price-tag {
+  position: absolute; top: -12px; left: 26px;
+  background: var(--pine-600); color: #fff; font-size: .78rem; font-weight: 600;
+  padding: 4px 12px; border-radius: 999px;
+}
+.lp-price-name { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 1.3rem; }
+.lp-price-tagline { font-size: .92rem; color: var(--ink-soft); margin: 4px 0 18px; min-height: 2.6em; }
+.lp-price-amt { display: flex; align-items: baseline; gap: 6px; margin-bottom: 20px; }
+.lp-price-amt .n { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 2.5rem; letter-spacing: -.02em; }
+.lp-price-amt .per { font-size: .9rem; color: var(--ink-soft); }
+.lp-price ul { list-style: none; padding: 0; margin: 0 0 24px; display: grid; gap: 10px; }
+.lp-price li { display: flex; align-items: flex-start; gap: 9px; font-size: .95rem; }
+.lp-price li svg { color: var(--pine-600); flex: none; margin-top: 2px; }
+.lp-price .lp-btn { margin-top: auto; justify-content: center; }
+.lp-price-note { text-align: center; font-size: .92rem; color: var(--ink-soft); margin: 26px auto 0; max-width: 50ch; }
+
+/* ── Closing CTA ─────────────────────────────────────────────────────────── */
+.lp-cta {
+  background: radial-gradient(120% 120% at 80% 0%, #2E6B4E 0%, #1E4D39 55%, #163A2B 100%);
+  color: #fff; text-align: center;
+}
+.lp-cta .lp-h2 { color: #fff; margin: 0 auto 14px; max-width: 20ch; }
+.lp-cta-lead { font-size: 1.12rem; color: #CFE0D4; max-width: 46ch; margin: 0 auto 30px; }
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+.lp-footer { background: var(--ink); color: #BDB7AC; padding: 44px 0; }
+.lp-footer-in { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: space-between; }
+.lp-footer a:hover { color: #fff; }
+.lp-footer-links { display: flex; flex-wrap: wrap; gap: 24px; font-size: .95rem; }
+.lp-footer-fine { font-size: .86rem; color: #8A857B; }
+
+/* ── Hero entrance ───────────────────────────────────────────────────────── */
+@keyframes lp-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+.lp-anim { opacity: 0; animation: lp-rise .6s cubic-bezier(.22,1,.36,1) forwards; }
+.lp-anim-1 { animation-delay: .05s; }
+.lp-anim-2 { animation-delay: .16s; }
+.lp-anim-3 { animation-delay: .28s; }
+
+/* The receipt prints: the paper feeds up, then each line prints top-to-bottom,
+   then the Betaald stamp thumps down. The one orchestrated moment of the page. */
+@keyframes lp-feed {
+  from { opacity: 0; transform: translateY(34px) rotate(-5deg); }
+  to   { opacity: 1; transform: translateY(0) rotate(-2.3deg); }
+}
+@keyframes lp-print { from { opacity: 0; transform: translateY(-7px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes lp-thump {
+  0%   { opacity: 0; transform: rotate(-30deg) scale(1.7); }
+  65%  { opacity: .95; transform: rotate(-8deg) scale(.92); }
+  82%  { transform: rotate(-12.5deg) scale(1.04); }
+  100% { opacity: .9; transform: rotate(-11deg) scale(1); }
+}
+.lp-bon { animation: lp-feed .7s cubic-bezier(.22,1,.36,1) .15s both; }
+/* Each printed line waits for the paper to land (~.75s), then cascades. */
+.lp-bon-head,
+.lp-bon-row,
+.lp-bon-rule,
+.lp-bon-total,
+.lp-bon-foot { animation: lp-print .4s ease-out both; animation-delay: calc(.75s + var(--line, 0) * .11s); }
+.lp-bon-head  { --line: 0; }   /* rows carry their own --line inline (1..4) */
+.lp-bon-rule  { --line: 5; }
+.lp-bon-total { --line: 6; }
+.lp-bon-foot  { --line: 7; }
+.lp-stamp { animation: lp-thump .5s cubic-bezier(.34,1.3,.64,1) 1.75s both; }
+
+/* ── Scroll reveal (restrained: short rise, light stagger) ───────────────── */
+.lp-reveal {
+  opacity: 0; transform: translateY(20px);
+  transition: opacity .6s cubic-bezier(.22,1,.36,1), transform .6s cubic-bezier(.22,1,.36,1);
+  transition-delay: calc(var(--i, 0) * 70ms);
+  will-change: opacity, transform;
+}
+.lp-reveal.is-in { opacity: 1; transform: none; }
+
+/* ── Hover micro-interactions ────────────────────────────────────────────── */
+.lp-btn svg { transition: transform .16s ease; }
+.lp-btn:hover svg { transform: translateX(3px); }
+.lp-price { transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease; }
+.lp-price:hover { transform: translateY(-5px); box-shadow: 0 26px 46px -24px rgba(30,77,57,.4); }
+.lp-price-hot:hover { box-shadow: 0 30px 54px -22px rgba(30,77,57,.55); }
+.lp-feat-ico { transition: transform .2s ease, background .2s ease, color .2s ease; }
+.lp-feat:hover .lp-feat-ico { transform: scale(1.07); background: var(--pine-600); color: #fff; }
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .lp-hero-in { gap: 40px; }
+  .lp-section { padding: 72px 0; }
+  .lp-features { gap: 2px 40px; }
+}
+@media (max-width: 860px) {
+  .lp-nav-links { display: none; }
+  .lp-hero-in { grid-template-columns: 1fr; gap: 44px; padding: 56px 0 68px; }
+  .lp-lead { max-width: none; }
+  .lp-bon-stage { order: 2; }
+  .lp-features { grid-template-columns: 1fr; }
+  .lp-feat:first-of-type { border-top: 1px solid var(--line); }
+  .lp-steps { grid-template-columns: 1fr; gap: 28px; }
+  .lp-prices { grid-template-columns: 1fr; max-width: 440px; margin: 0 auto; }
+  .lp-h2 { max-width: none; }
+}
+@media (max-width: 620px) {
+  .lp { font-size: 15px; }
+  .lp-wrap { padding: 0 20px; }
+  .lp-header-in { height: 60px; }
+  .lp-logo { height: 26px; }
+  .lp-nav { gap: 12px; }
+  .lp-section { padding: 56px 0; }
+  .lp-sec-head { margin-bottom: 36px; }
+  .lp-hero-in { padding: 44px 0 56px; }
+  .lp-kicker { margin-bottom: 18px; }
+  .lp-cta-row { gap: 10px; }
+  .lp-cta-row .lp-btn { flex: 1 1 auto; justify-content: center; }
+  .lp-bon { width: 300px; }
+  .lp-footer-in { flex-direction: column; align-items: flex-start; gap: 16px; }
+}
+@media (max-width: 440px) {
+  .lp-nav .lp-btn-ghost { display: none; }   /* keep "Gratis beginnen"; login lives in the hero + footer */
+  .lp-cta-row { flex-direction: column; align-items: stretch; }
+  .lp-ticks { gap: 7px 16px; }
+  .lp-bon { width: 100%; }
+  .lp-price { padding: 24px 22px; }
+}
+
+/* ── Accessibility ───────────────────────────────────────────────────────── */
+.lp a:focus-visible, .lp button:focus-visible {
+  outline: 3px solid var(--honey); outline-offset: 2px; border-radius: 6px;
+}
+.lp-hero a:focus-visible, .lp-cta a:focus-visible, .lp-steps-band a:focus-visible { outline-color: #F6E9CE; }
+@media (prefers-reduced-motion: reduce) {
+  .lp-anim, .lp-bon,
+  .lp-bon-head, .lp-bon-row, .lp-bon-rule, .lp-bon-total, .lp-bon-foot,
+  .lp-stamp { animation: none !important; opacity: 1; }
+  .lp-anim, .lp-bon-head, .lp-bon-row, .lp-bon-rule, .lp-bon-total, .lp-bon-foot { transform: none; }
+  .lp-bon { transform: rotate(-2.3deg); }
+  .lp-stamp { transform: rotate(-11deg); opacity: .9; }
+  .lp-reveal { opacity: 1; transform: none; transition: none; }
+  .lp-btn, .lp-btn svg, .lp-price, .lp-feat-ico { transition: none; }
+  .lp-price:hover, .lp-feat:hover .lp-feat-ico, .lp-btn:hover svg { transform: none; }
+}

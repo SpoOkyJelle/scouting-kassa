@@ -35,7 +35,7 @@ export default function AcceptInvite() {
       const { token: sessionToken, role } = await acceptInvite({ token, password, name: name.trim() || undefined })
       localStorage.setItem('kassa_token', sessionToken)
       localStorage.setItem('kassa_role', role || 'cashier')
-      window.location.href = '/'
+      window.location.href = '/app'
     } catch (err) {
       setError(err.message || t('invite_failed'))
       setBusy(false)
@@ -68,7 +68,7 @@ export default function AcceptInvite() {
       <AlertTriangle size={28} color="var(--danger)" style={{ marginBottom: 10 }} />
       <p style={{ color: 'var(--s900)', fontWeight: 600, marginBottom: 6 }}>{loadErr}</p>
       <p style={{ fontSize: '0.82rem', color: 'var(--muted)', marginBottom: '1rem' }}>{t('invite_invalid_hint')}</p>
-      <a href="/" className="btn btn-primary btn-full">{t('invite_to_login')}</a>
+      <a href="/app?login=1" className="btn btn-primary btn-full">{t('invite_to_login')}</a>
     </div>
   )
 
