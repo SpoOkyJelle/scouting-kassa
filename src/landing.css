@@ -30,7 +30,7 @@
 
 .lp-display { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; }
 
-.lp-wrap { width: 100%; max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+.lp-wrap { width: 100%; max-width: 1140px; margin: 0 auto; padding: 0 32px; }
 
 /* ── Links & buttons ─────────────────────────────────────────────────────── */
 /* Reset plain links only — :not(.lp-btn) keeps this off the button anchors so
@@ -290,8 +290,12 @@
 }
 @media (max-width: 860px) {
   .lp-nav-links { display: none; }
-  .lp-hero-in { grid-template-columns: 1fr; gap: 44px; padding: 56px 0 68px; }
-  .lp-lead { max-width: none; }
+  /* Stacked hero: center the text block so it sits in the middle, not pinned
+     to the edge. */
+  .lp-hero-in { grid-template-columns: 1fr; gap: 44px; padding: 56px 0 68px; text-align: center; }
+  .lp-lead { max-width: 52ch; margin-left: auto; margin-right: auto; }
+  .lp-cta-row { justify-content: center; }
+  .lp-ticks { justify-content: center; }
   .lp-bon-stage { order: 2; }
   .lp-features { grid-template-columns: 1fr; }
   .lp-feat:first-of-type { border-top: 1px solid var(--line); }
